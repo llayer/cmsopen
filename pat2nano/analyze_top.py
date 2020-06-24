@@ -29,9 +29,23 @@ fileName = cms.string('analyzePatTopSelection.root')
 #    met   = cms.untracked.InputTag("patMETs"))
 
 #process.load("TopTauAnalyzer_cfi")
+"""
+process.analyzeTau = cms.EDAnalyzer("TopTauAnalyze",
+    vertices = cms.InputTag("goodOfflinePrimaryVertices"),
+    muons = cms.InputTag("selectedPatMuonsPF"),
+    electrons = cms.InputTag("selectedPatElectronsPF"),
+    taus = cms.InputTag("selectedPatTausPF"),
+    met = cms.InputTag("patMETsPF"),
+    jets = cms.InputTag("selectedPatJetsPF"),
+    verbose = cms.bool(True)
+)"""
 process.analyzeTau = cms.EDAnalyzer("TopTauAnalyze",
     taus = cms.InputTag("selectedPatTausPF"),
     jets = cms.InputTag("selectedPatJetsPF"),
+    muons = cms.InputTag("selectedPatMuonsPF"),
+    electrons = cms.InputTag("selectedPatElectronsPF"),
+    vertices = cms.InputTag("goodOfflinePrimaryVertices"),
+    met   = cms.InputTag("patMETsPF"),
     verbose = cms.bool(True)
 )
 
