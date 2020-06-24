@@ -33,7 +33,15 @@ class TopTauAnalyze : public edm::EDAnalyzer {
   float value_tau_phi[max_tau];
   float value_tau_mass[max_tau];
 
+  // Jets
+  const static int max_jet = 1000;
+  UInt_t value_jet_n;
+  float value_jet_pt[max_jet];
+  float value_jet_eta[max_jet];
+  float value_jet_phi[max_jet];
+  float value_jet_mass[max_jet];
 
+  
   edm::InputTag taus_;
   edm::InputTag jets_;
 
