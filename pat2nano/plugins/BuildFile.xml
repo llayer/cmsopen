@@ -1,0 +1,12 @@
+<use   name="FWCore/MessageLogger"/>
+<use   name="FWCore/ParameterSet"/>
+<use   name="FWCore/Framework"/>
+<use   name="FWCore/Utilities"/>
+<use   name="DataFormats/PatCandidates"/>
+<use   name="DataFormats/TrackReco"/>
+<use   name="DataFormats/VertexReco"/>
+<use   name="CommonTools/UtilAlgos"/>
+<use name="FWCore/PluginManager"/>
+<library   file="*.cc" name="TopAnalysisTopAnalyzerPlugins">
+  <flags   EDM_PLUGIN="1"/>
+</library>
