@@ -1,0 +1,34 @@
+
+1	<use   name="FWCore/Framework"/>
+2	<use   name="FWCore/ParameterSet"/>
+3	<use   name="root"/>
+4	<use   name="rootrflx"/>
+5	<use   name="hepmc"/>
+6	<use   name="PhysicsTools/UtilAlgos"/>
+7	<use   name="PhysicsTools/CandUtils"/>
+8	<use   name="PhysicsTools/PatUtils"/>
+9	<use   name="DataFormats/PatCandidates"/>
+10	<use   name="DataFormats/JetReco"/>
+11	<use   name="DataFormats/METReco"/>
+12	<use   name="DataFormats/EgammaCandidates"/>
+13	<use   name="DataFormats/VertexReco"/>
+14	<use   name="DataFormats/BeamSpot"/>
+15	<use   name="CondFormats/JetMETObjects"/>
+16	<use   name="JetMETCorrections/Objects"/>
+17	<use   name="TrackingTools/TransientTrack"/>
+18	<use   name="TrackingTools/Records"/>
+19	<use   name="TrackingTools/IPTools"/>
+20	<use   name="RecoLocalCalo/EcalRecAlgos"/>
+21	<use   name="MiniTreeFormat/MTFormat"/>
+22	<use   name="MiniTreeFormat/NTFormat"/>
+23	<use   name="MagneticField/Records"/>
+24	<use   name="MagneticField/Engine"/>
+25	<use   name="DataFormats/GeometryVector"/>
+26	<use   name="DataFormats/GsfTrackReco"/>
+27	<use   name="DataFormats/TrackReco"/>
+28	<use   name="DataFormats/Scalers"/>
+29	<use   name="RecoEgamma/EgammaTools"/>
+30	<flags   EDM_PLUGIN="1"/>
+31	<export>
+32	  <lib   name="1"/>
+33	</export>

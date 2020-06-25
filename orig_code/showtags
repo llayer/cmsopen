@@ -1,0 +1,29 @@
+
+1	Test Release based on: CMSSW_4_2_8_patch7
+2	Base Release in: /opt/exp_soft/cms/slc5_amd64_gcc434/cms/cmssw-patch/CMSSW_4_2_8_patch7
+3	Your Test release in: /grid_mnt/opt__sbg__data__data1/cms/lebihan/clean_january_2012_2/CMSSW_4_2_8_patch7
+4	--- Tag ---    -------- Package --------                        
+5	B4_2_X_V00-03-00 CommonTools/ParticleFlow                         
+6	V03-03-07      DataFormats/METReco                              
+7	V06-04-19-02   DataFormats/PatCandidates                        
+8	V02-03-00      JetMETCorrections/Algorithms                     
+9	V05-00-17-01   JetMETCorrections/Modules                        
+10	V03-01-00      JetMETCorrections/Objects                        
+11	V04-05-07      JetMETCorrections/Type1MET                       
+12	NoTag          MiniTreeAnalysis/NTupleAnalysis                  
+13	NoTag          MiniTreeAnalysis/NTupleProducer                  
+14	NoTag          MiniTreeAnalysis/NTupleValidation                
+15	NoTag          MiniTreeFormat/MTFormat                          
+16	NoTag          MiniTreeFormat/NTFormat                          
+17	V08-06-50      PhysicsTools/PatAlgos                            
+18	V00-05-24      PhysicsTools/PatExamples                         
+19	V03-09-18      PhysicsTools/PatUtils                            
+20	V00-03-24      PhysicsTools/SelectorUtils                       
+21	V08-02-14      PhysicsTools/UtilAlgos                           
+22	V00-03-31      RecoEgamma/ElectronIdentification                
+23	V03-03-16      RecoLuminosity/LumiDB                            
+24	V01-02-09      RecoTauTag/Configuration                         
+25	V01-02-07-02   RecoTauTag/RecoTau                               
+26	NoTag          RecoTauTag/TauTagTools                           
+27	NoTag          TopQuarkAnalysis/MiniTreeProducer                
+28	---------------------------------------
