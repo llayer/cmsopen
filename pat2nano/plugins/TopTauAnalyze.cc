@@ -4,19 +4,26 @@
 #include "DataFormats/PatCandidates/interface/Electron.h"
 #include "DataFormats/VertexReco/interface/Vertex.h"
 #include "DataFormats/PatCandidates/interface/MET.h"
+#include "AnalysisDataFormats/TopObjects/interface/TtGenEvent.h"
 #include "TopTauAnalyze.h"
 
 TopTauAnalyze::TopTauAnalyze(const edm::ParameterSet& cfg):
   vertices_(cfg.getParameter<edm::InputTag>("vertices")),
   muons_(cfg.getParameter<edm::InputTag>("muons")),
   electrons_(cfg.getParameter<edm::InputTag>("electrons")),
-  taus_(cfg.getParameter<edm::InputTag>("taus")),
   met_(cfg.getParameter<edm::InputTag>("met")),
-  jets_(cfg.getParameter<edm::InputTag>("jets"))
+  taus_(cfg.getParameter<edm::InputTag>("taus")),
+  jets_(cfg.getParameter<edm::InputTag>("jets")),
+  genEvent_(cfg.getParameter<edm::InputTag>("genEvent"))
 {
   edm::Service<TFileService> fs;
 
   tree = fs->make<TTree>("Events", "Events");
+
+  // Event information
+  tree->Branch("run", &value_run);
+  tree->Branch("luminosityBlock", &value_lumi_block);
+  tree->Branch("event", &value_event);
 
   // Vertices
   tree->Branch("PV_npvs", &value_ve_n, "PV_npvs/I");
@@ -49,12 +56,26 @@ TopTauAnalyze::TopTauAnalyze(const edm::ParameterSet& cfg):
   tree->Branch("MET_pt", &value_met_pt, "MET_pt/F");
   tree->Branch("MET_phi", &value_met_phi, "MET_phi/F");
   tree->Branch("MET_sumet", &value_met_sumet, "MET_sumet/F");
+
   // Jets
   tree->Branch("nJet", &value_jet_n, "nJet/i");
   tree->Branch("Jet_pt", value_jet_pt, "Jet_pt[nJet]/F");
   tree->Branch("Jet_eta", value_jet_eta, "Jet_eta[nJet]/F");
   tree->Branch("Jet_phi", value_jet_phi, "Jet_phi[nJet]/F");
   tree->Branch("Jet_mass", value_jet_mass, "Jet_mass[nJet]/F");
+
+  // genEvent
+  tree->Branch("genEvent_nLep", &value_nLep_, "genEvent_nLep/F");
+  tree->Branch("genEvent_topPt", &value_topPt_, "genEvent_topPt/F");
+  tree->Branch("genEvent_topEta", &value_topEta_, "genEvent_topEta/F");
+  tree->Branch("genEvent_topPhi", &value_topPhi_, "genEvent_topPhi/F");
+  tree->Branch("genEvent_topBarPt", &value_topBarPt_, "genEvent_topBarPt/F");
+  tree->Branch("genEvent_topBarEta", &value_topBarEta_, "genEvent_topBarEta/F");
+  tree->Branch("genEvent_topBarPhi", &value_topBarPhi_, "genEvent_topBarPhi/F");
+  tree->Branch("genEvent_ttbarPt", &value_ttbarPt_, "genEvent_ttbarPt/F");
+  tree->Branch("genEvent_ttbarEta", &value_ttbarEta_, "genEvent_ttbarEta/F");
+  tree->Branch("genEvent_ttbarPhi", &value_ttbarPhi_, "genEvent_ttbarPhi/F");
+
 
   mult_ = fs->make<TH1F>("mult", "multiplicity (taus)", 30,  0 ,   30);
   en_   = fs->make<TH1F>("en"  , "energy (taus)",       60,  0., 300.);
@@ -84,6 +105,8 @@ TopTauAnalyze::analyze(const edm::Event& evt, const edm::EventSetup& setup)
   evt.getByLabel(muons_, muons);
   edm::Handle<std::vector<pat::MET> > met;
   evt.getByLabel(met_, met);
+  edm::Handle<TtGenEvent> genEvent;
+  evt.getByLabel(genEvent_, genEvent);
 
   mult_->Fill( taus->size() );
   for(std::vector<pat::Tau>::const_iterator tau=taus->begin(); tau!=taus->end(); ++tau){
@@ -92,6 +115,11 @@ TopTauAnalyze::analyze(const edm::Event& evt, const edm::EventSetup& setup)
     eta_->Fill( tau->eta()    );
     phi_->Fill( tau->phi()    );
   }
+
+  // Event information
+  value_run = evt.run();
+  value_lumi_block = evt.luminosityBlock();
+  value_event = evt.id().event();
 
   // Vertex
   value_ve_n = vertices->size();
@@ -156,6 +184,21 @@ TopTauAnalyze::analyze(const edm::Event& evt, const edm::EventSetup& setup)
       value_jet_mass[value_jet_n] = it->mass();
       value_jet_n++;
     }
+  }
+
+  if( genEvent->isTtBar() ){
+
+    value_nLep_ = genEvent->numberOfLeptons();
+    value_topPt_ = genEvent->top()->pt();
+    value_topEta_ = genEvent->top()->eta();
+    value_topPhi_ = genEvent->top   ()->phi();
+    value_topBarPt_ = genEvent->topBar()->pt();
+    value_topBarEta_ = genEvent->topBar()->eta();
+    value_topBarPhi_ = genEvent->topBar()->phi();
+    value_ttbarPt_ = genEvent->topPair()->pt();
+    value_ttbarEta_ = genEvent->topPair()->eta();
+    value_ttbarPhi_ = genEvent->topPair()->phi();
+
   }
 
   tree->Fill();

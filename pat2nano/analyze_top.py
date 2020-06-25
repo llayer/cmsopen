@@ -46,6 +46,7 @@ process.analyzeTau = cms.EDAnalyzer("TopTauAnalyze",
     electrons = cms.InputTag("selectedPatElectronsPF"),
     vertices = cms.InputTag("goodOfflinePrimaryVertices"),
     met   = cms.InputTag("patMETsPF"),
+    genEvent = cms.InputTag("genEvt"),
     verbose = cms.bool(True)
 )
 
