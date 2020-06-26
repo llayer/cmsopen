@@ -1,0 +1,59 @@
+pull directory :
+----------------
+
+ø Machinery to check the pull of the NNoutput fit.
+-->
+  ø pullHisto_Haryo_bigsample_5.C : to do the final pull
+  ø pullHisto_Haryo_bigsample_uncertainty_5.C : to do the pull uncertainty
+  ø numbers included in previous files are taken from
+  pull_results_Haryo_bigsample*.txt
+  ø Suite_Haryo*C generates random numbers to choose events out of collection
+  ø Indices_Haryo* chooses values
+  
+   
+
+rootFilesTurnOn directory :
+---------------------------
+jet and tau legs used in Selection/src/SemiLeptonicSelection.cc
+
+
+weights directory :
+-------------------
+TMVA file to be loaded by NN
+
+
+data directory :
+----------------
+common root files used in code (Selection/Tools...)
+
+
+Files :
+-------
+ø TMVA_bkg_newLumi.root  
+  TMVA_sig_newLumi.root files to perform the NN training, produced by  TMVA_tree.C
+
+ø tau_leg_quadjet40_isopftau40.root,  tau_leg_quadjet40_isopftau40_fit.root  tau_leg_quadjet45_isopftau45.root  tau_leg_quadjet45_isopftau45_fit.root
+histos of tau-leg fits contained in rootFilesTurnOn/TriggerEffHisto_match40_newTauID.root, TriggerEffHisto_match45_newTauID.root, produced by TriggerCommissioning.C
+
+ø *M3_public.root the latest plots produced by AC, probably used in PAS
+
+ø *multibinning_taulegnewbinning.root the latest files produced by AC for MC
+switching to the corrected tau-leg
+
+ø The latest file produced when switching to MRST PDF : SemiLeptonicTauXsectionMeas_PDFTest.root
+
+ø The files used in the paper have been produced by Cristina and can be found in
+../../../../backup_macrosForFitAndPlots/Final_rootfiles/
+
+
+Macros :
+--------
+
+ø ERF_DEBUG_tau-leg.C  ERF_tau-leg.C to perform the tau-leg fits
+
+ø QCD_PLOT.C, TTbar_plot.C to perform the variable comparisons for QCD, TTbar...
+with direct b-tagging or b-tag weights...
+
+ø TauIdEff.C -> outdated
+
+

@@ -1,7 +1,7 @@
 
-1	import FWCore.ParameterSet.Config as cms
-2	
-3	
-4	neutralPFCandidatesProducer = cms.EDProducer('NeutralPFCandidates',
-5	   inputPFcandidates         = cms.InputTag("particleFlow")
-6	)
+import FWCore.ParameterSet.Config as cms
+
+
+neutralPFCandidatesProducer = cms.EDProducer('NeutralPFCandidates',
+   inputPFcandidates         = cms.InputTag("particleFlow")
+)
