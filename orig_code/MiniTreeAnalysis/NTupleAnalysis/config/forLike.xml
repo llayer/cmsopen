@@ -1,0 +1,56 @@
+<?xml version="1.0"?>
+<Datasets>
+<!--
+<d name="TTbar" add="1" isData="0" color="2" ls="1" lw="2" normf="1" xsection="1" filenames="/opt/sbg/cms/ui2_data2/jandrea/SamplesFall10/TTJets_TuneD6T/*.root" />
+<d name="TTbar" add="1" isData="0" color="2" ls="1" lw="2" normf="1" xsection="1" filenames="/opt/sbg/cms/ui2_data2/jandrea/SamplesFall10/TTJets_TuneD6T/*.root" />
+-->
+<d name="TTbar" add="1" isData="0" color="2" ls="1" lw="2" normf="1" xsection="1" filenames="/opt/sbg/cms/ui2_data2/jandrea/SamplesFall10/TTJets_TuneD6T/*.root"  NofEvts="10000" />
+</Datasets>
+
+<Analysis>
+<!--
+	DataType = 0: MC
+	DataType = 1: Data
+	DataType = 2: Data & MC
+	Luminosity in in pb-1
+-->
+<a type="General" Verbosity="0" DataType="0" Luminosity="36.1" LumiError="3.6"/>
+</Analysis>
+
+<Selection>
+<s type="Electron" PtThreshold="20." EtaThreshold="2.5" RelIso="0.15" D0Cut="0.04" VertexMatchThr="1." DElectronETSCThr="15" RemuThr="0.1"/>
+<s type="Muon"     PtThreshold="20." EtaThreshold="2.4" RelIso="0.15" D0Cut="0.02" VertexMatchThr="1." NofValidHits="0"  NofValidTkHits="10" NormChi2="10" />
+<s type="Tau"      Algo="selectedPatTaus" PtThreshold="20." EtaThreshold="2.5" RelIso="0.15" D0Cut="0.04" VertexMatchThr="1." TauLeadTrkPtCut="10."/>
+<s type="Vertex"   VertexNdofThr="4" VertexZThr="24."   VertexRhoThr="2." />
+<s type="Jet" Algo="pf" PtThreshold="30." EtaThreshold="2.5" />
+</Selection>
+
+<DiLeptonSelection>
+<!-- btagAlgo = 
+0 for TrackCounting
+1 for SecondarayVertex
+2 for SM
+-->
+<s MinMassCut="12." METCutsEMU="0." METCutsLL="30." ZMassWindowMin="76." ZMassWindowMax="106." btagAlgo="0" btagDiscriCut="1.7" NofBtagJets="1" />
+</DiLeptonSelection>
+
+<Weight>
+<!--
+  int flag :     0 = do not apply,  1 = apply
+  int methodb :  0 = SF w discri cut, 1 = Eff_data w/o discri cut, 2 = SF*Eff_MC w/o discri cut
+  int systb :    0 = weight, 1 = weight + error, 2 = weight - error
+-->
+<s type="Btag" flag="1" methodb="2" systb="0" />
+</Weight>
+
+<Systematics>
+<s type="JES" doIt="0" mean="1." m1sigma="0.947" p1sigma="1.053" />
+<s type="JER" doIt="0" mean="0.1" m1sigma="0." p1sigma="0.2" />
+<s type="METS" doIt="0" mean="1." m1sigma="0.9" p1sigma="1.1" />
+<s type="MES" doIt="0" mean="1." m1sigma="0.99" p1sigma="1.01" />
+<s type="EES" doIt="0" mean="1." m1sigma="0.975" p1sigma="1.025" />
+<!-- m1s & p1s are the parameters and effp1s & effp1s are the scaled factor expected in the nof signal events. +1% -> 1.01 
+If there is no bias mean="1" effmean="1"
+-->
+</Systematics>
+

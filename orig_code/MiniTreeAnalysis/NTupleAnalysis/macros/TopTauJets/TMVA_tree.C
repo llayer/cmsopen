@@ -66,31 +66,31 @@ int main ()
   if (DataType == 1) IReweight = false;
   
   // 3D reweighting
-  bool  IReweight_puUp   = false;
+  bool  IReweight_puUp	 = false;
   bool  IReweight_puDown = false;
  
   string datafile = "";
   string mcfile   = "rootFiles/PU3DMC.root";
   
   if(!IReweight_puUp && !IReweight_puDown) datafile = "rootFiles/MyDataPileupHistogram_observed_73500.root";
-  if( IReweight_puDown                   ) datafile = "rootFiles/MyDataPileupHistogram_observed_67620.root";
-  if( IReweight_puUp                     ) datafile = "rootFiles/MyDataPileupHistogram_observed_79380.root";
+  if( IReweight_puDown  		 ) datafile = "rootFiles/MyDataPileupHistogram_observed_67620.root";
+  if( IReweight_puUp			 ) datafile = "rootFiles/MyDataPileupHistogram_observed_79380.root";
 
      
   reweight::LumiReWeighting *LumiWeights = new reweight::LumiReWeighting(mcfile, datafile, "histoMCPU", "pileup" );
             
   if(!IReweight_puUp && !IReweight_puDown)  LumiWeights->weight3D_init( 1. );
-  if( IReweight_puDown                   )  LumiWeights->weight3D_init( 1. );
-  if( IReweight_puUp                     )  LumiWeights->weight3D_init( 1. );
+  if( IReweight_puDown  		 )  LumiWeights->weight3D_init( 1. );
+  if( IReweight_puUp			 )  LumiWeights->weight3D_init( 1. );
   
   
   /////////////////////
   //LOOP OVER THE DATASETS
   //////////////////////
   if(verbosity>0) {
-        cout<<"#########################"<<endl;
-        cout<<" Loop over the datasets  "<<endl;
-        cout<<"#########################"<<endl;
+  	cout<<"#########################"<<endl;
+  	cout<<" Loop over the datasets  "<<endl;
+	cout<<"#########################"<<endl;
   }
 
   for (unsigned int d = 0; d < datasets.size (); d++) {
@@ -122,7 +122,7 @@ int main ()
      if(datasets[d].isData() == false)
      {
        float trigRange = random.Uniform(1);
-       if(trigRange<0.218)//0.208 new lumi      
+       if(trigRange<0.218)//0.208 new lumi	
        triggerMenu = 40;
        else triggerMenu = 45;}
 
@@ -152,7 +152,7 @@ int main ()
      bool PassTriggerQuadJet45IsoPFTauSelection = sel.passTriggerQuadJet45IsoPFTauSelection(); 
      NTMET met = sel.GetMET();
      vector<TLorentzVector> jetObjTrig = sel.GetJetTrigObj();
-        
+	
      
      bool  PassTriggerQuadJet4045IsoPFTauSelection; 
      if (datasets[d].isData()==true) 
@@ -171,7 +171,7 @@ int main ()
     
     if(datasets[d].isData() == true) TMVA.SaveHistos("TMVA_bkg_newLumi.root");
     else                             TMVA.SaveHistos("TMVA_sig_newLumi.root");
-  }                             
+  }				
   cout<<"#########################"<<endl;
   cout<<" Loop over the datasets  "<<endl;
   cout<<"#########################"<<endl;

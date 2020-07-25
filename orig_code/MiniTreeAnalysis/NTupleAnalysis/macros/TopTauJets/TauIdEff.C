@@ -51,9 +51,9 @@ int main ()
   //LOOP OVER THE DATASETS
   //////////////////////
   if(verbosity>0) {
-        cout<<"#########################"<<endl;
-        cout<<" Loop over the datasets  "<<endl;
-        cout<<"#########################"<<endl;
+  	cout<<"#########################"<<endl;
+  	cout<<" Loop over the datasets  "<<endl;
+	cout<<"#########################"<<endl;
   }
 
   for (unsigned int d = 0; d < datasets.size (); d++) {
@@ -74,9 +74,9 @@ int main ()
       float weight = 1.;
       datasets[d].eventTree ()->GetEntry (ievt);
       //if (verbosity > 3)
-        //cout << "event " << ievt << endl;
+	//cout << "event " << ievt << endl;
      // if (verbosity > 3)
-        //cout << "event number=" << event->eventNb << endl;
+	//cout << "event number=" << event->eventNb << endl;
       //if (verbosity > 3)
      //cout << "run number=" << event->runNb << endl;
      
@@ -101,7 +101,7 @@ int main ()
     TString outputRootFile = "TauIdEff_"+datasets[d].Name()+".root";
     tauIdEff.SaveHistos(outputRootFile);
     
-  }                             
+  }				
   cout<<"#########################"<<endl;
   cout<<" Loop over the datasets  "<<endl;
   cout<<"#########################"<<endl;

@@ -51,9 +51,9 @@ int main ()
   //LOOP OVER THE DATASETS
   //////////////////////
   if(verbosity>0) {
-        cout<<"#########################"<<endl;
-        cout<<" Loop over the datasets  "<<endl;
-        cout<<"#########################"<<endl;
+  	cout<<"#########################"<<endl;
+  	cout<<" Loop over the datasets  "<<endl;
+	cout<<"#########################"<<endl;
   }
 
   for (unsigned int d = 0; d < datasets.size (); d++) {
@@ -88,7 +88,7 @@ int main ()
      //QuadJet45_IsoPFTau45
      
       if (runNumber<165970  || (runNumber>166782 && runNumber<171050) ) continue;
-           
+	   
      //Collection of selected objects
     //   vector<NTMuon> selMuons         = sel.GetSelectedMuonsNoIso();
 //       vector<NTElectron> selElectrons = sel.GetSelectedElectronsNoIso(); 
@@ -133,11 +133,10 @@ int main ()
     TString outputRootFile = "TriggerEffHisto_"+datasets[d].Name()+".root";
     trigComm.SaveHistos(outputRootFile);
     
-  }                             
+  }				
   cout<<"#########################"<<endl;
   cout<<" Loop over the datasets  "<<endl;
   cout<<"#########################"<<endl;
  
   return (0);
 }
-

@@ -61,4 +61,3 @@
   c1->SaveAs("ttbar_q_Eta.png");
   //c1->SaveAs("ttbar_q*Eta.jpeg");
 }
-
