@@ -1,0 +1,128 @@
+<?xml version="1.0"?>
+
+<Datasets>
+<d name="TTbarEE" add="1" isData="0" color="2" ls="1" lw="2" normf="1" xsection="1" filenames="" />
+<d name="TTbarEM" add="1" isData="0" color="2" ls="1" lw="2" normf="1" xsection="1" filenames="" />
+<d name="TTbarMM" add="1" isData="0" color="2" ls="1" lw="2" normf="1" xsection="1" filenames="" />
+<d name="DY"  add="1" isData="0" color="2" ls="1" lw="2" normf="1" xsection="1" filenames="" />
+<d name="Wjets" add="1" isData="0" color="2" ls="1" lw="2" normf="1" xsection="1" filenames="" />
+<d name="QCD" add="1" isData="0" color="2" ls="1" lw="2" normf="1" xsection="1" filenames="" />
+<d name="SingleToptW" add="1" isData="0" color="2" ls="1" lw="2" normf="1" xsection="1" filenames="" />
+<d name="VV" add="1" isData="0" color="2" ls="1" lw="2" normf="1" xsection="1" filenames="" /> 
+</Datasets>
+
+<Analysis>
+<!--
+	DataType = 0: MC
+	DataType = 1: Data
+	DataType = 2: Data & MC
+	Luminosity in in pb-1
+-->
+<a type="General" Verbosity="0" DataType="0" Luminosity="36.1" LumiError="3.971"/>
+</Analysis>
+
+<EvtNumbers>
+<!-- Dont forget to take the SF into account in the signal nof -->
+	<Channel channel="ee">
+		<d name="DATA" number="15"/>
+		<d name="TTbarEE" number="0.002395"/>  <!-- SelEffXBR  or NbEvt  per pb-1 (L) and per pb (Xsection)-->
+		<d name="SingleToptW" number="0.421" errm="0.1364" errp="0.134" isASyst="1"/>
+		<d name="VV" number="0.082" errm="0.027" errp="0.027" isASyst="1"/>
+		<d name="QCD" number="0.005" errm="0.016" errp="0.016" isASyst="1"/>
+		<d name="Wjets" number="0.38" errm="0.73" errp="0.71" isASyst="1"/>
+		<d name="DY" number="3.3" errm="2." errp="2." isASyst="1"/>
+	</Channel>
+	<Channel channel="emu">
+		<d name="DATA" number="51"/>
+		<d name="TTbarEE" number="0.008733"/>  <!-- SelEffXBR  or NbEvt  per pb-1 (L) and per pb (Xsection)-->
+		<d name="SingleToptW" number="1.438" errm="0.455" errp="0.455" isASyst="1"/>
+		<d name="VV" number="0.26" errm="0.083" errp="0.083" isASyst="1"/>
+		<d name="QCD" number="0.9" errm="0.3" errp="0.3" isASyst="1"/>
+		<d name="Wjets" number="0.183" errm="0.06" errp="0.06" isASyst="1"/>
+		<d name="DY" number="0.913" errm="1.02" errp="1.02" isASyst="1"/>
+	</Channel>
+	<Channel channel="mumu">
+		<d name="DATA" number="24"/>
+		<d name="TTbarEE" number="0.003279"/>  <!-- SelEffXBR  or NbEvt  per pb-1 (L) and per pb (Xsection)-->
+		<d name="SingleToptW" number="0.515" errm="0.736" errp="0.736" isASyst="1"/>
+		<d name="VV" number="0.099" errm="0.317" errp="0.317" isASyst="1"/>
+		<d name="QCD" number="0.11" errm="0.14" errp="0.14" isASyst="1"/>
+		<d name="Wjets" number="0.13" errm="0.7" errp="0.7" isASyst="1"/>
+		<d name="DY" number="2.5" errm="1.4" errp="1.4" isASyst="1"/>
+	</Channel>
+</EvtNumbers>
+
+<SystematicsEffect>
+<!--b-tagging EFficiency (b)-->
+<a channel="ee" doIt="1" type="Btag" mean="1" m1s="0.85" p1s="1.15" effmean="1" effm1s="0.931" effp1s="1.092" />
+<a channel="emu" doIt="1" type="Btag" mean="1" m1s="0.85" p1s="1.15" effmnean="1" effm1s="0.931" effp1s="1.092" />
+<a channel="mumu" doIt="1" type="Btag" mean="1" m1s="0.85" p1s="1.15" effmean="1" effm1s="0.931" effp1s="1.092" />
+<!--l-tagging EFficiency (b)-->
+<a channel="ee" doIt="1" type="Ltag" mean="1" m1s="0.7" p1s="1.3" effmean="1" effm1s="0.995" effp1s="1.005" />
+<a channel="emu" doIt="1" type="Ltag" mean="1" m1s="0.7" p1s="1.3" effmnean="1" effm1s="0.995" effp1s="1.005" />
+<a channel="mumu" doIt="1" type="Ltag" mean="1" m1s="0.7" p1s="1.3" effmean="1" effm1s="0.995" effp1s="1.005" />
+<!--JES -->
+<a channel="ee" doIt="1" type="JES" mean="1" m1s="0.947" p1s="1.053" effmean="1" effm1s="0.946" effp1s="1.054" />
+<a channel="emu" doIt="1" type="JES" mean="1" m1s="0.947" p1s="1.053" effmnean="1" effm1s="0.964" effp1s="1.032" />
+<a channel="mumu" doIt="1" type="JES" mean="1" m1s="0.947" p1s="1.053" effmean="1" effm1s="0.944" effp1s="1.049" />
+<!--JER -->
+<a channel="ee" doIt="1" type="JER" mean="1" m1s="0.99" p1s="1.01" effmean="1" effm1s="0.998" effp1s="1.007" />
+<a channel="emu" doIt="1" type="JER" mean="1" m1s="0.99" p1s="1.01" effmnean="1" effm1s="0.994" effp1s="1.009" />
+<a channel="mumu" doIt="1" type="JER" mean="1" m1s="0.99" p1s="1.01" effmean="1" effm1s="0.989" effp1s="1.009" />
+<!--METS -->
+<a channel="ee" doIt="1" type="METS" mean="1" m1s="0.99" p1s="1.01" effmean="1" effm1s="0.999" effp1s="1.001" />
+<a channel="emu" doIt="1" type="METS" mean="1" m1s="0.99" p1s="1.01" effmnean="1" effm1s="0.999" effp1s="1.001" />
+<a channel="mumu" doIt="1" type="METS" mean="1" m1s="0.99" p1s="1.01" effmean="1" effm1s="0.999" effp1s="1.001" />
+<!--MES -->
+<a channel="ee" doIt="1" type="MES" mean="1" m1s="0.99" p1s="1.01" effmean="1" effm1s="1." effp1s="1." />
+<a channel="emu" doIt="1" type="MES" mean="1" m1s="0.99" p1s="1.01" effmnean="1" effm1s="0.996" effp1s="1.004" />
+<a channel="mumu" doIt="1" type="MES" mean="1" m1s="0.99" p1s="1.01" effmean="1" effm1s="0.99" effp1s="1.01" />
+<!--EES -->
+<a channel="ee" doIt="1" type="EES" mean="1" m1s="0.99" p1s="1.01" effmean="1" effm1s="0.979" effp1s="1.028" />
+<a channel="emu" doIt="1" type="EES" mean="1" m1s="0.99" p1s="1.01" effmnean="1" effm1s="0.99" effp1s="1.01" />
+<a channel="mumu" doIt="1" type="EES" mean="1" m1s="0.99" p1s="1.01" effmean="1" effm1s="1." effp1s="1." />
+<!--Lepton EFficiency -->
+<a channel="ee" doIt="1" type="LEF" mean="1" m1s="0.99" p1s="1.01" effmean="1" effm1s="0.975" effp1s="1.025" />
+<a channel="emu" doIt="1" type="LEF" mean="1" m1s="0.99" p1s="1.01" effmnean="1" effm1s="0.984" effp1s="1.016" />
+<a channel="mumu" doIt="1" type="LEF" mean="1" m1s="0.99" p1s="1.01" effmean="1" effm1s="0.986" effp1s="1.014" />
+<!--Trigger EFficiency -->
+<a channel="ee" doIt="1" type="TEF" mean="1" m1s="0.99" p1s="1.01" effmean="1" effm1s="0.996" effp1s="1.004" />
+<a channel="emu" doIt="1" type="TEF" mean="1" m1s="0.99" p1s="1.01" effmnean="1" effm1s="0.99" effp1s="1.01" />
+<a channel="mumu" doIt="1" type="TEF" mean="1" m1s="0.99" p1s="1.01" effmean="1" effm1s="0.975" effp1s="1.025" />
+<!--Q2-->
+<a channel="ee" doIt="1" type="Q2" mean="1" m1s="0.99" p1s="1.01" effmean="1" effm1s="0.98" effp1s="1.02" />
+<a channel="emu" doIt="1" type="Q2" mean="1" m1s="0.99" p1s="1.01" effmnean="1" effm1s="0.98" effp1s="1.02" />
+<a channel="mumu" doIt="1" type="Q2" mean="1" m1s="0.99" p1s="1.01" effmean="1" effm1s="0.98" effp1s="1.02" />
+<!--ME-PS-Thr-->
+<a channel="ee" doIt="1" type="ME-PS-Thr" mean="1" m1s="0.99" p1s="1.01" effmean="1" effm1s="0.987" effp1s="1.013" />
+<a channel="emu" doIt="1" type="ME-PS-Thr" mean="1" m1s="0.99" p1s="1.01" effmnean="1" effm1s="0.987" effp1s="1.013" />
+<a channel="mumu" doIt="1" type="ME-PS-Thr" mean="1" m1s="0.99" p1s="1.01" effmean="1" effm1s="0.987" effp1s="1.013" />
+<!--ISR/FSR -->
+<a channel="ee" doIt="1" type="ISR/FSR" mean="1" m1s="0.99" p1s="1.01" effmean="1" effm1s="0.989" effp1s="1.011" />
+<a channel="emu" doIt="1" type="ISR/FSR" mean="1" m1s="0.99" p1s="1.01" effmnean="1" effm1s="0.989" effp1s="1.011" />
+<a channel="mumu" doIt="1" type="ISR/FSR" mean="1" m1s="0.99" p1s="1.01" effmean="1" effm1s="0.989" effp1s="1.011" />
+<!--Mtop-->
+<a channel="ee" doIt="1" type="Mtop" mean="1" m1s="0.99" p1s="1.01" effmean="1" effm1s="0.987" effp1s="1.013" />
+<a channel="emu" doIt="1" type="Mtop" mean="1" m1s="0.99" p1s="1.01" effmnean="1" effm1s="0.987" effp1s="1.013" />
+<a channel="mumu" doIt="1" type="Mtop" mean="1" m1s="0.99" p1s="1.01" effmean="1" effm1s="0.987" effp1s="1.013" />
+<!--Pile-Up -->
+<a channel="ee" doIt="0" type="PU" mean="1" m1s="0.99" p1s="1.01" effmean="1" effm1s="0.98" effp1s="1.02" />
+<a channel="emu" doIt="0" type="PU" mean="1" m1s="0.99" p1s="1.01" effmnean="1" effm1s="0.98" effp1s="1.02" />
+<a channel="mumu" doIt="0" type="PU" mean="1" m1s="0.99" p1s="1.01" effmean="1" effm1s="0.98" effp1s="1.02" />
+<!--BR-->
+<a channel="ee" doIt="0" type="BR" mean="1" m1s="0.99" p1s="1.01" effmean="1" effm1s="0.99" effp1s="1.01" />
+<a channel="emu" doIt="0" type="BR" mean="1" m1s="0.99" p1s="1.01" effmnean="1" effm1s="0.99" effp1s="1.01" />
+<a channel="mumu" doIt="0" type="BR" mean="1" m1s="0.99" p1s="1.01" effmean="1" effm1s="0.99" effp1s="1.01" />
+<!--PDF-->
+<a channel="ee" doIt="0" type="PDF" mean="1" m1s="0.99" p1s="1.01" effmean="1" effm1s="0.99" effp1s="1.01" />
+<a channel="emu" doIt="0" type="PDF" mean="1" m1s="0.99" p1s="1.01" effmnean="1" effm1s="0.99" effp1s="1.01" />
+<a channel="mumu" doIt="0" type="PDF" mean="1" m1s="0.99" p1s="1.01" effmean="1" effm1s="0.99" effp1s="1.01" />
+</SystematicsEffect>
+
+<XExtraction>
+<!-- BR=0.16 (include tau decay) -->
+<c doIt="1" channel="ee" BR="1"  />
+<c doIt="1" channel="emu" BR="1"  />
+<c doIt="1" channel="mumu" BR="1" />
+</XExtraction>
+

@@ -1,0 +1,29 @@
+<?xml version="1.0"?>
+
+<inputdatasets>
+<!--i file="/opt/sbg/cms/ui5_data1/gele/MCData/CMSSW_3_8_4_patch2/V1/EG/180/NTupleEG_36_1_dQM.root"/>
+-->
+
+<i file="/opt/sbg/cms/ui5_data1/gele/MCData/CMSSW_3_8_4_patch2/V1/EG/26/NTupleEG_*.root"/>
+
+</inputdatasets>
+
+<outputfilename>
+<o file="NTuple_Skimmed_EG26.root"/>
+</outputfilename>
+
+<options>
+<!-- if HLTApplyAnd="1", 'AND' of the 2 trigger bits will be taken, otherwise the 'OR' -->
+<o skimOnHLT="0" HLTPath1="HLT_L2Mu5" HLTPath2="HLT_L2Mu3" HLTApplyAnd="0" useJSON="0" JSONFile="JSON.txt"/>
+</options>
+
+<keepbranches>
+<!-- Branches which need to be kept
+skipObjects:  1 = True | 0 = False
+-->
+<k type="Muon" name="Muons" minPt="0" maxEta="9999" skipObjects="0" minNObjects="0"/>
+<k type="Electron" name="Electrons" minPt="0" maxEta="9999" skipObjects="0" minNObjects="0"/>
+<k type="Tau" name="selectedPatTaus" minPt="0" maxEta="9999" skipObjects="0" minNObjects="0"/>
+<k type="Vertex" name="Vertex" minPt="0" maxEta="9999" skipObjects="0" minNObjects="0"/>
+<k type="Jet" name="kt4" minPt="0" maxEta="9999" skipObjects="0" minNObjects="0"/>
+</keepbranches>

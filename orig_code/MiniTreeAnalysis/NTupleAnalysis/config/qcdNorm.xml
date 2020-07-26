@@ -1,0 +1,16 @@
+<?xml version="1.0"?>
+
+<inputdatasets>
+<i file="/opt/sbg/cms/ui2_data1/lebihan/MCData/CMSSW_3_8_4_patch2/V1/QCDPt15/NTupleQCDPt15.root"/>
+<i file="/opt/sbg/cms/ui2_data1/lebihan/MCData/CMSSW_3_8_4_patch2/V1/QCDPt30/NTupleQCDPt30.root"/>
+</inputdatasets>
+
+<outputfilename>
+<o file="NTupleQCDPt15_noOverlap.root"/>
+<o file="NTupleQCDPt30_noOverlap.root"/>
+</outputfilename>
+
+<options>
+<!--  -->
+<o PtHatList="15,30,80"/>
+</options>

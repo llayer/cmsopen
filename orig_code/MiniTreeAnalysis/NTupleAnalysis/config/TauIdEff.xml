@@ -1,0 +1,64 @@
+<?xml version="1.0"?>
+<!-- ex with eqlumi <d name="TTJets" add="1" color="4" ls="1" lw="1" normf="0.000437334" xsection="414" filenames="/user/echabert/TopTree_Prod229/TopTree_TTJets.root" EqLumi="2287."/> -->
+<!-- ex with NofEvts <d name="TTJets" add="1" color="4" ls="1" lw="1" normf="0.000437334" xsection="414" filenames="/user/echabert/TopTree_Prod229/TopTree_TTJets.root" NofEvts="946644"/> -->
+<!-- ex with PreselEff NofPSEvts <d name="TTJets" add="1" color="4" ls="1" lw="1" normf="0.000437334" xsection="414" filenames="/user/echabert/TopTree_Prod229/TopTree_TTJets.root" PreselEff="0.2307" NofEvts="218404"/> -->
+
+<Datasets>
+<!-- add = 1 : run on the sample
+     add = 0 : do not run on the sample
+     isData = 1 for data; = 0  for MC
+     ls = lineStyle //not yet used
+     lw = lineWidth //not yet used
+     !! important:
+	2 of the 3 information need to be filled
+		- normf (normalisation factor - default = 1)
+		- xsection (cross-section of the processus if it's MC - default = 1)
+		- NofEvts (could be lower than the size of the file. If it's higher or equal to the size, the program will run on the full sample)
+     Preselection
+	if a preselection has been applied before use
+		- PreselEff
+		- NofPSEvts instead of NofEvts
+ 
+<d name="Data" add="1" isData="1" color="2" ls="1" lw="2" normf="1" xsection="1" filenames="/opt/sbg/data/data1/cms/lebihan/analysis_4_1_4_V-01-08-hps/MultiJet_ntuples_V-01-08-hpsv2_golden_191invpb_v2_skim3pfJet/*.root"/>
+<d name="Data" add="1" isData="1" color="2" ls="1" lw="2" normf="1" xsection="1" filenames="/opt/sbg/data/data1/cms/lebihan/analysis_4_1_4_V-01-08-hps/SingleMu_ntuples_4_1_4_V-01-08-hps3_golden_191invpb_v1_v2_skim3pfJet/*.root"/>
+<d name="Data" add="1" isData="1" color="2" ls="1" lw="2" normf="1" xsection="1" filenames="/opt/sbg/data/data1/cms/lebihan/analysis_4_1_4_V-01-08-hps/MultiJet_ntuples_V-01-08-TanC_golden_191invpb_v1_v2_skim3pfJet/*.root"/>
+<d name="Data" add="1" isData="1" color="2" ls="1" lw="2" normf="1" xsection="1" filenames="/opt/sbg/data/data1/cms/lebihan/analysis_4_1_4_V-01-08-hps/SingleMu_ntuples_4_1_4_V-01-08-hps3_golden_191invpb_v1_v2_skim3pfJet/*.root"/>
+-->
+<d name="Data" add="1" isData="1" color="2" ls="1" lw="2" normf="1" xsection="1" filenames="/opt/sbg/data/data1/cms/lebihan/analysis_4_1_4_V-01-08-hps/TTJets_TuneD6T_7TeV-madgraph-tauola_TauHQQ_AgenBugFix/*.root"/>
+</Datasets>
+<Analysis>
+<!--
+	DataType = 0: MC
+	DataType = 1: Data
+	DataType = 2: Data & MC
+	Luminosity in in pb-1
+-->
+<a type="General" Verbosity="3" DataType="0" Luminosity="10."/>
+</Analysis>
+
+<Selection>
+<s type="Electron" PtThreshold="10." EtaThreshold="2.5" RelIso="0.15" D0Cut="0.04" VertexMatchThr="1." DElectronETSCThr="15" RemuThr="0.1"/>
+<s type="Muon"     PtThreshold="10." EtaThreshold="2.4" RelIso="0.15" D0Cut="0.02" VertexMatchThr="1." NofValidHits="0"  NofValidTkHits="10" NormChi2="10" />
+<s type="Tau"      Algo="selectedPatTausPF2PAT" PtThreshold="10." EtaThreshold="2.5" RelIso="0.15" D0Cut="0.04" VertexMatchThr="1." TauLeadTrkPtCut="5."/>
+<s type="Vertex"   VertexNdofThr="4" VertexZThr="24."   VertexRhoThr="2." />
+<s type="Jet"      Algo="ak5" PtThreshold="10." EtaThreshold="3" />
+</Selection>
+
+<SemiLeptonicTauSelection>
+<!-- btagAlgo = 
+0 for TrackCounting
+1 for SecondarayVertex
+2 for SM
+-->
+<s btagAlgo="0" btagDiscriCut="1.7" NofBtagJets="2" />
+</SemiLeptonicTauSelection>
+
+<Weight>
+<!--
+  int flag :     0 = do not apply,  1 = apply
+  int methodb :  0 = SF w discri cut, 1 = Eff w/o discri cut
+  int systb :    0 = weight, 1 = weight + error, 2 = weight - error
+-->
+<s type="Btag" flag="1" methodb="0" systb="0" />
+</Weight>
+

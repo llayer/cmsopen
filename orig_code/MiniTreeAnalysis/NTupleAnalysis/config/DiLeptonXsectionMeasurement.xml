@@ -1,0 +1,136 @@
+<?xml version="1.0"?>
+<!-- ex with eqlumi <d name="TTJets" add="1" color="4" ls="1" lw="1" normf="0.000437334" xsection="414" filenames="/user/echabert/TopTree_Prod229/TopTree_TTJets.root" EqLumi="2287."/> -->
+<!-- ex with NofEvts <d name="TTJets" add="1" color="4" ls="1" lw="1" normf="0.000437334" xsection="414" filenames="/user/echabert/TopTree_Prod229/TopTree_TTJets.root" NofEvts="946644"/> -->
+<!-- ex with PreselEff NofPSEvts <d name="TTJets" add="1" color="4" ls="1" lw="1" normf="0.000437334" xsection="414" filenames="/user/echabert/TopTree_Prod229/TopTree_TTJets.root" PreselEff="0.2307" NofEvts="218404"/> -->
+
+<Datasets>
+<!-- add = 1 : run on the sample
+     add = 0 : do not run on the sample
+     isData = 1 for data; = 0  for MC
+     ls = lineStyle //not yet used
+     lw = lineWidth //not yet used
+     !! important:
+	2 of the 3 information need to be filled
+		- normf (normalisation factor - default = 1)
+		- xsection (cross-section of the processus if it's MC - default = 1)
+		- NofEvts (could be lower than the size of the file. If it's higher or equal to the size, the program will run on the full sample)
+     Preselection
+	if a preselection has been applied before use
+		- PreselEff
+		- NofPSEvts instead of NofEvts
+ -->
+<!--
+<d name="TTbarEE" add="1" isData="0" color="2" ls="1" lw="2" normf="1" xsection="1" filenames="../../NTupleProducer/test/NTuple.root"/>
+<d name="TTbarEM" add="0" isData="0" color="2" ls="1" lw="2" normf="1" xsection="1" filenames="../../NTupleProducer/test/NTuple.root"/>
+<d name="TTbarMM" add="0" isData="0" color="2" ls="1" lw="2" normf="1" xsection="1" filenames="../../NTupleProducer/test/NTuple.root"/>
+<d name="TTbarOther" add="0" isData="0" color="2" ls="1" lw="2" normf="1" xsection="1" filenames="../../NTupleProducer/test/NTuple.root"/>
+<d name="TTbarEE" add="1" isData="0" color="2" ls="1" lw="2" normf="1" xsection="170" filenames="../../NTupleProducer/test/NTuple.root" NofEvts="2000"/>
+<d name="TTbarEM" add="0" isData="0" color="2" ls="1" lw="2" normf="1" xsection="170" filenames="../../NTupleProducer/test/NTuple.root" NofEvts="1000"/>
+<d name="TTbarMM" add="0" isData="0" color="2" ls="1" lw="2" normf="1" xsection="170" filenames="../../NTupleProducer/test/NTuple.root" NofEvts="1000"/>
+<d name="TTbarEE" add="0" isData="0" color="2" ls="1" lw="2" normf="1" xsection="170" filenames="NTuple_Skimmed_ee.root"/>
+<d name="TTbarEM" add="0" isData="0" color="2" ls="1" lw="2" normf="1" xsection="170" filenames="NTuple_Skimmed_emu.root"/>
+<d name="TTbarMM" add="0" isData="0" color="2" ls="1" lw="2" normf="1" xsection="170" filenames="NTuple_Skimmed_mumu.root"/>
+<d name="TTbarOther" add="0" isData="0" color="2" ls="1" lw="2" normf="1" xsection="1" filenames="NTuple_Skimmed_DiLep_other.root"/>
+<d name="Zjets" add="0" isData="0" color="2" ls="1" lw="2" normf="1" xsection="50" xsErrorMinus="34" xsErrorPlus="34" filenames="../../NTupleProducer/test/NTuple.root" NofEvts="2000"/>
+<d name="Zjets" add="0" isData="0" color="2" ls="1" lw="2" normf="1" xsection="200" xsErrorMinus="200" xsErrorPlus="1200" filenames="NTuple_Skimmed_DiLep_other.root"/>
+<d name="Zjets" add="0" isData="0" color="2" ls="1" lw="2" normf="1" xsection="180" filenames="../../NTupleProducer/test/NTuple.root"  NofEvts="2"/>
+-->
+<!--<d name="Zjets" add="0" isData="0" color="2" ls="1" lw="2" normf="1" xsection="1" filenames="/opt/sbg/cms/ui4_data1/jandrea/NTuple_Skimmed_SingleLept_Zjets.root"/>-->
+<d name="TTbarEE" add="1" isData="0" color="2" ls="1" lw="2" normf="1" xsection="1" />
+<d name="TTbarEM" add="0" isData="0" color="2" ls="1" lw="2" normf="1" xsection="1" filenames="" />
+<d name="TTbarMM" add="0" isData="0" color="2" ls="1" lw="2" normf="1" xsection="1" filenames="" />
+
+<d name="Wjets" add="0" isData="0" color="2" ls="1" lw="2" normf="1" xsection="" filenames="" />
+<d name="SingleToptW" add="0" isData="0" color="2" ls="1" lw="2" normf="1" xsection="1" filenames="" />
+<d name="VV" add="1" isData="0" color="2" ls="1" lw="2" normf="1" xsection="1" filenames="" />
+</Datasets>
+
+<Analysis>
+<!--
+	DataType = 0: MC
+	DataType = 1: Data
+	DataType = 2: Data & MC
+	Luminosity in in pb-1
+-->
+<a type="General" Verbosity="0" DataType="0" Luminosity="35.2" LumiError="3.6"/>
+</Analysis>
+
+<Selection>
+<s type="Electron" PtThreshold="20." EtaThreshold="2.5" RelIso="0.15" D0Cut="0.04" VertexMatchThr="1." DElectronETSCThr="15" RemuThr="0.1"/>
+<s type="Muon"     PtThreshold="20." EtaThreshold="2.4" RelIso="0.15" D0Cut="0.02" VertexMatchThr="1." NofValidHits="0"  NofValidTkHits="10" NormChi2="10" />
+<s type="Tau"      Algo="selectedPatTaus" PtThreshold="20." EtaThreshold="2.5" RelIso="0.15" D0Cut="0.04" VertexMatchThr="1." TauLeadTrkPtCut="10."/>
+<s type="Vertex"   VertexNdofThr="4" VertexZThr="24."   VertexRhoThr="2." />
+<s type="Jet" Algo="pf" PtThreshold="30." EtaThreshold="2.5" />
+</Selection>
+
+<DiLeptonSelection>
+<!-- btagAlgo = 
+0 for TrackCounting
+1 for SecondarayVertex
+2 for SM
+-->
+<s MinMassCut="12." METCutsEMU="0." METCutsLL="30." ZMassWindowMin="76." ZMassWindowMax="106." btagAlgo="0" btagDiscriCut="1.7" NofBtagJets="1" />
+</DiLeptonSelection>
+
+<Weight>
+<!--
+  int flag :     0 = do not apply,  1 = apply
+  int methodb :  0 = SF w discri cut, 1 = Eff_data w/o discri cut, 2 = SF*Eff_MC w/o discri cut
+  int systb :    0 = weight, 1 = weight + error, 2 = weight - error
+-->
+<s type="Btag" flag="1" methodb="2" systb="0" />
+</Weight>
+
+<Systematics>
+<s type="JES" doIt="1" mean="1." m1sigma="0.947" p1sigma="1.053" />
+<s type="JER" doIt="1" mean="0.1" m1sigma="0." p1sigma="0.2" />
+<s type="METS" doIt="1" mean="1." m1sigma="0.9" p1sigma="1.1" />
+<s type="MES" doIt="1" mean="1." m1sigma="0.99" p1sigma="1.01" />
+<s type="EES" doIt="1" mean="1." m1sigma="0.975" p1sigma="1.025" />
+<!-- m1s & p1s are the parameters and effp1s & effp1s are the scaled factor expected in the nof signal events. +1% -> 1.01 
+If there is no bias mean="1" effmean="1"
+-->
+</Systematics>
+
+<SystematicsEffect>
+<!--Lepton EFficiency -->
+<a channel="ee" doIt="0" type="LEF" mean="1" m1s="0.99" p1s="1.01" effmean="1" effm1s="0.98" effp1s="1.02" />
+<a channel="emu" doIt="0" type="LEF" mean="1" m1s="0.99" p1s="1.01" effmnean="1" effm1s="0.98" effp1s="1.02" />
+<a channel="mumu" doIt="0" type="LEF" mean="1" m1s="0.99" p1s="1.01" effmean="1" effm1s="0.98" effp1s="1.02" />
+<!--Trigger EFficiency -->
+<a channel="ee" doIt="0" type="TEF" mean="1" m1s="0.99" p1s="1.01" effmean="1" effm1s="0.98" effp1s="1.02" />
+<a channel="emu" doIt="0" type="TEF" mean="1" m1s="0.99" p1s="1.01" effmnean="1" effm1s="0.98" effp1s="1.02" />
+<a channel="mumu" doIt="0" type="TEF" mean="1" m1s="0.99" p1s="1.01" effmean="1" effm1s="0.98" effp1s="1.02" />
+<!--BR-->
+<a channel="ee" doIt="0" type="BR" mean="1" m1s="0.99" p1s="1.01" effmean="1" effm1s="0.99" effp1s="1.01" />
+<a channel="emu" doIt="0" type="BR" mean="1" m1s="0.99" p1s="1.01" effmnean="1" effm1s="0.99" effp1s="1.01" />
+<a channel="mumu" doIt="0" type="BR" mean="1" m1s="0.99" p1s="1.01" effmean="1" effm1s="0.99" effp1s="1.01" />
+<!--PDF-->
+<a channel="ee" doIt="0" type="PDF" mean="1" m1s="0.99" p1s="1.01" effmean="1" effm1s="0.99" effp1s="1.01" />
+<a channel="emu" doIt="0" type="PDF" mean="1" m1s="0.99" p1s="1.01" effmnean="1" effm1s="0.99" effp1s="1.01" />
+<a channel="mumu" doIt="0" type="PDF" mean="1" m1s="0.99" p1s="1.01" effmean="1" effm1s="0.99" effp1s="1.01" />
+<!--Q2-->
+<a channel="ee" doIt="0" type="Q2" mean="1" m1s="0.99" p1s="1.01" effmean="1" effm1s="0.99" effp1s="1.01" />
+<a channel="emu" doIt="0" type="Q2" mean="1" m1s="0.99" p1s="1.01" effmnean="1" effm1s="0.99" effp1s="1.01" />
+<a channel="mumu" doIt="0" type="Q2" mean="1" m1s="0.99" p1s="1.01" effmean="1" effm1s="0.99" effp1s="1.01" />
+<!--ME-PS-Thr-->
+<a channel="ee" doIt="0" type="ME-PS-Thr" mean="1" m1s="0.99" p1s="1.01" effmean="1" effm1s="0.99" effp1s="1.01" />
+<a channel="emu" doIt="0" type="ME-PS-Thr" mean="1" m1s="0.99" p1s="1.01" effmnean="1" effm1s="0.99" effp1s="1.01" />
+<a channel="mumu" doIt="0" type="ME-PS-Thr" mean="1" m1s="0.99" p1s="1.01" effmean="1" effm1s="0.99" effp1s="1.01" />
+<!--ISR/FSR -->
+<a channel="ee" doIt="0" type="ISR/FSR" mean="1" m1s="0.99" p1s="1.01" effmean="1" effm1s="0.98" effp1s="1.02" />
+<a channel="emu" doIt="0" type="ISR/FSR" mean="1" m1s="0.99" p1s="1.01" effmnean="1" effm1s="0.98" effp1s="1.02" />
+<a channel="mumu" doIt="0" type="ISR/FSR" mean="1" m1s="0.99" p1s="1.01" effmean="1" effm1s="0.98" effp1s="1.02" />
+<!--Pile-Up -->
+<a channel="ee" doIt="0" type="PU" mean="1" m1s="0.99" p1s="1.01" effmean="1" effm1s="0.98" effp1s="1.02" />
+<a channel="emu" doIt="0" type="PU" mean="1" m1s="0.99" p1s="1.01" effmnean="1" effm1s="0.98" effp1s="1.02" />
+<a channel="mumu" doIt="0" type="PU" mean="1" m1s="0.99" p1s="1.01" effmean="1" effm1s="0.98" effp1s="1.02" />
+</SystematicsEffect>
+
+<XExtraction>
+<!-- BR=0.16 (include tau decay) -->
+<c doIt="1" channel="ee" BR="1" NEvtsData="14.3" NEvtsDY="-1" NEvtsDYErrNeg="-1"  NEvtsDYErrPos="-1" NEvtsWjets="-1" NEvtsWjetsErrNeg="-1" NEvtsWjetsErrPos="-1" NEvtsQCD="-1" NEvtsQCDErrNeg="-1" NEvtsQCDErrPos="-1" />
+<c doIt="1" channel="emu" BR="1" NEvtsData="-1" NEvtsDY="-1" NEvtsDYErrNeg="-1"  NEvtsDYErrPos="-1" NEvtsWjets="-1" NEvtsWjetsErrNeg="-1" NEvtsWjetsErrPos="-1" NEvtsQCD="-1" NEvtsQCDErrNeg="-1" NEvtsQCDErrPos="-1" />
+<c doIt="1" channel="mumu" BR="1" NEvtsData="-1" NEvtsDY="-1" NEvtsDYErrNeg="-1"  NEvtsDYErrPos="-1" NEvtsWjets="-1" NEvtsWjetsErrNeg="-1" NEvtsWjetsErrPos="-1" NEvtsQCD="-1" NEvtsQCDErrNeg="-1" NEvtsQCDErrPos="-1" />
+</XExtraction>
+

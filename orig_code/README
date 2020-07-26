@@ -1,0 +1,12 @@
+http://cmscvs.web.cern.ch/cmscvs/cgi/viewvc.cgi/cvsroot/UserCode/TTbarTauJets/
+
+ø MiniTreeAnalysis  MiniTreeFormat  TopQuarkAnalysis corresponds to the strasbourg
+code
+
+ø showtags -> list of additional used packages
+
+ø backup_TMVA : small TMVA backup on the macro used on the uis
+
+ø backup_macrosForFitAndPlots : very last selection files used for the paper and
+macros to perform NLL fit of NN output and stack plots. (lxplus backup)
+
