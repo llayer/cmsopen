@@ -239,6 +239,49 @@ process.out = cms.OutputModule('PoolOutputModule',
                                outputCommands = cms.untracked.vstring('keep *'),
                                )
 
+#
+# Trigger
+#
+
+# PAT Layer 0+1
+process.load("PhysicsTools.PatAlgos.patSequences_cff")
+process.load("PhysicsTools.PatAlgos.triggerLayer1.triggerProducer_cff")
+
+#trigger matching & dynamic prescales stuff
+from PhysicsTools.PatAlgos.tools.trigTools import *
+switchOnTrigger( process )
+
+
+
+################################################################################################################################################
+
+
+####################################
+#  For jet matching at HLC level
+#  Used by tau+jets analysis
+####################################
+process.jetMatchHLTJets = cms.EDProducer(
+  # matching in DeltaR, sorting by best DeltaR
+  "PATTriggerMatcherDRLessByR"
+  # matcher input collections
+, src     = cms.InputTag( 'selectedPatJetsPF' )
+#, src     = cms.InputTag( 'selectedPatTausPF2PAT' )
+, matched = cms.InputTag( 'patTrigger' )
+  # selections of trigger objects
+#, matchedCuts = cms.string( 'type( "TriggerTau" ) && path( "HLT_QuadJet40_IsoPFTau40_v*" )' )
+, matchedCuts = cms.string( 'type( "TriggerJet" ) && path( "HLT_QuadJet40_IsoPFTau40_v*", 0, 0) && filter( "hltQuadJet40IsoPFTau40" )') 
+  # selection of matches
+, maxDPtRel   = cms.double( 0.5 ) # no effect here
+, maxDeltaR   = cms.double( 0.5 )
+, maxDeltaEta = cms.double( 0.2 ) # no effect here
+  # definition of matcher output
+, resolveAmbiguities    = cms.bool( True )
+, resolveByMatchQuality = cms.bool( True )
+)
+switchOnTriggerMatching( process, triggerMatchers = [ 'jetMatchHLTJets' ] )
+################################################################################################################################################
+
+
 
 
 
@@ -666,6 +709,12 @@ process.out.SelectEvents = cms.untracked.PSet(SelectEvents = cms.vstring('hadron
 # says drop all branches, but then the subsequent lines re-enable
 # keeping particular branches. Wildcards ("*") mean any matching text.
 
+"""
+process.out.outputCommands = cms.untracked.vstring(
+    'keep *'
+)
+"""
+
 process.out.outputCommands = cms.untracked.vstring(
     'drop *',
     'keep *_selectedPatElectrons*_*_*',
@@ -694,7 +743,7 @@ process.out.outputCommands = cms.untracked.vstring(
     'keep *_decaySubset_*_*',
     'keep *_initSubset_*_*',
     'keep *_genEvt_*_*',
-
+    'keep *_patTrigger*_*_*',
     )
 
 # And finally, since we're writing out to the disk, we need an EndPath

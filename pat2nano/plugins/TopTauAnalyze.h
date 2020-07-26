@@ -31,6 +31,15 @@ class TopTauAnalyze : public edm::EDAnalyzer {
   UInt_t value_lumi_block;
   ULong64_t value_event;
 
+  // Trigger
+  std::vector<std::string> interestingTriggers;
+  std::vector<std::string> prescaleList;
+  std::vector<std::string> filterList;
+  const static int max_trig = 1000;
+  bool value_trig[max_trig];
+  const static int max_filt = 1000;
+  bool value_filt[max_filt];
+
   // Vertices
   int value_ve_n;
   float value_ve_x;
@@ -86,6 +95,8 @@ class TopTauAnalyze : public edm::EDAnalyzer {
   float value_ttbarEta_;
   float value_ttbarPhi_;
 
+  edm::InputTag trigger_;
+  edm::InputTag patTriggerEvent_;
   edm::InputTag vertices_;
   edm::InputTag muons_;
   edm::InputTag electrons_;

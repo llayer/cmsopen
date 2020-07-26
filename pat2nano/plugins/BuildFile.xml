@@ -2,10 +2,13 @@
 <use   name="FWCore/ParameterSet"/>
 <use   name="FWCore/Framework"/>
 <use   name="FWCore/Utilities"/>
+<use   name="FWCore/Common"/>
+<use   name="PhysicsTools/PatUtils"/>
 <use   name="DataFormats/PatCandidates"/>
 <use   name="DataFormats/TrackReco"/>
 <use   name="DataFormats/VertexReco"/>
 <use   name="CommonTools/UtilAlgos"/>
+<use   name="DataFormats/Common"/>
 <use   name="FWCore/PluginManager"/>
 <use   name="AnalysisDataFormats/TopObjects"/>
 <library   file="*.cc" name="TopAnalysisTopAnalyzerPlugins">

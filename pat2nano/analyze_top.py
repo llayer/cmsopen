@@ -6,12 +6,12 @@ process = cms.Process("Top")
 ## Define the input sample
 process.source = cms.Source("PoolSource",
   fileNames = cms.untracked.vstring(
-    'file:pat.root'
+    'file:pat2.root'
   )
 )
 ## restrict the number of events for testing
 process.maxEvents = cms.untracked.PSet(
-    input = cms.untracked.int32(1000)
+    input = cms.untracked.int32(10)
 )
 
 ## Define the TFileService
@@ -40,6 +40,8 @@ process.analyzeTau = cms.EDAnalyzer("TopTauAnalyze",
     verbose = cms.bool(True)
 )"""
 process.analyzeTau = cms.EDAnalyzer("TopTauAnalyze",
+    trigger = cms.InputTag("TriggerResults::HLT"),
+    patTriggerEvent = cms.InputTag("patTriggerEventPF"),
     taus = cms.InputTag("selectedPatTausPF"),
     jets = cms.InputTag("selectedPatJetsPF"),
     muons = cms.InputTag("selectedPatMuonsPF"),

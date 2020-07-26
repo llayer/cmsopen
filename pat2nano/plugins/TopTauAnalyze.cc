@@ -5,9 +5,17 @@
 #include "DataFormats/VertexReco/interface/Vertex.h"
 #include "DataFormats/PatCandidates/interface/MET.h"
 #include "AnalysisDataFormats/TopObjects/interface/TtGenEvent.h"
+#include "DataFormats/Common/interface/TriggerResults.h"
+#include "FWCore/Common/interface/TriggerNames.h"
+#include "FWCore/ServiceRegistry/interface/Service.h"
+#include "PhysicsTools/PatUtils/interface/TriggerHelper.h"
+#include "DataFormats/PatCandidates/interface/TriggerObject.h"
+#include "TLorentzVector.h"
 #include "TopTauAnalyze.h"
 
 TopTauAnalyze::TopTauAnalyze(const edm::ParameterSet& cfg):
+  trigger_(cfg.getParameter<edm::InputTag>("trigger")),
+  patTriggerEvent_(cfg.getParameter<edm::InputTag>("patTriggerEvent")),
   vertices_(cfg.getParameter<edm::InputTag>("vertices")),
   muons_(cfg.getParameter<edm::InputTag>("muons")),
   electrons_(cfg.getParameter<edm::InputTag>("electrons")),
@@ -24,6 +32,43 @@ TopTauAnalyze::TopTauAnalyze(const edm::ParameterSet& cfg):
   tree->Branch("run", &value_run);
   tree->Branch("luminosityBlock", &value_lumi_block);
   tree->Branch("event", &value_event);
+
+  // Trigger
+  interestingTriggers = {
+    "HLT_Mu15_L1Mu7","HLT_DoubleMu3","HLT_IsoEle10_Mu10_L1R","HLT_IsoEle18_L1R","HLT_DoubleIsoEle12_L1R","HLT_Mu5",
+    "HLT_Mu9","HLT_Mu11","HLT_Mu15","HLT_IsoMu9","HLT_Ele10_SW_L1R","HLT_Ele15_SW_L1R","HLT_Ele15_LW_L1R","HLT_Ele10_LW_L1R",
+    "HLT_DoubleEle5_SW_L1R","HLT_LooseIsoEle15_LW_L1R","HLT_L2Mu3","HLT_L2Mu5","HLT_L2Mu9","HLT_Jet15U","HLT_Photon10_L1R",
+    "HLT_Photon15_L1R","HLT_Photon10_Cleaned_L1R", "HLT_Photon15_Cleaned_L1R","HLT_Ele15_SW_CaloEleId_L1R","HLT_Ele20_SW_L1R",
+    "HLT_DoubleEle10_SW_L1R"
+  };
+  for(size_t i = 0; i < interestingTriggers.size(); i++) {
+    tree->Branch(interestingTriggers[i].c_str(), value_trig + i, (interestingTriggers[i] + "/O").c_str());
+  }
+  /*
+  prescaleList = {
+    "HLT_QuadJet40_v1","HLT_QuadJet40_v2","HLT_QuadJet40_v3","HLT_QuadJet40_v4","HLT_QuadJet40_v5",
+    "HLT_QuadJet40_IsoPFTau40_v1","HLT_QuadJet40_IsoPFTau40_v2","HLT_QuadJet40_IsoPFTau40_v3",
+    "HLT_QuadJet40_IsoPFTau40_v4","HLT_QuadJet40_IsoPFTau40_v5","HLT_QuadJet40_IsoPFTau40_v6",
+    "HLT_QuadJet40_IsoPFTau40_v7","HLT_QuadJet40_IsoPFTau40_v8","HLT_QuadJet40_IsoPFTau40_v9",
+    "HLT_QuadJet40_IsoPFTau40_v10","HLT_QuadJet40_IsoPFTau40_v11","HLT_QuadJet40_IsoPFTau40_v12",
+    "HLT_QuadJet40_IsoPFTau40_v13","HLT_QuadJet40_IsoPFTau40_v14","HLT_QuadJet40_IsoPFTau40_v15"
+  };
+  for(size_t i = 0; i < prescaleList.size(); i++) {
+    tree->Branch(prescaleList[i].c_str(), value_prescale + i, (prescaleList[i] + "/O").c_str());
+  }
+  */
+  filterList = {
+    "hltQuadJet40IsoPFTau40", "HLTPFTauTightIsoSequence", "hltPFTau5Track", "hltPFTau5Track5",
+    "hltFilterPFTauTrack5TightIsoL1QuadJet20Central", "hltFilterPFTauTrack5TightIsoL1QuadJet20CentralPFTau40",
+    "hltQuadJet45IsoPFTau45", "hltFilterPFTauTrack5TightIsoL1QuadJet20CentralPFTau45",
+    "hltFilterPFTauTrack5TightIsoL1QuadJet28CentralPFTau45"
+  };
+  std::string prefix_filt = "HLTFilter_";
+  for(size_t i = 0; i < filterList.size(); i++) {
+    std::string filt_name = prefix_filt + filterList[i];
+    std::cout << filt_name << std::endl;
+    tree->Branch( filt_name.c_str(), value_filt + i, (filt_name + "/O").c_str());
+  }
 
   // Vertices
   tree->Branch("PV_npvs", &value_ve_n, "PV_npvs/I");
@@ -93,6 +138,10 @@ TopTauAnalyze::analyze(const edm::Event& evt, const edm::EventSetup& setup)
 {
   std::cout << "Start ana";
 
+  edm::Handle<edm::TriggerResults> trigger;
+  evt.getByLabel(trigger_, trigger);
+  edm::Handle<pat::TriggerEvent> patTriggerEvent;
+  evt.getByLabel(patTriggerEvent_, patTriggerEvent);
   edm::Handle<std::vector<reco::Vertex> > vertices;
   evt.getByLabel(vertices_, vertices);
   edm::Handle<std::vector<pat::Tau> > taus;
@@ -120,6 +169,59 @@ TopTauAnalyze::analyze(const edm::Event& evt, const edm::EventSetup& setup)
   value_run = evt.run();
   value_lumi_block = evt.luminosityBlock();
   value_event = evt.id().event();
+
+  std::cout << value_event;
+
+  // Trigger
+  // Accepted triggers
+  const edm::TriggerNames & triggerNames = evt.triggerNames(*trigger);
+  const std::vector<std::string> & triggerNames_ = triggerNames.triggerNames();
+  for (unsigned int i = 0; i < interestingTriggers.size(); i++) {
+    value_trig[i] = false;
+  }
+  for (unsigned int i = 0; i < trigger->size(); i++) {
+    for (unsigned int j = 0; j < interestingTriggers.size(); j++) {
+      if (triggerNames_[i] == interestingTriggers[j]) {
+        std::cout << triggerNames_[i] << std::endl;
+        std::cout << "Accept triggers: " << trigger->accept(i) << std::endl;
+        value_trig[j] = trigger->accept(i);
+      }
+    }
+  }
+
+  // Trigger event
+  pat::TriggerEvent pTrigEvt;
+  pTrigEvt = *patTriggerEvent;
+
+  // Filters
+  for (unsigned int i = 0; i < filterList.size(); i++) {
+    const pat::TriggerFilter* filter = pTrigEvt.filter(filterList[i]);
+    if (filter) value_trig[i] = filter->status();
+  }
+
+  // Matching
+  const pat::helper::TriggerMatchHelper matchHelper;
+  const pat::TriggerObjectRefVector trigRefs( patTriggerEvent->objects( trigger::TriggerJet ) );
+  for ( pat::TriggerObjectRefVector::const_iterator iTrig = trigRefs.begin(); iTrig != trigRefs.end(); ++iTrig )
+  {
+    if (pTrigEvt.objectInFilter( (*iTrig), "hltQuadJet40IsoPFTau40") ||
+       pTrigEvt.objectInFilter( (*iTrig), "hltQuadJet45IsoPFTau45")){
+       TLorentzVector p4((*iTrig)->px(),(*iTrig)->py(),(*iTrig)->pz(),(*iTrig)->energy());
+    }
+  }
+  
+  const pat::TriggerObjectRefVector trigRefs2( patTriggerEvent->objects( trigger::TriggerTau ) );
+  for ( pat::TriggerObjectRefVector::const_iterator iTrig = trigRefs2.begin(); iTrig != trigRefs2.end(); ++iTrig )
+  {
+    if (pTrigEvt.objectInFilter( (*iTrig), "hltFilterPFTauTrack5TightIsoL1QuadJet20CentralPFTau40") ||
+        pTrigEvt.objectInFilter( (*iTrig), "hltFilterPFTauTrack5TightIsoL1QuadJet20CentralPFTau45") ||
+        pTrigEvt.objectInFilter( (*iTrig), "hltFilterPFTauTrack5TightIsoL1QuadJet28CentralPFTau45")
+       )
+   {
+    TLorentzVector p4((*iTrig)->px(),(*iTrig)->py(),(*iTrig)->pz(),(*iTrig)->energy());
+    cev.tauObjTrig.push_back(p4);
+    }
+   }
 
   // Vertex
   value_ve_n = vertices->size();
@@ -215,3 +317,4 @@ void TopTauAnalyze::endJob()
 
 #include "FWCore/Framework/interface/MakerMacros.h"
 DEFINE_FWK_MODULE(TopTauAnalyze);
+                                                        
