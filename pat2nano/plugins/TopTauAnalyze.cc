@@ -21,10 +21,12 @@ TopTauAnalyze::TopTauAnalyze(const edm::ParameterSet& cfg):
   electrons_(cfg.getParameter<edm::InputTag>("electrons")),
   met_(cfg.getParameter<edm::InputTag>("met")),
   taus_(cfg.getParameter<edm::InputTag>("taus")),
-  jets_(cfg.getParameter<edm::InputTag>("jets")),
-  genEvent_(cfg.getParameter<edm::InputTag>("genEvent"))
+  jets_(cfg.getParameter<edm::InputTag>("jets"))
+  //genEvent_(cfg.getParameter<edm::InputTag>("genEvent"))
 {
   edm::Service<TFileService> fs;
+
+  isData = cfg.getParameter < bool > ("isData");
 
   tree = fs->make<TTree>("Events", "Events");
 
@@ -35,11 +37,7 @@ TopTauAnalyze::TopTauAnalyze(const edm::ParameterSet& cfg):
 
   // Trigger
   interestingTriggers = {
-    "HLT_Mu15_L1Mu7","HLT_DoubleMu3","HLT_IsoEle10_Mu10_L1R","HLT_IsoEle18_L1R","HLT_DoubleIsoEle12_L1R","HLT_Mu5",
-    "HLT_Mu9","HLT_Mu11","HLT_Mu15","HLT_IsoMu9","HLT_Ele10_SW_L1R","HLT_Ele15_SW_L1R","HLT_Ele15_LW_L1R","HLT_Ele10_LW_L1R",
-    "HLT_DoubleEle5_SW_L1R","HLT_LooseIsoEle15_LW_L1R","HLT_L2Mu3","HLT_L2Mu5","HLT_L2Mu9","HLT_Jet15U","HLT_Photon10_L1R",
-    "HLT_Photon15_L1R","HLT_Photon10_Cleaned_L1R", "HLT_Photon15_Cleaned_L1R","HLT_Ele15_SW_CaloEleId_L1R","HLT_Ele20_SW_L1R",
-    "HLT_DoubleEle10_SW_L1R"
+    "HLT_QuadJet40_IsoPFTau40", "HLT_QuadJet45_IsoPFTau45"
   };
   for(size_t i = 0; i < interestingTriggers.size(); i++) {
     tree->Branch(interestingTriggers[i].c_str(), value_trig + i, (interestingTriggers[i] + "/O").c_str());
@@ -110,17 +108,18 @@ TopTauAnalyze::TopTauAnalyze(const edm::ParameterSet& cfg):
   tree->Branch("Jet_mass", value_jet_mass, "Jet_mass[nJet]/F");
 
   // genEvent
-  tree->Branch("genEvent_nLep", &value_nLep_, "genEvent_nLep/F");
-  tree->Branch("genEvent_topPt", &value_topPt_, "genEvent_topPt/F");
-  tree->Branch("genEvent_topEta", &value_topEta_, "genEvent_topEta/F");
-  tree->Branch("genEvent_topPhi", &value_topPhi_, "genEvent_topPhi/F");
-  tree->Branch("genEvent_topBarPt", &value_topBarPt_, "genEvent_topBarPt/F");
-  tree->Branch("genEvent_topBarEta", &value_topBarEta_, "genEvent_topBarEta/F");
-  tree->Branch("genEvent_topBarPhi", &value_topBarPhi_, "genEvent_topBarPhi/F");
-  tree->Branch("genEvent_ttbarPt", &value_ttbarPt_, "genEvent_ttbarPt/F");
-  tree->Branch("genEvent_ttbarEta", &value_ttbarEta_, "genEvent_ttbarEta/F");
-  tree->Branch("genEvent_ttbarPhi", &value_ttbarPhi_, "genEvent_ttbarPhi/F");
-
+  if( isData == false ){
+    tree->Branch("genEvent_nLep", &value_nLep_, "genEvent_nLep/F");
+    tree->Branch("genEvent_topPt", &value_topPt_, "genEvent_topPt/F");
+    tree->Branch("genEvent_topEta", &value_topEta_, "genEvent_topEta/F");
+    tree->Branch("genEvent_topPhi", &value_topPhi_, "genEvent_topPhi/F");
+    tree->Branch("genEvent_topBarPt", &value_topBarPt_, "genEvent_topBarPt/F");
+    tree->Branch("genEvent_topBarEta", &value_topBarEta_, "genEvent_topBarEta/F");
+    tree->Branch("genEvent_topBarPhi", &value_topBarPhi_, "genEvent_topBarPhi/F");
+    tree->Branch("genEvent_ttbarPt", &value_ttbarPt_, "genEvent_ttbarPt/F");
+    tree->Branch("genEvent_ttbarEta", &value_ttbarEta_, "genEvent_ttbarEta/F");
+    tree->Branch("genEvent_ttbarPhi", &value_ttbarPhi_, "genEvent_ttbarPhi/F");
+  }
 
   mult_ = fs->make<TH1F>("mult", "multiplicity (taus)", 30,  0 ,   30);
   en_   = fs->make<TH1F>("en"  , "energy (taus)",       60,  0., 300.);
@@ -154,8 +153,6 @@ TopTauAnalyze::analyze(const edm::Event& evt, const edm::EventSetup& setup)
   evt.getByLabel(muons_, muons);
   edm::Handle<std::vector<pat::MET> > met;
   evt.getByLabel(met_, met);
-  edm::Handle<TtGenEvent> genEvent;
-  evt.getByLabel(genEvent_, genEvent);
 
   mult_->Fill( taus->size() );
   for(std::vector<pat::Tau>::const_iterator tau=taus->begin(); tau!=taus->end(); ++tau){
@@ -209,19 +206,17 @@ TopTauAnalyze::analyze(const edm::Event& evt, const edm::EventSetup& setup)
        TLorentzVector p4((*iTrig)->px(),(*iTrig)->py(),(*iTrig)->pz(),(*iTrig)->energy());
     }
   }
-  
+
   const pat::TriggerObjectRefVector trigRefs2( patTriggerEvent->objects( trigger::TriggerTau ) );
   for ( pat::TriggerObjectRefVector::const_iterator iTrig = trigRefs2.begin(); iTrig != trigRefs2.end(); ++iTrig )
   {
     if (pTrigEvt.objectInFilter( (*iTrig), "hltFilterPFTauTrack5TightIsoL1QuadJet20CentralPFTau40") ||
         pTrigEvt.objectInFilter( (*iTrig), "hltFilterPFTauTrack5TightIsoL1QuadJet20CentralPFTau45") ||
         pTrigEvt.objectInFilter( (*iTrig), "hltFilterPFTauTrack5TightIsoL1QuadJet28CentralPFTau45")
-       )
-   {
-    TLorentzVector p4((*iTrig)->px(),(*iTrig)->py(),(*iTrig)->pz(),(*iTrig)->energy());
-    cev.tauObjTrig.push_back(p4);
+       ){
+      TLorentzVector p4((*iTrig)->px(),(*iTrig)->py(),(*iTrig)->pz(),(*iTrig)->energy());
     }
-   }
+  }
 
   // Vertex
   value_ve_n = vertices->size();
@@ -256,8 +251,8 @@ TopTauAnalyze::analyze(const edm::Event& evt, const edm::EventSetup& setup)
   }
 
   // Tau
-  const float tau_min_pt = 15;
-  //std::cout << std::endl << tau_min_pt << std::endl;
+  const float tau_min_pt = 0;
+  std::cout << std::endl << taus->size() << std::endl;
   value_tau_n = 0;
   for (auto it = taus->begin(); it != taus->end(); it++) {
     if (it->pt() > tau_min_pt) {
@@ -275,8 +270,9 @@ TopTauAnalyze::analyze(const edm::Event& evt, const edm::EventSetup& setup)
   value_met_sumet = met->begin()->sumEt();
 
   // Jets
-  const float jet_min_pt = 15;
+  const float jet_min_pt = 0.;
   value_jet_n = 0;
+  std::cout << std::endl << jets->size() << std::endl;
   for (auto it = jets->begin(); it != jets->end(); it++) {
     //std::cout << it->pt();
     if (it->pt() > jet_min_pt) {
@@ -288,19 +284,23 @@ TopTauAnalyze::analyze(const edm::Event& evt, const edm::EventSetup& setup)
     }
   }
 
-  if( genEvent->isTtBar() ){
+  if( isData == false){
+    edm::Handle<TtGenEvent> genEvent;
+    evt.getByLabel(genEvent_, genEvent);
+    if( genEvent->isTtBar() ){
 
-    value_nLep_ = genEvent->numberOfLeptons();
-    value_topPt_ = genEvent->top()->pt();
-    value_topEta_ = genEvent->top()->eta();
-    value_topPhi_ = genEvent->top   ()->phi();
-    value_topBarPt_ = genEvent->topBar()->pt();
-    value_topBarEta_ = genEvent->topBar()->eta();
-    value_topBarPhi_ = genEvent->topBar()->phi();
-    value_ttbarPt_ = genEvent->topPair()->pt();
-    value_ttbarEta_ = genEvent->topPair()->eta();
-    value_ttbarPhi_ = genEvent->topPair()->phi();
+      value_nLep_ = genEvent->numberOfLeptons();
+      value_topPt_ = genEvent->top()->pt();
+      value_topEta_ = genEvent->top()->eta();
+      value_topPhi_ = genEvent->top   ()->phi();
+      value_topBarPt_ = genEvent->topBar()->pt();
+      value_topBarEta_ = genEvent->topBar()->eta();
+      value_topBarPhi_ = genEvent->topBar()->phi();
+      value_ttbarPt_ = genEvent->topPair()->pt();
+      value_ttbarEta_ = genEvent->topPair()->eta();
+      value_ttbarPhi_ = genEvent->topPair()->phi();
 
+    }
   }
 
   tree->Fill();

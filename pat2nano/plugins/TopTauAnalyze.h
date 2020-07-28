@@ -26,6 +26,8 @@ class TopTauAnalyze : public edm::EDAnalyzer {
 
   TTree *tree;
 
+  bool isData;
+
   // Event information
   Int_t value_run;
   UInt_t value_lumi_block;
@@ -64,8 +66,18 @@ class TopTauAnalyze : public edm::EDAnalyzer {
 
   // MET
   float value_met_pt;
+  float value_met_px;
+  float value_met_py;
+  float value_met_pz;
+  float value_met_uncorrectedPt;
   float value_met_phi;
   float value_met_sumet;
+  float value_met_corEx;
+  float value_met_corEy;
+  float value_met_significance;
+  float value_met_covxx;
+  float value_met_covxy;
+  float value_met_covyy;
 
   // Taus
   const static int max_tau = 1000;

@@ -6,17 +6,17 @@ process = cms.Process("Top")
 ## Define the input sample
 process.source = cms.Source("PoolSource",
   fileNames = cms.untracked.vstring(
-    'file:pat2.root'
+    'file:pat4.root'
   )
 )
 ## restrict the number of events for testing
 process.maxEvents = cms.untracked.PSet(
-    input = cms.untracked.int32(10)
+    input = cms.untracked.int32(-1)
 )
 
 ## Define the TFileService
 process.TFileService = cms.Service("TFileService",
-fileName = cms.string('analyzePatTopSelection.root')
+fileName = cms.string('nano.root')
 )
 
 #from PatTopSelectionAnalyzer_cfi import *
@@ -49,9 +49,9 @@ process.analyzeTau = cms.EDAnalyzer("TopTauAnalyze",
     vertices = cms.InputTag("goodOfflinePrimaryVertices"),
     met   = cms.InputTag("patMETsPF"),
     genEvent = cms.InputTag("genEvt"),
+    isData = cms.bool(True),
     verbose = cms.bool(True)
 )
 
 #process.p = cms.Path(process.Top)
 process.p1 = cms.Path( process.analyzeTau)
-
