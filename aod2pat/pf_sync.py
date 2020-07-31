@@ -17,7 +17,7 @@ else:
   runOnMC = int(sys.argv[2])
 
 print "Run on MC = ", runOnMC
-maxEvents = 10000
+maxEvents = 1000
 ########################################################################
 #################### Setup process #####################################
 ########################################################################
@@ -84,13 +84,32 @@ process.out = cms.OutputModule('PoolOutputModule',
 ### Trigger ####
 ################
 
+#
+# Filter
+#
+
+#process.load('HLTrigger.HLTfilters.hltHighLevel_cfi')
+from HLTrigger.HLTfilters.hltHighLevel_cfi import *
+#import HLTrigger.HLTfilters.hltHighLevel_cfi as hlt
+"""
+process.hltHighLevel.HLTPaths = cms.vstring("HLT_QuadJet*")
+process.hltHighLevel.throw = False
+"""
+# accept if any path succeeds (explicit)
+process.hltSelector = hltHighLevel.clone(
+    HLTPaths = ['HLT_QuadJet40_IsoPFTau40*', 'HLT_QuadJet45_IsoPFTau45*'],
+    throw = False
+    )
+#
+# Trigger matching
+#
+
 # PAT Layer 0+1
 process.load("PhysicsTools.PatAlgos.patSequences_cff")
 process.load("PhysicsTools.PatAlgos.triggerLayer1.triggerProducer_cff")
 from PhysicsTools.PatAlgos.tools.trigTools import *
 switchOnTrigger( process )
 
-# Trigger matching
 def set_matcher(inTag, cuts):
     return cms.EDProducer(
     "PATTriggerMatcherDRLessByR"
@@ -204,7 +223,7 @@ getattr(process,"pfNoJet"     +postfix).enable = False
 
 
 ###########################################
-#### Minimal cuts and additional variables
+######### Additional variables ############
 ###########################################
 
 #
@@ -226,12 +245,6 @@ process.pfSelectedElectronsPF.cut = 'pt > 5. && gsfTrackRef.isNonnull && gsfTrac
 #process.pfSelectedElectronsPF.cut += ' && ' + electronCut # can use minimal (veto) electron selection cut on top of base pf cut
 process.pfIsolatedElectronsPF.isolationCut = 0.2
 """
-
-# Basic cuts
-process.selectedPatMuonsPF.cut = 'pt > 10. && abs(eta) < 2.5'
-process.selectedPatElectronsPF.cut = 'pt > 10. && abs(eta) < 2.5'
-process.selectedPatTausPF.cut = 'pt > 10. && abs(eta) < 2.5'
-process.selectedPatJetsPF.cut = 'pt > 10. && abs(eta) < 2.5'
 
 # Additional variables
 process.pfIsolatedElectronsPF.isolationValueMapsCharged   = cms.VInputTag('elPFIsoValueCharged03PFIdPF')
@@ -283,19 +296,42 @@ process.pdfWeights = cms.EDProducer("PdfWeightProducer",
 #  Basic object selections
 ####################################
 
-process.countPatJetsSemileptonicPF = process.countPatJetsPF.clone(minNumber = 3)
-process.countPatLeptonsSemileptonicPF = cms.EDFilter("PATLeptonCountFilter",
-                                                     minNumber = cms.uint32(1),
-                                                     maxNumber = cms.uint32(99999),
-                                                     countElectrons = cms.bool(False),
-                                                     #electronSource = cms.InputTag("selectedPatElectronsPF"),
-                                                     electronSource = cms.InputTag("selectedPatElectronsPF"),
-                                                     countMuons = cms.bool(False),
-                                                     #muonSource = cms.InputTag("selectedPatMuonsPF"),
-                                                     muonSource = cms.InputTag("selectedPatMuonsPF"),
-                                                     countTaus = cms.bool(True),
-                                                     tauSource = cms.InputTag("selectedPatTausPF"),
-                                                     )
+# Basic cuts
+process.selectedPatMuonsPF.cut = 'pt > 10. && abs(eta) < 2.5'
+process.selectedPatElectronsPF.cut = 'pt > 10. && abs(eta) < 2.5'
+process.selectedPatTausPF.cut = 'pt > 10. && abs(eta) < 2.5'
+process.selectedPatJetsPF.cut = 'pt > 10. && abs(eta) < 2.5'
+
+process.countJets = cms.EDFilter("CandViewCountFilter",
+     src = cms.InputTag('selectedPatJetsPF'),
+     minNumber = cms.uint32(3)
+)
+
+process.countTaus = cms.EDFilter("CandViewCountFilter",
+     src = cms.InputTag('selectedPatTausPF'),
+     minNumber = cms.uint32(1)
+)
+
+
+####################################
+##########  NanoAOD ################
+####################################
+"""
+process.analyzeTau = cms.EDAnalyzer("TopTauAnalyze",
+    trigger = cms.InputTag("TriggerResults::HLT"),
+    patTriggerEvent = cms.InputTag("patTriggerEventPF"),
+    taus = cms.InputTag("selectedPatTausPF"),
+    jets = cms.InputTag("selectedPatJetsPF"),
+    muons = cms.InputTag("selectedPatMuonsPF"),
+    electrons = cms.InputTag("selectedPatElectronsPF"),
+    vertices = cms.InputTag("goodOfflinePrimaryVertices"),
+    met   = cms.InputTag("patMETsPF"),
+    genEvent = cms.InputTag("genEvt"),
+    isData = cms.bool(True),
+    verbose = cms.bool(True)
+)
+"""
+
 
 ####################################
 #  Output content
@@ -312,10 +348,14 @@ removeSpecificPATObjects(process, names = ['Photons'], postfix = 'PF')
 
 #cms.ignore(process.mvaTrigV0) + \
 #cms.ignore(process.mvaNonTrigV0) + \
-base_path = process.goodOfflinePrimaryVertices * \
+base_path = process.hltSelector * \
+            process.goodOfflinePrimaryVertices * \
             process.patPF2PATSequencePF * \
-            process.countPatLeptonsSemileptonicPF * \
-            process.countPatJetsSemileptonicPF 
+            process.countJets * \
+            process.countTaus 
+
+#process.countPatLeptonsSemileptonicPF * \
+#process.countPatJetsSemileptonicPF
 
 if runOnMC == 1:
     process.load("TopQuarkAnalysis.TopEventProducers.sequences.ttGenEvent_cff")

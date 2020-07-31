@@ -10,6 +10,7 @@
 <use   name="CommonTools/UtilAlgos"/>
 <use   name="DataFormats/Common"/>
 <use   name="FWCore/PluginManager"/>
+<use   name="FWCore/ServiceRegistry"/>
 <use   name="AnalysisDataFormats/TopObjects"/>
 <library   file="*.cc" name="TopAnalysisTopAnalyzerPlugins">
   <flags   EDM_PLUGIN="1"/>

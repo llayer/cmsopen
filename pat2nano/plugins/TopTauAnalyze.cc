@@ -10,6 +10,7 @@
 #include "FWCore/ServiceRegistry/interface/Service.h"
 #include "PhysicsTools/PatUtils/interface/TriggerHelper.h"
 #include "DataFormats/PatCandidates/interface/TriggerObject.h"
+#include "FWCore/Framework/interface/TriggerNamesService.h"
 #include "TLorentzVector.h"
 #include "TopTauAnalyze.h"
 
@@ -171,17 +172,33 @@ TopTauAnalyze::analyze(const edm::Event& evt, const edm::EventSetup& setup)
 
   // Trigger
   // Accepted triggers
+  /*
+  edm::Service < edm::service::TriggerNamesService > tns;
+  std::vector < std::string > tList;
+  edm::TriggerResults tr = *trigger;
+  bool foundNames = tns->getTrigPaths (tr, tList);
+  if (!foundNames){
+    std::cout << "Could not get trigger names!\n";
+  }
+  */
   const edm::TriggerNames & triggerNames = evt.triggerNames(*trigger);
   const std::vector<std::string> & triggerNames_ = triggerNames.triggerNames();
   for (unsigned int i = 0; i < interestingTriggers.size(); i++) {
     value_trig[i] = false;
   }
   for (unsigned int i = 0; i < trigger->size(); i++) {
+    if( trigger->accept(i) == 1 ){
+      std::cout<< triggerNames_[i] << std::endl;
+      // std::cout<< tList[i] << std::endl;
+    }
     for (unsigned int j = 0; j < interestingTriggers.size(); j++) {
-      if (triggerNames_[i] == interestingTriggers[j]) {
+      if( triggerNames_[i].find(interestingTriggers[j]) != std::string::npos ){
         std::cout << triggerNames_[i] << std::endl;
         std::cout << "Accept triggers: " << trigger->accept(i) << std::endl;
         value_trig[j] = trigger->accept(i);
+        //if( value_trig[j] == 1 ){
+        //  std::cout<< triggerNames_[i]
+        //}
       }
     }
   }
@@ -256,6 +273,7 @@ TopTauAnalyze::analyze(const edm::Event& evt, const edm::EventSetup& setup)
   value_tau_n = 0;
   for (auto it = taus->begin(); it != taus->end(); it++) {
     if (it->pt() > tau_min_pt) {
+      std::cout << std::endl << it->pt() << std::endl;
       value_tau_pt[value_tau_n] = it->pt();
       value_tau_eta[value_tau_n] = it->eta();
       value_tau_phi[value_tau_n] = it->phi();

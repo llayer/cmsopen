@@ -6,7 +6,7 @@ process = cms.Process("Top")
 ## Define the input sample
 process.source = cms.Source("PoolSource",
   fileNames = cms.untracked.vstring(
-    'file:pat4.root'
+    'file:pat.root'
   )
 )
 ## restrict the number of events for testing
