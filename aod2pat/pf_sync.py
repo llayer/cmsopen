@@ -17,7 +17,8 @@ else:
   runOnMC = int(sys.argv[2])
 
 print "Run on MC = ", runOnMC
-maxEvents = 1000
+maxEvents = 100
+skim = False
 ########################################################################
 #################### Setup process #####################################
 ########################################################################
@@ -47,7 +48,8 @@ else:
 process.options = cms.untracked.PSet(wantSummary = cms.untracked.bool(False))
 process.maxEvents = cms.untracked.PSet(input = cms.untracked.int32(maxEvents))
 if runOnMC == 0:
-    files = ["root://eospublic.cern.ch//eos/opendata/cms/Run2011A/MultiJet/AOD/12Oct2013-v1/00000/001D2AFA-8B43-E311-AC56-02163E009EC4.root"]
+    #files = ["root://eospublic.cern.ch//eos/opendata/cms/Run2011A/MultiJet/AOD/12Oct2013-v1/00000/001D2AFA-8B43-E311-AC56-02163E009EC4.root"]
+    files = ["root://eospublic.cern.ch//eos/opendata/cms/Run2011A/MultiJet/AOD/12Oct2013-v1/20001/BE90B0AD-EF4B-E311-8429-003048F010A2.root"]
 else:
     files = ["root://eospublic.cern.ch//eos/opendata/cms/MonteCarlo2011/Summer11LegDR/TTJets_TuneZ2_7TeV-madgraph-tauola/AODSIM/PU_S13_START53_LV6-v1/00000/0005D1FB-4BCF-E311-9FE4-002590A8312A.root"]
 
@@ -88,18 +90,13 @@ process.out = cms.OutputModule('PoolOutputModule',
 # Filter
 #
 
-#process.load('HLTrigger.HLTfilters.hltHighLevel_cfi')
-from HLTrigger.HLTfilters.hltHighLevel_cfi import *
-#import HLTrigger.HLTfilters.hltHighLevel_cfi as hlt
-"""
-process.hltHighLevel.HLTPaths = cms.vstring("HLT_QuadJet*")
-process.hltHighLevel.throw = False
-"""
-# accept if any path succeeds (explicit)
-process.hltSelector = hltHighLevel.clone(
-    HLTPaths = ['HLT_QuadJet40_IsoPFTau40*', 'HLT_QuadJet45_IsoPFTau45*'],
-    throw = False
-    )
+if skim:
+    # accept if any path succeeds (explicit)
+    from HLTrigger.HLTfilters.hltHighLevel_cfi import *
+    process.hltSelector = hltHighLevel.clone(
+        HLTPaths = ['HLT_QuadJet40_IsoPFTau40*', 'HLT_QuadJet45_IsoPFTau45*'],
+        throw = False
+        )
 #
 # Trigger matching
 #
@@ -109,6 +106,28 @@ process.load("PhysicsTools.PatAlgos.patSequences_cff")
 process.load("PhysicsTools.PatAlgos.triggerLayer1.triggerProducer_cff")
 from PhysicsTools.PatAlgos.tools.trigTools import *
 switchOnTrigger( process )
+
+"""
+process.tauMatchHLTTaus45 = cms.EDProducer(
+  # matching in DeltaR, sorting by best DeltaR
+  "PATTriggerMatcherDRLessByR"
+  # matcher input collections
+#, src     = cms.InputTag( 'selectedPatJetsPF2PAT' )
+, src     = cms.InputTag( 'selectedPatTausPF' )
+, matched = cms.InputTag( 'patTrigger' )
+  # selections of trigger objects
+, matchedCuts = cms.string( 'type( "TriggerTau" )') #' && path( "HLT_QuadJet45_IsoPFTau45_v*",1 , 0 )')#&& filter( "hltFilterPFTauTrack5TightIsoL1QuadJet20CentralPFTau40" )')
+#, matchedCuts = cms.string( 'type( "TriggerJet" ) && path( "HLT_QuadJet40_IsoPFTau40_v*", 0, 0) && filter( "hltQuadJet40IsoPFTau40" )')
+  # selection of matches
+, maxDPtRel   = cms.double( 0.5 ) # no effect here
+, maxDeltaR   = cms.double( 0.5 )
+, maxDeltaEta = cms.double( 0.2 ) # no effect here
+  # definition of matcher output
+, resolveAmbiguities    = cms.bool( True )
+, resolveByMatchQuality = cms.bool( True )
+)
+switchOnTriggerMatching( process, triggerMatchers = [ 'tauMatchHLTTaus45' ] )
+"""
 
 def set_matcher(inTag, cuts):
     return cms.EDProducer(
@@ -296,42 +315,42 @@ process.pdfWeights = cms.EDProducer("PdfWeightProducer",
 #  Basic object selections
 ####################################
 
-# Basic cuts
-process.selectedPatMuonsPF.cut = 'pt > 10. && abs(eta) < 2.5'
-process.selectedPatElectronsPF.cut = 'pt > 10. && abs(eta) < 2.5'
-process.selectedPatTausPF.cut = 'pt > 10. && abs(eta) < 2.5'
-process.selectedPatJetsPF.cut = 'pt > 10. && abs(eta) < 2.5'
 
-process.countJets = cms.EDFilter("CandViewCountFilter",
-     src = cms.InputTag('selectedPatJetsPF'),
-     minNumber = cms.uint32(3)
-)
+if skim:
 
-process.countTaus = cms.EDFilter("CandViewCountFilter",
-     src = cms.InputTag('selectedPatTausPF'),
-     minNumber = cms.uint32(1)
-)
+    # Basic cuts - apply in analyzer
+    """
+    process.selectedPatMuonsPF.cut = 'pt > 10. && abs(eta) < 2.5'
+    process.selectedPatElectronsPF.cut = 'pt > 10. && abs(eta) < 2.5'
+    process.selectedPatTausPF.cut = 'pt > 10. && abs(eta) < 2.5'
+    process.selectedPatJetsPF.cut = 'pt > 10. && abs(eta) < 2.5'
+    """
+    process.countJets = cms.EDFilter("CandViewCountFilter",
+         src = cms.InputTag('selectedPatJetsPF'),
+         minNumber = cms.uint32(3)
+    )
 
+    process.countTaus = cms.EDFilter("CandViewCountFilter",
+         src = cms.InputTag('selectedPatTausPF'),
+         minNumber = cms.uint32(1)
+    )
 
 ####################################
 ##########  NanoAOD ################
 ####################################
-"""
-process.analyzeTau = cms.EDAnalyzer("TopTauAnalyze",
-    trigger = cms.InputTag("TriggerResults::HLT"),
-    patTriggerEvent = cms.InputTag("patTriggerEventPF"),
-    taus = cms.InputTag("selectedPatTausPF"),
-    jets = cms.InputTag("selectedPatJetsPF"),
-    muons = cms.InputTag("selectedPatMuonsPF"),
-    electrons = cms.InputTag("selectedPatElectronsPF"),
-    vertices = cms.InputTag("goodOfflinePrimaryVertices"),
-    met   = cms.InputTag("patMETsPF"),
-    genEvent = cms.InputTag("genEvt"),
-    isData = cms.bool(True),
-    verbose = cms.bool(True)
-)
-"""
 
+process.MyModule = cms.EDAnalyzer('TopTauAnalyze',
+    isData = cms.bool(True),
+    electron_cut_pt     = cms.double(10),
+    electron_cut_eta    = cms.double(2.5),
+    muon_cut_pt         = cms.double(10),
+    muon_cut_eta        = cms.double(2.5),
+    tau_cut_pt      = cms.double(10),
+    tau_cut_eta     = cms.double(2.5),    #!! original is 2.4
+    jet_cut_pt      = cms.double(10),
+    jet_cut_eta     = cms.double(2.5),       
+    verbose = cms.bool(True)
+    )
 
 ####################################
 #  Output content
@@ -348,14 +367,18 @@ removeSpecificPATObjects(process, names = ['Photons'], postfix = 'PF')
 
 #cms.ignore(process.mvaTrigV0) + \
 #cms.ignore(process.mvaNonTrigV0) + \
-base_path = process.hltSelector * \
-            process.goodOfflinePrimaryVertices * \
-            process.patPF2PATSequencePF * \
-            process.countJets * \
-            process.countTaus 
 
-#process.countPatLeptonsSemileptonicPF * \
-#process.countPatJetsSemileptonicPF
+if skim:
+    base_path = process.hltSelector * \
+                process.goodOfflinePrimaryVertices * \
+                process.patPF2PATSequencePF * \
+                process.countJets * \
+                process.countTaus * \
+                process.MyModule
+else:
+    base_path = process.goodOfflinePrimaryVertices * \
+                process.patPF2PATSequencePF * \
+                process.MyModule
 
 if runOnMC == 1:
     process.load("TopQuarkAnalysis.TopEventProducers.sequences.ttGenEvent_cff")
@@ -363,8 +386,14 @@ if runOnMC == 1:
 else:
     process.taujet = cms.Path(base_path) #+ process.makeGenEvt)
 
-process.out.SelectEvents = cms.untracked.PSet(SelectEvents = cms.vstring('taujet'))
 
+#cms.Path(process.taujet)
+process.out.SelectEvents = cms.untracked.PSet(SelectEvents = cms.vstring('taujet'))
+process.out.outputCommands = cms.untracked.vstring('drop *')
+
+process.TFileService = cms.Service("TFileService", fileName = cms.string("nano.root") )
+
+"""
 process.out.outputCommands = cms.untracked.vstring(
     'drop *',
     'keep *_selectedPatElectrons*_*_*',
@@ -394,6 +423,5 @@ process.out.outputCommands = cms.untracked.vstring(
     'keep *_initSubset_*_*',
     'keep *_genEvt_*_*',
     'keep *_patTrigger*_*_*',
-    )
-
+    )"""
 process.outp = cms.EndPath(process.out)

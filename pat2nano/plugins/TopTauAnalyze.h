@@ -24,9 +24,19 @@ class TopTauAnalyze : public edm::EDAnalyzer {
   virtual void analyze(const edm::Event&, const edm::EventSetup&);
   virtual void endJob() ;
 
-  TTree *tree;
-
   bool isData;
+  double electron_cut_pt;
+  double electron_cut_eta;
+  double photon_cut_pt;
+  double photon_cut_eta;
+  double muon_cut_pt;
+  double muon_cut_eta;
+  double tau_cut_pt;
+  double tau_cut_eta;
+  double jet_cut_pt;
+  double jet_cut_eta;
+
+  TTree *tree;
 
   // Event information
   Int_t value_run;
@@ -60,6 +70,24 @@ class TopTauAnalyze : public edm::EDAnalyzer {
   float value_ve_bsx;
   float value_ve_bsy;
   float value_ve_bsz;
+
+  // HLT taus
+  const static int max_hlttau = 1000;
+  UInt_t value_hlttau_n;
+  float value_hlttau_pt[max_hlttau];
+  float value_hlttau_px[max_hlttau];
+  float value_hlttau_py[max_hlttau];
+  float value_hlttau_pz[max_hlttau];
+  float value_hlttau_e[max_hlttau];
+
+  // HLT jets
+  const static int max_hltjet = 1000;
+  UInt_t value_hltjet_n;
+  float value_hltjet_pt[max_hltjet];
+  float value_hltjet_px[max_hltjet];
+  float value_hltjet_py[max_hltjet];
+  float value_hltjet_pz[max_hltjet];
+  float value_hltjet_e[max_hltjet];
 
   // Muons
   const static int max_mu = 1000;

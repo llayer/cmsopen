@@ -40,6 +40,15 @@ process.analyzeTau = cms.EDAnalyzer("TopTauAnalyze",
     verbose = cms.bool(True)
 )"""
 process.analyzeTau = cms.EDAnalyzer("TopTauAnalyze",
+    trigger = cms.InputTag("TriggerResults::HLT"),
+    patTriggerEvent = cms.InputTag("patTriggerEventPF"),
+    taus = cms.InputTag("selectedPatTausPF"),
+    jets = cms.InputTag("selectedPatJetsPF"),
+    muons = cms.InputTag("selectedPatMuonsPF"),
+    electrons = cms.InputTag("selectedPatElectronsPF"),
+    vertices = cms.InputTag("goodOfflinePrimaryVertices"),
+    met   = cms.InputTag("patMETsPF"),
+    genEvent = cms.InputTag("genEvt"),
     isData = cms.bool(True),
     verbose = cms.bool(True)
 )

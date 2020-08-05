@@ -20,7 +20,17 @@ TopTauAnalyze::TopTauAnalyze(const edm::ParameterSet& cfg)
 {
   edm::Service<TFileService> fs;
 
-  isData = cfg.getParameter < bool > ("isData");
+  isData            = cfg.getParameter < bool >      ("isData");
+  electron_cut_pt   = cfg.getParameter < double >    ("electron_cut_pt");
+  electron_cut_eta  = cfg.getParameter < double >    ("electron_cut_eta");
+  muon_cut_pt       = cfg.getParameter < double >    ("muon_cut_pt");
+  muon_cut_eta      = cfg.getParameter < double >    ("muon_cut_eta");
+  tau_cut_pt        = cfg.getParameter < double >    ("tau_cut_pt");
+  tau_cut_eta       = cfg.getParameter < double >    ("tau_cut_eta");
+  jet_cut_pt        = cfg.getParameter < double >    ("jet_cut_pt");
+  jet_cut_eta       = cfg.getParameter < double >    ("jet_cut_eta");
+
+
 
   tree = fs->make<TTree>("Events", "Events");
 
@@ -59,7 +69,7 @@ TopTauAnalyze::TopTauAnalyze(const edm::ParameterSet& cfg)
   std::string prefix_filt = "HLTFilter_";
   for(size_t i = 0; i < filterList.size(); i++) {
     std::string filt_name = prefix_filt + filterList[i];
-    std::cout << filt_name << std::endl;
+    //std::cout << filt_name << std::endl;
     tree->Branch( filt_name.c_str(), value_filt + i, (filt_name + "/O").c_str());
   }
 
@@ -81,6 +91,22 @@ TopTauAnalyze::TopTauAnalyze(const edm::ParameterSet& cfg)
   tree->Branch("PV_bsx", &value_ve_bsx, "PV_bsx/F");
   tree->Branch("PV_bsy", &value_ve_bsy, "PV_bsy/F");
   tree->Branch("PV_bsz", &value_ve_bsz, "PV_bsz/F");
+
+  // HLT taus
+  tree->Branch("nTauHLT", &value_hlttau_n, "nTauHLT/i");
+  tree->Branch("TauHLT_pt", value_hlttau_pt, "TauHLT_pt[nTauHLT]/F");
+  tree->Branch("TauHLT_px", value_hlttau_px, "TauHLT_px[nTauHLT]/F");
+  tree->Branch("TauHLT_py", value_hlttau_py, "TauHLT_py[nTauHLT]/F");
+  tree->Branch("TauHLT_pz", value_hlttau_pz, "TauHLT_pz[nTauHLT]/F");
+  tree->Branch("TauHLT_e", value_hlttau_e, "TauHLT_e[nTauHLT]/F");
+
+  // HLT jets
+  tree->Branch("nJetHLT", &value_hltjet_n, "nJetHLT/i");
+  tree->Branch("JetHLT_pt", value_hltjet_pt, "JetHLT_pt[nJetHLT]/F");
+  tree->Branch("JetHLT_px", value_hltjet_px, "JetHLT_px[nJetHLT]/F");
+  tree->Branch("JetHLT_py", value_hltjet_py, "JetHLT_py[nJetHLT]/F");
+  tree->Branch("JetHLT_pz", value_hltjet_pz, "JetHLT_pz[nJetHLT]/F");
+  tree->Branch("JetHLT_e", value_hltjet_e, "JetHLT_e[nJetHLT]/F");
 
   // Muons
   tree->Branch("nMuon", &value_mu_n, "nMuon/i");
@@ -235,7 +261,7 @@ void TopTauAnalyze::analyze(const edm::Event& evt, const edm::EventSetup& setup)
   using namespace reco;
   using namespace std;
 
-  std::cout << "Start ana";
+  //std::cout << "Start analysis for event: " << value_event;
 
   ///////////////////////////
   // Event information
@@ -243,9 +269,6 @@ void TopTauAnalyze::analyze(const edm::Event& evt, const edm::EventSetup& setup)
   value_run = evt.run();
   value_lumi_block = evt.luminosityBlock();
   value_event = evt.id().event();
-
-  std::cout << value_event;
-
 
   ///////////////////////////
   // Trigger
@@ -263,17 +286,14 @@ void TopTauAnalyze::analyze(const edm::Event& evt, const edm::EventSetup& setup)
   }
   for (unsigned int i = 0; i < trigger->size(); i++) {
     if( trigger->accept(i) == 1 ){
-      std::cout<< triggerNames_[i] << std::endl;
+      //std::cout<< triggerNames_[i] << std::endl;
       // std::cout<< tList[i] << std::endl;
     }
     for (unsigned int j = 0; j < interestingTriggers.size(); j++) {
       if( triggerNames_[i].find(interestingTriggers[j]) != std::string::npos ){
-        std::cout << triggerNames_[i] << std::endl;
-        std::cout << "Accept triggers: " << trigger->accept(i) << std::endl;
+        //std::cout << triggerNames_[i] << std::endl;
+        //std::cout << "Accept triggers: " << trigger->accept(i) << std::endl;
         value_trig[j] = trigger->accept(i);
-        //if( value_trig[j] == 1 ){
-        //  std::cout<< triggerNames_[i]
-        //}
       }
     }
   }
@@ -293,23 +313,39 @@ void TopTauAnalyze::analyze(const edm::Event& evt, const edm::EventSetup& setup)
   // Matching
   const pat::helper::TriggerMatchHelper matchHelper;
   const pat::TriggerObjectRefVector trigRefs( patTriggerEvent->objects( trigger::TriggerJet ) );
-  for ( pat::TriggerObjectRefVector::const_iterator iTrig = trigRefs.begin(); iTrig != trigRefs.end(); ++iTrig )
+  value_hltjet_n = 0;
+  for ( pat::TriggerObjectRefVector::const_iterator it = trigRefs.begin(); it != trigRefs.end(); ++it )
   {
+    /*
     if (pTrigEvt.objectInFilter( (*iTrig), "hltQuadJet40IsoPFTau40") ||
        pTrigEvt.objectInFilter( (*iTrig), "hltQuadJet45IsoPFTau45")){
        cout << endl << "Jet trigger" << (*iTrig)->px() << (*iTrig)->py() << (*iTrig)->pz() << (*iTrig)->energy() << endl;
-    }
+    }*/
+    value_hltjet_pt[value_hltjet_n] = (*it)->pt();
+    value_hltjet_px[value_hltjet_n] = (*it)->px();
+    value_hltjet_py[value_hltjet_n] = (*it)->py();
+    value_hltjet_pz[value_hltjet_n] = (*it)->pz();
+    value_hltjet_e[value_hltjet_n] = (*it)->energy();
+    value_hltjet_n++;
   }
 
   const pat::TriggerObjectRefVector trigRefs2( patTriggerEvent->objects( trigger::TriggerTau ) );
-  for ( pat::TriggerObjectRefVector::const_iterator iTrig = trigRefs2.begin(); iTrig != trigRefs2.end(); ++iTrig )
+  value_hlttau_n = 0;
+  for ( pat::TriggerObjectRefVector::const_iterator it = trigRefs2.begin(); it != trigRefs2.end(); ++it )
   {
+    /*
     if (pTrigEvt.objectInFilter( (*iTrig), "hltFilterPFTauTrack5TightIsoL1QuadJet20CentralPFTau40") ||
         pTrigEvt.objectInFilter( (*iTrig), "hltFilterPFTauTrack5TightIsoL1QuadJet20CentralPFTau45") ||
         pTrigEvt.objectInFilter( (*iTrig), "hltFilterPFTauTrack5TightIsoL1QuadJet28CentralPFTau45")
        ){
-      TLorentzVector p4((*iTrig)->px(),(*iTrig)->py(),(*iTrig)->pz(),(*iTrig)->energy());
-    }
+      //TLorentzVector p4((*iTrig)->px(),(*iTrig)->py(),(*iTrig)->pz(),(*iTrig)->energy());
+    }*/
+    value_hlttau_pt[value_hlttau_n] = (*it)->pt();
+    value_hlttau_px[value_hlttau_n] = (*it)->px();
+    value_hlttau_py[value_hlttau_n] = (*it)->py();
+    value_hlttau_pz[value_hlttau_n] = (*it)->pz();
+    value_hlttau_e[value_hlttau_n] = (*it)->energy();
+    value_hlttau_n++;
   }
 
   ////////////////////////////
@@ -350,11 +386,9 @@ void TopTauAnalyze::analyze(const edm::Event& evt, const edm::EventSetup& setup)
   // https://github.com/cms-sw/cmssw/blob/CMSSW_5_3_X/TopQuarkAnalysis/Configuration/python/patRefSel_refMuJets.py
   Handle<vector<pat::Muon>> muons;
   evt.getByLabel(InputTag("selectedPatMuonsPF"), muons);
-
   value_mu_n = 0;
-  const float mu_min_pt = 3;
   for (auto it = muons->begin(); it != muons->end(); it++) {
-    if (it->pt() > mu_min_pt) {
+    if ((it->pt() > muon_cut_pt) && (abs (it->eta ()) < muon_cut_eta )) {
 
       value_mu_isPFMuon[value_mu_n] = it->isPFMuon();
       value_mu_isGlobalMuon[value_mu_n] = it->isGlobalMuon();
@@ -402,9 +436,8 @@ void TopTauAnalyze::analyze(const edm::Event& evt, const edm::EventSetup& setup)
   Handle<vector<pat::Electron>> electrons;
   evt.getByLabel(InputTag("selectedPatElectronsPF"), electrons);
   value_el_n = 0;
-  const float el_min_pt = 5;
   for (auto it = electrons->begin(); it != electrons->end(); it++) {
-    if (it->pt() > el_min_pt) {
+    if ((it->pt() > electron_cut_pt) && (abs (it->eta ()) < electron_cut_eta )) {
 
       value_el_pt[value_el_n] = it->pt();
       value_el_px[value_el_n] = it->px();
@@ -453,12 +486,11 @@ void TopTauAnalyze::analyze(const edm::Event& evt, const edm::EventSetup& setup)
   // TODO: check switchToPFTauHPS(process)
   Handle<vector<pat::Tau>> taus;
   evt.getByLabel(InputTag("selectedPatTausPF"), taus);
-  const float tau_min_pt = 0;
-  std::cout << std::endl << taus->size() << std::endl;
   value_tau_n = 0;
+  int iTau=0;
   for (auto it = taus->begin(); it != taus->end(); it++) {
-    if (it->pt() > tau_min_pt) {
-      std::cout << std::endl << it->pt() << std::endl;
+    if ((it->pt() > tau_cut_pt) && (abs (it->eta ()) < tau_cut_eta )) {
+      //std::cout << std::endl << it->pt() << std::endl;
       value_tau_pt[value_tau_n] = it->pt();
       value_tau_px[value_tau_n] = it->px();
       value_tau_py[value_tau_n] = it->py();
@@ -491,26 +523,33 @@ void TopTauAnalyze::analyze(const edm::Event& evt, const edm::EventSetup& setup)
         if(tauIDs[i].first == "byTightCombinedIsolationDeltaBetaCorr3Hits") value_tau_byTightCombinedIsolationDeltaBetaCorr3Hits[value_tau_n] = tauIDs[i].second;
       }
 
-      /*
-      const pat::TriggerObjectRef trigRef40( matchHelper.triggerMatchObject( jets, value_jet_n,
-                                              "hltJetsMatcher", evt, pTrigEvt ) );
+
+      const pat::TriggerObjectRef trigRef40( matchHelper.triggerMatchObject( taus, iTau,
+                                              "tauMatchHLTTausPF", evt, pTrigEvt ) );
       if ( trigRef40.isAvailable() ) {
+        //cout<< endl << "Trigref 40 avail" << endl;
+        value_tau_hltpx[value_tau_n] = trigRef40->px();
+        value_tau_hltpx[value_tau_n] = trigRef40->py();
+        value_tau_hltpy[value_tau_n] = trigRef40->pz();
+        value_tau_hlte[value_tau_n] = trigRef40->energy();
+      }else{
+        //std::cout << std::endl << "No trigger match" << std::endl;
+        value_tau_hltpx[value_tau_n] = -999.;
+        value_tau_hltpx[value_tau_n] = -999.;
+        value_tau_hltpy[value_tau_n] = -999.;
+        value_tau_hlte[value_tau_n] = -999.;
+      }
 
-        cout<< endl << "Trigref 40 avail" << endl;
-
-        value_jet_hltpx[value_jet_n] = trigRef40->px();
-        value_jet_hltpx[value_jet_n] = trigRef40->py();
-        value_jet_hltpy[value_jet_n] = trigRef40->pz();
-        value_jet_hlte[value_jet_n] = trigRef40->energy();
-      }*/
-      const pat::TriggerObjectRef trigRef45( matchHelper.triggerMatchObject( taus, value_tau_n,
-                                              "hltTausMatcher45", evt, pTrigEvt ) );
+      const pat::TriggerObjectRef trigRef45( matchHelper.triggerMatchObject( taus, iTau,
+                                              "tauMatchHLTTaus45PF", evt, pTrigEvt ) );
       if ( trigRef45.isAvailable() ) {
+        //std::cout << std::endl << "Found trigger match" << std::endl;
         value_tau_hltpx[value_tau_n] = trigRef45->px();
         value_tau_hltpx[value_tau_n] = trigRef45->py();
         value_tau_hltpy[value_tau_n] = trigRef45->pz();
         value_tau_hlte[value_tau_n] = trigRef45->energy();
       }else{
+        //std::cout << std::endl << "No trigger match" << std::endl;
         value_tau_hltpx[value_tau_n] = -999.;
         value_tau_hltpx[value_tau_n] = -999.;
         value_tau_hltpy[value_tau_n] = -999.;
@@ -519,6 +558,7 @@ void TopTauAnalyze::analyze(const edm::Event& evt, const edm::EventSetup& setup)
 
       value_tau_n++;
     }
+    iTau++;
   }
 
   ///////////////////////////
@@ -546,15 +586,14 @@ void TopTauAnalyze::analyze(const edm::Event& evt, const edm::EventSetup& setup)
   // 2011 data: https://twiki.cern.ch/twiki/bin/view/CMS/TWikiTopRefEventSel2011#Basic_objects_general_info
   Handle<vector<pat::Jet>> jets;
   evt.getByLabel(InputTag("selectedPatJetsPF"), jets);
-  //hltJetsMatcher, hltJetsMatcher45, hltTausMatcher, hltTausMatcher45
-  const float jet_min_pt = 0.;
   value_jet_n = 0;
-  std::cout << std::endl << jets->size() << std::endl;
+  int iJet = 0;
+  //std::cout << std::endl << jets->size() << std::endl;
   for (auto it = jets->begin(); it != jets->end(); it++) {
     //std::cout << it->pt();
-    if (it->pt() > jet_min_pt) {
-      value_jet_pt[value_jet_n] = it->pt();
+    if ( (it->pt() > jet_cut_pt) && (abs (it->eta ()) < jet_cut_eta )) {
 
+      value_jet_pt[value_jet_n] = it->pt();
       value_jet_px[value_jet_n] = it->px();
       value_jet_py[value_jet_n] = it->py();
       value_jet_pz[value_jet_n] = it->pz();
@@ -572,26 +611,39 @@ void TopTauAnalyze::analyze(const edm::Event& evt, const edm::EventSetup& setup)
       value_jet_svEffDisc[value_jet_n] = it->bDiscriminator ("simpleSecondaryVertexHighEffBJetTags");
       value_jet_smDisc[value_jet_n] = it->bDiscriminator ("softMuonBJetTags");
 
-      /*
-      const pat::TriggerObjectRef trigRef40( matchHelper.triggerMatchObject( jets, value_jet_n,
-                                              "hltJetsMatcher", evt, pTrigEvt ) );
+      //cout<< endl << "bTag " << it->bDiscriminator ("simpleSecondaryVertexHighEffBJetTags") <<endl;
+      //cout<< endl << "bTag " << it->bDiscriminator ("trackCountingHighEffBJetTags") <<endl;
+      //cout<< endl << "bTag " << it->bDiscriminator ("simpleSecondaryVertexBJetTags") <<endl;
+      //cout<< endl << "bTag " << it->bDiscriminator ("softMuonBJetTags") <<endl;
+
+
+      const pat::TriggerObjectRef trigRef40( matchHelper.triggerMatchObject( jets, iJet,
+                                              "jetMatchHLTJetsPF", evt, pTrigEvt ) );
       if ( trigRef40.isAvailable() ) {
-
-        cout<< endl << "Trigref 40 avail" << endl;
-
+        //cout<< endl << "Trigref 40 avail" << endl;
         value_jet_hltpx[value_jet_n] = trigRef40->px();
         value_jet_hltpx[value_jet_n] = trigRef40->py();
         value_jet_hltpy[value_jet_n] = trigRef40->pz();
         value_jet_hlte[value_jet_n] = trigRef40->energy();
-      }*/
-      const pat::TriggerObjectRef trigRef45( matchHelper.triggerMatchObject( jets, value_jet_n,
-                                              "hltJetsMatcher45", evt, pTrigEvt ) );
+      }else{
+        //std::cout << std::endl << "Found no match" << std::endl;
+        value_jet_hltpx[value_jet_n] = -999.;
+        value_jet_hltpx[value_jet_n] = -999.;
+        value_jet_hltpy[value_jet_n] = -999.;
+        value_jet_hlte[value_jet_n] = -999.;
+      }
+
+
+      const pat::TriggerObjectRef trigRef45( matchHelper.triggerMatchObject( jets, iJet,
+                                              "jetMatchHLTJets45PF", evt, pTrigEvt ) );
       if ( trigRef45.isAvailable() ) {
+        //std::cout << std::endl << "Found trigger match" << std::endl;
         value_jet_hltpx[value_jet_n] = trigRef45->px();
         value_jet_hltpx[value_jet_n] = trigRef45->py();
         value_jet_hltpy[value_jet_n] = trigRef45->pz();
         value_jet_hlte[value_jet_n] = trigRef45->energy();
       }else{
+        //std::cout << std::endl << "Found no match" << std::endl;
         value_jet_hltpx[value_jet_n] = -999.;
         value_jet_hltpx[value_jet_n] = -999.;
         value_jet_hltpy[value_jet_n] = -999.;
@@ -599,6 +651,7 @@ void TopTauAnalyze::analyze(const edm::Event& evt, const edm::EventSetup& setup)
       }
       value_jet_n++;
     }
+    iJet++;
   }
 
   if( isData == false){
