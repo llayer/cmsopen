@@ -41,7 +41,7 @@ TopTauAnalyze::TopTauAnalyze(const edm::ParameterSet& cfg)
 
   // Trigger
   interestingTriggers = {
-    "HLT_QuadJet40_IsoPFTau40", "HLT_QuadJet45_IsoPFTau45"
+    "HLT_QuadJet40_IsoPFTau40", "HLT_QuadJet45_IsoPFTau45", "HLT_Mu15_v", "HLT_Mu20_v", "HL_Mu24_v", "HLT_Mu30_v"
   };
   for(size_t i = 0; i < interestingTriggers.size(); i++) {
     tree->Branch(interestingTriggers[i].c_str(), value_trig + i, (interestingTriggers[i] + "/O").c_str());
@@ -61,7 +61,7 @@ TopTauAnalyze::TopTauAnalyze(const edm::ParameterSet& cfg)
   }
   */
   filterList = {
-    "hltQuadJet40IsoPFTau40", "HLTPFTauTightIsoSequence", "hltPFTau5Track", "hltPFTau5Track5",
+    "hltQuadJet40", "hltQuadJet45", "hltQuadJet40IsoPFTau40", "HLTPFTauTightIsoSequence", "hltPFTau5Track", "hltPFTau5Track5",
     "hltFilterPFTauTrack5TightIsoL1QuadJet20Central", "hltFilterPFTauTrack5TightIsoL1QuadJet20CentralPFTau40",
     "hltQuadJet45IsoPFTau45", "hltFilterPFTauTrack5TightIsoL1QuadJet20CentralPFTau45",
     "hltFilterPFTauTrack5TightIsoL1QuadJet28CentralPFTau45"
@@ -186,6 +186,8 @@ TopTauAnalyze::TopTauAnalyze(const edm::ParameterSet& cfg)
   tree->Branch("Tau_x", value_tau_x, "Tau_x[nTau]/F");
   tree->Branch("Tau_y", value_tau_y, "Tau_y[nTau]/F");
   tree->Branch("Tau_z", value_tau_z, "Tau_z[nTau]/F");
+  tree->Branch("Tau_dxy", value_tau_dxy, "Tau_leadTrackPt[nTau]/F");
+  tree->Branch("Tau_dxy", value_tau_dxy, "Tau_dxy[nTau]/F");
   tree->Branch("Tau_againstElectronLoose", value_tau_againstElectronLoose, "Tau_againstElectronLoose[nTau]/O");
   tree->Branch("Tau_againstElectronMedium", value_tau_againstElectronMedium, "Tau_againstElectronMedium[nTau]/O");
   tree->Branch("Tau_againstElectronTight", value_tau_againstElectronTight, "Tau_againstElectronTight[nTau]/O");
@@ -198,10 +200,14 @@ TopTauAnalyze::TopTauAnalyze(const edm::ParameterSet& cfg)
   tree->Branch("Tau_byLooseCombinedIsolationDeltaBetaCorr", value_tau_byLooseCombinedIsolationDeltaBetaCorr, "Tau_byLooseCombinedIsolationDeltaBetaCorr[nTau]/O");
   tree->Branch("Tau_byMediumCombinedIsolationDeltaBetaCorr", value_tau_byMediumCombinedIsolationDeltaBetaCorr, "Tau_byMediumCombinedIsolationDeltaBetaCorr[nTau]/O");
   tree->Branch("Tau_byTightCombinedIsolationDeltaBetaCorr", value_tau_byTightCombinedIsolationDeltaBetaCorr, "Tau_byTightCombinedIsolationDeltaBetaCorr[nTau]/O");
-  tree->Branch("Tau_pxHLT", value_tau_hltpx, "Tau_pxHLT[nTau]/F");
-  tree->Branch("Tau_pyHLT", value_tau_hltpy, "Tau_pyHLT[nTau]/F");
-  tree->Branch("Tau_pzHLT", value_tau_hltpz, "Tau_pzHLT[nTau]/F");
-  tree->Branch("Tau_eHLT", value_tau_hlte, "Tau_eHLT[nTau]/F");
+  tree->Branch("Tau_pxHLT40", value_tau_hlt40px, "Tau_pxHLT40[nTau]/F");
+  tree->Branch("Tau_pyHLT40", value_tau_hlt40py, "Tau_pyHLT40[nTau]/F");
+  tree->Branch("Tau_pzHLT40", value_tau_hlt40pz, "Tau_pzHLT40[nTau]/F");
+  tree->Branch("Tau_eHLT40", value_tau_hlt40e, "Tau_eHLT40[nTau]/F");
+  tree->Branch("Tau_pxHLT45", value_tau_hlt45px, "Tau_pxHLT45[nTau]/F");
+  tree->Branch("Tau_pyHLT45", value_tau_hlt45py, "Tau_pyHLT45[nTau]/F");
+  tree->Branch("Tau_pzHLT45", value_tau_hlt45pz, "Tau_pzHLT45[nTau]/F");
+  tree->Branch("Tau_eHLT45", value_tau_hlt45e, "Tau_eHLT45[nTau]/F");
 
 
   // MET
@@ -228,10 +234,14 @@ TopTauAnalyze::TopTauAnalyze(const edm::ParameterSet& cfg)
   tree->Branch("Jet_svDisc", value_jet_svDisc, "Jet_svDisc[nJet]/F");
   tree->Branch("Jet_svEffDisc", value_jet_svEffDisc, "Jet_svEffDisc[nJet]/F");
   tree->Branch("Jet_smDisc", value_jet_smDisc, "Jet_smDisc[nJet]/F");
-  tree->Branch("Jet_pxHLT", value_jet_hltpx, "Jet_pxHLT[nJet]/F");
-  tree->Branch("Jet_pyHLT", value_jet_hltpy, "Jet_pyHLT[nJet]/F");
-  tree->Branch("Jet_pzHLT", value_jet_hltpz, "Jet_pzHLT[nJet]/F");
-  tree->Branch("Jet_eHLT", value_jet_hlte, "Jet_eHLT[nJet]/F");
+  tree->Branch("Jet_pxHLT40", value_jet_hlt40px, "Jet_pxHLT40[nJet]/F");
+  tree->Branch("Jet_pyHLT40", value_jet_hlt40py, "Jet_pyHLT40[nJet]/F");
+  tree->Branch("Jet_pzHLT40", value_jet_hlt40pz, "Jet_pzHLT40[nJet]/F");
+  tree->Branch("Jet_eHLT40", value_jet_hlt40e, "Jet_eHLT40[nJet]/F");
+  tree->Branch("Jet_pxHLT45", value_jet_hlt45px, "Jet_pxHLT45[nJet]/F");
+  tree->Branch("Jet_pyHLT45", value_jet_hlt45py, "Jet_pyHLT45[nJet]/F");
+  tree->Branch("Jet_pzHLT45", value_jet_hlt45pz, "Jet_pzHLT45[nJet]/F");
+  tree->Branch("Jet_eHLT45", value_jet_hlt45e, "Jet_eHLT45[nJet]/F");
 
 
   // genEvent
@@ -261,7 +271,7 @@ void TopTauAnalyze::analyze(const edm::Event& evt, const edm::EventSetup& setup)
   using namespace reco;
   using namespace std;
 
-  //std::cout << "Start analysis for event: " << value_event;
+  //std::cout << endl << "Start analysis for event: " << value_event << endl;
 
   ///////////////////////////
   // Event information
@@ -275,9 +285,11 @@ void TopTauAnalyze::analyze(const edm::Event& evt, const edm::EventSetup& setup)
   ///////////////////////////
 
   // Trigger results
+  //std::cout << endl << "Trigger names: " << endl;
   Handle<TriggerResults> trigger;
   evt.getByLabel(InputTag("TriggerResults", "", "HLT"), trigger);
 
+  //std::cout << "Start analysis for event: " << endl;
   // Accepted triggers
   const edm::TriggerNames & triggerNames = evt.triggerNames(*trigger);
   const std::vector<std::string> & triggerNames_ = triggerNames.triggerNames();
@@ -285,10 +297,9 @@ void TopTauAnalyze::analyze(const edm::Event& evt, const edm::EventSetup& setup)
     value_trig[i] = false;
   }
   for (unsigned int i = 0; i < trigger->size(); i++) {
-    if( trigger->accept(i) == 1 ){
+    //if( trigger->accept(i) == 1 ){
       //std::cout<< triggerNames_[i] << std::endl;
-      // std::cout<< tList[i] << std::endl;
-    }
+    //}
     for (unsigned int j = 0; j < interestingTriggers.size(); j++) {
       if( triggerNames_[i].find(interestingTriggers[j]) != std::string::npos ){
         //std::cout << triggerNames_[i] << std::endl;
@@ -304,10 +315,21 @@ void TopTauAnalyze::analyze(const edm::Event& evt, const edm::EventSetup& setup)
   pat::TriggerEvent pTrigEvt;
   pTrigEvt = *patTriggerEvent;
 
+  /*
+  auto filters = pTrigEvt.acceptedFilters();
+  for (unsigned int i = 0; i < filters.size(); i++) {
+    std::cout<< endl << filters[i]->label() << filters[i]->status() << endl;
+  }
+  */
+
   // Filters
+  //std::cout << endl << "Filter names: " << endl;
   for (unsigned int i = 0; i < filterList.size(); i++) {
     const pat::TriggerFilter* filter = pTrigEvt.filter(filterList[i]);
-    if (filter) value_trig[i] = filter->status();
+    if (filter){
+      //std::cout<< filterList[i] << " " << filter->status() << std::endl;
+      value_filt[i] = filter->status();
+    }
   }
 
   // Matching
@@ -316,36 +338,39 @@ void TopTauAnalyze::analyze(const edm::Event& evt, const edm::EventSetup& setup)
   value_hltjet_n = 0;
   for ( pat::TriggerObjectRefVector::const_iterator it = trigRefs.begin(); it != trigRefs.end(); ++it )
   {
-    /*
-    if (pTrigEvt.objectInFilter( (*iTrig), "hltQuadJet40IsoPFTau40") ||
-       pTrigEvt.objectInFilter( (*iTrig), "hltQuadJet45IsoPFTau45")){
-       cout << endl << "Jet trigger" << (*iTrig)->px() << (*iTrig)->py() << (*iTrig)->pz() << (*iTrig)->energy() << endl;
-    }*/
-    value_hltjet_pt[value_hltjet_n] = (*it)->pt();
-    value_hltjet_px[value_hltjet_n] = (*it)->px();
-    value_hltjet_py[value_hltjet_n] = (*it)->py();
-    value_hltjet_pz[value_hltjet_n] = (*it)->pz();
-    value_hltjet_e[value_hltjet_n] = (*it)->energy();
-    value_hltjet_n++;
+    //cout << endl << "Jet trigger" << (*it)->px() << (*it)->py() << (*it)->pz() << (*it)->energy() << endl;
+    if (pTrigEvt.objectInFilter( (*it), "hltQuadJet40IsoPFTau40") ||
+       pTrigEvt.objectInFilter( (*it), "hltQuadJet45IsoPFTau45")){
+
+      //cout << endl << "Jet trigger in filter" << (*it)->px() << (*it)->py() << (*it)->pz() << (*it)->energy() << endl;
+      value_hltjet_pt[value_hltjet_n] = (*it)->pt();
+      value_hltjet_px[value_hltjet_n] = (*it)->px();
+      value_hltjet_py[value_hltjet_n] = (*it)->py();
+      value_hltjet_pz[value_hltjet_n] = (*it)->pz();
+      value_hltjet_e[value_hltjet_n] = (*it)->energy();
+      value_hltjet_n++;
+
+
+    }
   }
 
   const pat::TriggerObjectRefVector trigRefs2( patTriggerEvent->objects( trigger::TriggerTau ) );
   value_hlttau_n = 0;
   for ( pat::TriggerObjectRefVector::const_iterator it = trigRefs2.begin(); it != trigRefs2.end(); ++it )
   {
-    /*
-    if (pTrigEvt.objectInFilter( (*iTrig), "hltFilterPFTauTrack5TightIsoL1QuadJet20CentralPFTau40") ||
-        pTrigEvt.objectInFilter( (*iTrig), "hltFilterPFTauTrack5TightIsoL1QuadJet20CentralPFTau45") ||
-        pTrigEvt.objectInFilter( (*iTrig), "hltFilterPFTauTrack5TightIsoL1QuadJet28CentralPFTau45")
+    //cout << endl << "Tau trigger" << (*it)->px() << (*it)->py() << (*it)->pz() << (*it)->energy() << endl;
+    if (pTrigEvt.objectInFilter( (*it), "hltFilterPFTauTrack5TightIsoL1QuadJet20CentralPFTau40") ||
+        pTrigEvt.objectInFilter( (*it), "hltFilterPFTauTrack5TightIsoL1QuadJet20CentralPFTau45") ||
+        pTrigEvt.objectInFilter( (*it), "hltFilterPFTauTrack5TightIsoL1QuadJet28CentralPFTau45")
        ){
-      //TLorentzVector p4((*iTrig)->px(),(*iTrig)->py(),(*iTrig)->pz(),(*iTrig)->energy());
-    }*/
-    value_hlttau_pt[value_hlttau_n] = (*it)->pt();
-    value_hlttau_px[value_hlttau_n] = (*it)->px();
-    value_hlttau_py[value_hlttau_n] = (*it)->py();
-    value_hlttau_pz[value_hlttau_n] = (*it)->pz();
-    value_hlttau_e[value_hlttau_n] = (*it)->energy();
-    value_hlttau_n++;
+      //cout << endl << "Tau trigger in filter" << (*it)->px() << (*it)->py() << (*it)->pz() << (*it)->energy() << endl;
+      value_hlttau_pt[value_hlttau_n] = (*it)->pt();
+      value_hlttau_px[value_hlttau_n] = (*it)->px();
+      value_hlttau_py[value_hlttau_n] = (*it)->py();
+      value_hlttau_pz[value_hlttau_n] = (*it)->pz();
+      value_hlttau_e[value_hlttau_n] = (*it)->energy();
+      value_hlttau_n++;
+    }
   }
 
   ////////////////////////////
@@ -505,6 +530,22 @@ void TopTauAnalyze::analyze(const edm::Event& evt, const edm::EventSetup& setup)
       value_tau_z[value_tau_n] = it->vz();
       value_tau_decaymode[value_tau_n] = it->decayMode();
 
+      if( it->leadPFChargedHadrCand().isAvailable()) {
+        if (it->leadPFChargedHadrCand()->trackRef().isNonnull()){
+          value_tau_leadTrackPt[value_tau_n] = it->leadPFChargedHadrCand()->trackRef()->pt();
+          value_tau_dxy[value_tau_n] = it->leadPFChargedHadrCand()->trackRef()->dxy(bspot);
+        }else if  (it->leadPFChargedHadrCand()->gsfTrackRef().isNonnull()){
+          value_tau_leadTrackPt[value_tau_n] = it->leadPFChargedHadrCand()->gsfTrackRef()->pt();
+          value_tau_dxy[value_tau_n] = it->leadPFChargedHadrCand()->gsfTrackRef()->dxy(bspot);
+        }else{
+         value_tau_leadTrackPt[value_tau_n] = -999.;
+         value_tau_dxy[value_tau_n] = -999.;
+        }
+      }else {
+        value_tau_leadTrackPt[value_tau_n] = -999.;
+        value_tau_dxy[value_tau_n] = -999.;
+      }
+
       //https://twiki.cern.ch/twiki/bin/viewauth/CMS/TauIDRecommendation
       auto tauIDs = it->tauIDs();
       for (unsigned int i = 0; i < tauIDs.size (); i++) {
@@ -528,32 +569,32 @@ void TopTauAnalyze::analyze(const edm::Event& evt, const edm::EventSetup& setup)
                                               "tauMatchHLTTausPF", evt, pTrigEvt ) );
       if ( trigRef40.isAvailable() ) {
         //cout<< endl << "Trigref 40 avail" << endl;
-        value_tau_hltpx[value_tau_n] = trigRef40->px();
-        value_tau_hltpx[value_tau_n] = trigRef40->py();
-        value_tau_hltpy[value_tau_n] = trigRef40->pz();
-        value_tau_hlte[value_tau_n] = trigRef40->energy();
+        value_tau_hlt40px[value_tau_n] = trigRef40->px();
+        value_tau_hlt40py[value_tau_n] = trigRef40->py();
+        value_tau_hlt40pz[value_tau_n] = trigRef40->pz();
+        value_tau_hlt40e[value_tau_n] = trigRef40->energy();
       }else{
         //std::cout << std::endl << "No trigger match" << std::endl;
-        value_tau_hltpx[value_tau_n] = -999.;
-        value_tau_hltpx[value_tau_n] = -999.;
-        value_tau_hltpy[value_tau_n] = -999.;
-        value_tau_hlte[value_tau_n] = -999.;
+        value_tau_hlt40px[value_tau_n] = -999.;
+        value_tau_hlt40py[value_tau_n] = -999.;
+        value_tau_hlt40pz[value_tau_n] = -999.;
+        value_tau_hlt40e[value_tau_n] = -999.;
       }
 
       const pat::TriggerObjectRef trigRef45( matchHelper.triggerMatchObject( taus, iTau,
                                               "tauMatchHLTTaus45PF", evt, pTrigEvt ) );
       if ( trigRef45.isAvailable() ) {
         //std::cout << std::endl << "Found trigger match" << std::endl;
-        value_tau_hltpx[value_tau_n] = trigRef45->px();
-        value_tau_hltpx[value_tau_n] = trigRef45->py();
-        value_tau_hltpy[value_tau_n] = trigRef45->pz();
-        value_tau_hlte[value_tau_n] = trigRef45->energy();
+        value_tau_hlt45px[value_tau_n] = trigRef45->px();
+        value_tau_hlt45py[value_tau_n] = trigRef45->py();
+        value_tau_hlt45pz[value_tau_n] = trigRef45->pz();
+        value_tau_hlt45e[value_tau_n] = trigRef45->energy();
       }else{
         //std::cout << std::endl << "No trigger match" << std::endl;
-        value_tau_hltpx[value_tau_n] = -999.;
-        value_tau_hltpx[value_tau_n] = -999.;
-        value_tau_hltpy[value_tau_n] = -999.;
-        value_tau_hlte[value_tau_n] = -999.;
+        value_tau_hlt45px[value_tau_n] = -999.;
+        value_tau_hlt45py[value_tau_n] = -999.;
+        value_tau_hlt45pz[value_tau_n] = -999.;
+        value_tau_hlt45e[value_tau_n] = -999.;
       }
 
       value_tau_n++;
@@ -621,16 +662,16 @@ void TopTauAnalyze::analyze(const edm::Event& evt, const edm::EventSetup& setup)
                                               "jetMatchHLTJetsPF", evt, pTrigEvt ) );
       if ( trigRef40.isAvailable() ) {
         //cout<< endl << "Trigref 40 avail" << endl;
-        value_jet_hltpx[value_jet_n] = trigRef40->px();
-        value_jet_hltpx[value_jet_n] = trigRef40->py();
-        value_jet_hltpy[value_jet_n] = trigRef40->pz();
-        value_jet_hlte[value_jet_n] = trigRef40->energy();
+        value_jet_hlt40px[value_jet_n] = trigRef40->px();
+        value_jet_hlt40py[value_jet_n] = trigRef40->py();
+        value_jet_hlt40pz[value_jet_n] = trigRef40->pz();
+        value_jet_hlt40e[value_jet_n] = trigRef40->energy();
       }else{
         //std::cout << std::endl << "Found no match" << std::endl;
-        value_jet_hltpx[value_jet_n] = -999.;
-        value_jet_hltpx[value_jet_n] = -999.;
-        value_jet_hltpy[value_jet_n] = -999.;
-        value_jet_hlte[value_jet_n] = -999.;
+        value_jet_hlt40px[value_jet_n] = -9999;
+        value_jet_hlt40py[value_jet_n] = -9999;
+        value_jet_hlt40pz[value_jet_n] = -9999;
+        value_jet_hlt40e[value_jet_n] = -9999;
       }
 
 
@@ -638,16 +679,16 @@ void TopTauAnalyze::analyze(const edm::Event& evt, const edm::EventSetup& setup)
                                               "jetMatchHLTJets45PF", evt, pTrigEvt ) );
       if ( trigRef45.isAvailable() ) {
         //std::cout << std::endl << "Found trigger match" << std::endl;
-        value_jet_hltpx[value_jet_n] = trigRef45->px();
-        value_jet_hltpx[value_jet_n] = trigRef45->py();
-        value_jet_hltpy[value_jet_n] = trigRef45->pz();
-        value_jet_hlte[value_jet_n] = trigRef45->energy();
+        value_jet_hlt45px[value_jet_n] = trigRef45->px();
+        value_jet_hlt45py[value_jet_n] = trigRef45->py();
+        value_jet_hlt45pz[value_jet_n] = trigRef45->pz();
+        value_jet_hlt45e[value_jet_n] = trigRef45->energy();
       }else{
         //std::cout << std::endl << "Found no match" << std::endl;
-        value_jet_hltpx[value_jet_n] = -999.;
-        value_jet_hltpx[value_jet_n] = -999.;
-        value_jet_hltpy[value_jet_n] = -999.;
-        value_jet_hlte[value_jet_n] = -999.;
+        value_jet_hlt45px[value_jet_n] = -9999;
+        value_jet_hlt45py[value_jet_n] = -9999;
+        value_jet_hlt45pz[value_jet_n] = -9999;
+        value_jet_hlt45e[value_jet_n] = -9999;
       }
       value_jet_n++;
     }

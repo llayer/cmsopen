@@ -17,7 +17,7 @@ else:
   runOnMC = int(sys.argv[2])
 
 print "Run on MC = ", runOnMC
-maxEvents = 100
+maxEvents = -1
 skim = False
 ########################################################################
 #################### Setup process #####################################

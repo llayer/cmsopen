@@ -14,7 +14,7 @@ log = log/$(ProcId).$(ClusterID).log
 requirements = (OpSysAndVer =?= "SLCern6")
 max_retries = 1
 RequestCpus = 1
-+MaxRuntime = 10800
++MaxRuntime = 180
 queue arguments from arguments.txt\
 """
 

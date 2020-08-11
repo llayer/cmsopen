@@ -189,6 +189,8 @@ class TopTauAnalyze : public edm::EDAnalyzer {
   float value_tau_x[max_tau];
   float value_tau_y[max_tau];
   float value_tau_z[max_tau];
+  float value_tau_leadTrackPt[max_tau];
+  float value_tau_dxy[max_tau];
   int value_tau_decaymode[max_tau];
   float value_tau_reliso_all[max_tau];
   bool value_tau_againstElectronLoose[max_tau];
@@ -203,10 +205,14 @@ class TopTauAnalyze : public edm::EDAnalyzer {
   bool value_tau_byLooseCombinedIsolationDeltaBetaCorr[max_tau];
   bool value_tau_byMediumCombinedIsolationDeltaBetaCorr[max_tau];
   bool value_tau_byTightCombinedIsolationDeltaBetaCorr[max_tau];
-  float value_tau_hltpx[max_tau];
-  float value_tau_hltpy[max_tau];
-  float value_tau_hltpz[max_tau];
-  float value_tau_hlte[max_tau];
+  float value_tau_hlt40px[max_tau];
+  float value_tau_hlt40py[max_tau];
+  float value_tau_hlt40pz[max_tau];
+  float value_tau_hlt40e[max_tau];
+  float value_tau_hlt45px[max_tau];
+  float value_tau_hlt45py[max_tau];
+  float value_tau_hlt45pz[max_tau];
+  float value_tau_hlt45e[max_tau];
 
   // Jets
   const static int max_jet = 1000;
@@ -230,10 +236,14 @@ class TopTauAnalyze : public edm::EDAnalyzer {
   bool value_jet_svDisc[max_jet];
   bool value_jet_svEffDisc[max_jet];
   bool value_jet_smDisc[max_jet];
-  float value_jet_hltpx[max_jet];
-  float value_jet_hltpy[max_jet];
-  float value_jet_hltpz[max_jet];
-  float value_jet_hlte[max_jet];
+  float value_jet_hlt40px[max_jet];
+  float value_jet_hlt40py[max_jet];
+  float value_jet_hlt40pz[max_jet];
+  float value_jet_hlt40e[max_jet];
+  float value_jet_hlt45px[max_jet];
+  float value_jet_hlt45py[max_jet];
+  float value_jet_hlt45pz[max_jet];
+  float value_jet_hlt45e[max_jet];
 
   // Gen Event
   float value_nLep_;
