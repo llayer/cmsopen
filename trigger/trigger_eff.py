@@ -1,5 +1,6 @@
 import ROOT
 from collections import namedtuple
+import numpy as np
 
 # Object selections - will be moved to a separate file later
 
@@ -32,7 +33,7 @@ def select_muons(evt, eta_cut = 2.5, pt_cut = 10., reliso_cut = 0.15, vtxmatch_c
         iso = reliso03(evt.Muon_TrkIso03[iMu], evt.Muon_ECaloIso03[iMu],
                        evt.Muon_HCaloIso03[iMu], evt.Muon_pt[iMu])
         if iso > reliso_cut: continue
-        if abs(evt.Muon_z - evt.PV_z) > vtxmatch_cut: continue
+        if abs(evt.Muon_z[iMu] - evt.PV_z) > vtxmatch_cut: continue
 
         good_muons.append(Muon( evt.Muon_pt[iMu], evt.Muon_px[iMu], evt.Muon_py[iMu],
                                 evt.Muon_pz[iMu], evt.Muon_e[iMu] ))
@@ -51,6 +52,9 @@ def select_electrons(evt, eta_cut = 2.5, pt_cut = 10., reliso_cut = 0.15, vtxmat
         bool hadId(electron.elecIdWP90_c & 0x1);
         if(!hadId) continue;
         """
+
+        # EID
+        if evt.Electron_cutbasedid[iEl] == 0: continue
         # Eta cut
         if abs(evt.Electron_eta[iEl]) > eta_cut: continue
         # Pt cut
@@ -67,21 +71,32 @@ def select_electrons(evt, eta_cut = 2.5, pt_cut = 10., reliso_cut = 0.15, vtxmat
     return good_electrons
 
 
-def select_taus(evt, eta_cut = 2.3, pt_cut = 10., vtxmatch_cut = 1., d0_cut=0.04):
+def select_taus(evt, eta_cut = 2.3, pt_cut = 10., vtxmatch_cut = 1., dxy_cut=0.04, leadTrackPt_cut=5.):
 
-    Tau = namedtuple('Tau', 'pt px py pz e')
+    Tau = namedtuple('Tau', 'eta pt px py pz e pxHLT pyHLT pzHLT eHLT')
     good_taus = []
 
     """
     if ( tau.leadTrackPt    <= TauLeadTrkPtCut_ ) continue
     """
 
+    arr = np.array(evt.Tau_byMediumCombinedIsolationDeltaBetaCorr)
+
     for iTau in range(evt.nTau):
 
-        if evt.Tau_byMediumCombinedIsolationDeltaBetaCorr[iTau] == False: continue
-        if evt.Tau_againstMuonTight[iTau] == False: continue
-        if evt.Tau_againstElectronTight[iTau] == False: continue
+        #print "Taudisc", evt.Tau_byMediumCombinedIsolationDeltaBetaCorr[iTau]
+        #print "leadTrackPt", evt.Tau_leadTrackPt[iTau]
 
+        if evt.Tau_byMediumCombinedIsolationDeltaBetaCorr[iTau] == 0: continue
+        if evt.Tau_againstMuonTight[iTau] == 0: continue
+        if evt.Tau_againstElectronTight[iTau] == 0: continue
+
+        #print "Taudisc_b", evt.Tau_byMediumCombinedIsolationDeltaBetaCorr[iTau] == 0
+        #print "Taudisc2", evt.Tau_byMediumCombinedIsolationDeltaBetaCorr[iTau]
+
+
+        # Lead track pt
+        if evt.Tau_leadTrackPt[iTau] < leadTrackPt_cut: continue
         # Eta
         # if(fabs(tau.p4.Eta())<1.566 && fabs(tau.p4.Eta())>1.4442)continue;
         if abs(evt.Tau_eta[iTau]) > eta_cut: continue
@@ -89,18 +104,23 @@ def select_taus(evt, eta_cut = 2.3, pt_cut = 10., vtxmatch_cut = 1., d0_cut=0.04
         if abs(evt.Tau_pt[iTau]) < pt_cut: continue
         # Vtx cut
         if abs(evt.Tau_z[iTau] - evt.PV_z) > vtxmatch_cut: continue
-        #if abs( evt.Tau_D0 )  >= d0_cut:
-        #    continue
-
-        good_taus.append(Tau( evt.Tau_pt[iTau], evt.Tau_px[iTau], evt.Tau_py[iTau],
-                            evt.Tau_pz[iTau], evt.Tau_e[iTau] ))
+        if abs( evt.Tau_dxy[iTau] )  >= dxy_cut: continue
+        #print evt.Tau_dxy[iTau]
+        if trigger == "45":
+            good_taus.append(Tau( evt.Tau_eta[iTau], evt.Tau_pt[iTau], evt.Tau_px[iTau], evt.Tau_py[iTau],
+                                  evt.Tau_pz[iTau], evt.Tau_e[iTau], evt.Tau_pxHLT45[iTau],
+                                  evt.Tau_pyHLT45[iTau], evt.Tau_pzHLT45[iTau], evt.Tau_eHLT45[iTau]))
+        else:
+            good_taus.append(Tau( evt.Tau_eta[iTau], evt.Tau_pt[iTau], evt.Tau_px[iTau], evt.Tau_py[iTau],
+                          evt.Tau_pz[iTau], evt.Tau_e[iTau], evt.Tau_pxHLT40[iTau],
+                          evt.Tau_pyHLT40[iTau], evt.Tau_pzHLT40[iTau], evt.Tau_eHLT40[iTau]))
 
     return good_taus
 
 
 def select_jets(evt, eta_cut = 2.5, pt_cut = 10., trigger="45"):
 
-    Jet = namedtuple('Jet', 'pt px py pz e pxHLT pyHLT pzHLT eHLT')
+    Jet = namedtuple('Jet', 'eta pt px py pz e pxHLT pyHLT pzHLT eHLT')
     good_jets = []
 
     for iJet in range(evt.nJet):
@@ -111,17 +131,16 @@ def select_jets(evt, eta_cut = 2.5, pt_cut = 10., trigger="45"):
         if abs(evt.Jet_pt[iJet]) < pt_cut: continue
 
         if trigger == "45":
-            good_jets.append(Jet( evt.Jet_pt[iJet], evt.Jet_px[iJet], evt.Jet_py[iJet],
+            good_jets.append(Jet( evt.Jet_eta[iJet], evt.Jet_pt[iJet], evt.Jet_px[iJet], evt.Jet_py[iJet],
                                   evt.Jet_pz[iJet], evt.Jet_e[iJet], evt.Jet_pxHLT45[iJet],
                                   evt.Jet_pyHLT45[iJet], evt.Jet_pzHLT45[iJet], evt.Jet_eHLT45[iJet]))
         else:
-            good_jets.append(Jet( evt.Jet_pt[iJet], evt.Jet_px[iJet], evt.Jet_py[iJet],
+            good_jets.append(Jet( evt.Jet_eta[iJet], evt.Jet_pt[iJet], evt.Jet_px[iJet], evt.Jet_py[iJet],
                           evt.Jet_pz[iJet], evt.Jet_e[iJet], evt.Jet_pxHLT40[iJet],
                           evt.Jet_pyHLT40[iJet], evt.Jet_pzHLT40[iJet], evt.Jet_eHLT40[iJet]))
         #print "HLT", evt.Jet_pxHLT40[iJet], evt.Jet_pxHLT45[iJet]
 
     return good_jets
-
 
 def clean_taus(taus, muons, electrons, R=0.4):
 
@@ -152,6 +171,18 @@ def clean_taus(taus, muons, electrons, R=0.4):
             clean_taus.append(tau)
 
     return clean_taus
+
+
+def select_tauHLT( evt ):
+
+    TauHLT = namedtuple('TauHLT', 'pt px py pz e')
+
+    good_tauHLTs = []
+    for iTauHLT in range(evt.nTauHLT):
+        good_tauHLTs.append( TauHLT(evt.TauHLT_pt[iTauHLT], evt.TauHLT_px[iTauHLT], evt.TauHLT_py[iTauHLT],
+                                    evt.TauHLT_pz[iTauHLT], evt.TauHLT_e[iTauHLT]) )
+
+    return good_tauHLTs
 
 
 def trigger_jets(jets):
@@ -195,12 +226,69 @@ def trigger_jets(jets):
     return pass_trigger, pass_probe_match, probe_jet_pt
 
 
-ff = ROOT.TFile('/eos/user/l/llayer/opendata_files/Run2011A/Run2011A_1.root')
+def trigger_tau(jets, tau, tausHLT, filterStatus, filterStatus2):
+
+    pass_tag_cond = False
+    pass_probe_cond = False
+    probe_tau_pt = -9999
+
+    deltaRMin = 99.
+    deltaR =99.
+    njet = 0
+    for idx, jet in enumerate(jets):
+
+        if (jet.pt > 10.) & (abs(jet.eta) < 2.4) & (jet.pxHLT != -9999):
+
+            jet_vec = ROOT.TLorentzVector(jet.px, jet.py, jet.pz, jet.e)
+            jetHLT_vec = ROOT.TLorentzVector(jet.pxHLT, jet.pyHLT, jet.pzHLT, jet.eHLT)
+
+            if (jet_vec.DeltaR(jetHLT_vec)<0.4):
+
+                njet += 1
+                tau_vec = ROOT.TLorentzVector(tau.px, tau.py, tau.pz, tau.e)
+                deltaR = jet_vec.DeltaR(tau_vec)
+                if(deltaR < deltaRMin):
+                    deltaRMin = deltaR
+
+    #print njet, filterStatus, deltaRMin
+
+    if (njet>=4) & (deltaRMin<0.4) & (filterStatus==1):
+
+        pass_tag_cond = True
+        probe_tau_pt = tau.pt
+
+        tau_vec = ROOT.TLorentzVector(tau.px, tau.py, tau.pz, tau.e)
+
+        deltaRMinTrig = 99.
+        deltaRTrig =99.
+
+        tauHLT_best = 0
+        for tauHLT in tausHLT:
+
+            tauHLT_vec = ROOT.TLorentzVector(tauHLT.px, tauHLT.py, tauHLT.pz, tauHLT.e)
+            deltaRTrig = tau_vec.DeltaR(tauHLT_vec)
+            if deltaRTrig<deltaRMinTrig:
+                deltaRMinTrig = deltaRTrig;
+                tauHLT_best = tauHLT_vec
+
+        #print deltaRMinTrig, filterStatus, deltaRMin, deltaRMinTrig, filterStatus2
+
+        if (filterStatus2==1) & (deltaRMinTrig<0.4):
+            if (abs(tauHLT_best.Eta())<2.3):
+                pass_probe_cond = True
+
+    return pass_tag_cond, pass_probe_cond, probe_tau_pt
+
+
+
+ff = ROOT.TFile('/eos/user/l/llayer/opendata_files/Run2011A_MultiJet/Run2011A_MultiJet_100.root')
 tree_in = ff.Get("MyModule/Events")
 
 jet4_ref = ROOT.TH1F("jet4_ref","jet4_ref", 19,10,200)
 jet4_trig = ROOT.TH1F("jet4_trig","jet4_trig", 19,10,200)
-
+x2bins = np.array([0,5,10,15,20,25,30,32.5,35,37.5,40,42.5,45,47.5,50,60,70,80,90])
+tau_ref = ROOT.TH1F("tau_ref","tau_ref", 18, x2bins)
+tau_trig = ROOT.TH1F("tau_trig","tau_trig", 18, x2bins)
 
 for counter, evt in enumerate(tree_in):
 
@@ -214,14 +302,23 @@ for counter, evt in enumerate(tree_in):
     else:
         trigger = "40"
 
+    """
     passTrigger40 = evt.HLT_QuadJet40_IsoPFTau40
     passTrigger45 = evt.HLT_QuadJet45_IsoPFTau45
+    passTriggerMu15 = evt.HLT_Mu15_v
+    passTriggerMu20 = evt.HLT_Mu20_v
+    passTriggerMu24 = evt.HL_Mu24_v
+    passTriggerMu30 = evt.HLT_Mu30_v
+
+    pass_mu = passTriggerMu15 | passTriggerMu20 | passTriggerMu24 | passTriggerMu30
+    """
 
     # Object selections
-    #muons = select_muons(evt)
-    #electrons = select_electrons(evt)
-    #taus = select_taus(evt)
-    #taus = clean_taus(taus, muons, electrons)
+    muons = select_muons(evt)
+    electrons = select_electrons(evt)
+    taus = select_taus(evt)
+    taus = clean_taus(taus, muons, electrons)
+    tauHLTs = select_tauHLT(evt)
     jets = select_jets(evt, trigger = trigger)
 
     """
@@ -235,12 +332,12 @@ for counter, evt in enumerate(tree_in):
 
     if len(jets) < 4:
         continue
-
+    #if pass_mu == False:
+    #    continue
 
     #print evt.run, trigger
     #for j in jets:
     #    print j.pxHLT, j.pxHLT != -9999
-
 
 
     # Jet trigger
@@ -253,14 +350,43 @@ for counter, evt in enumerate(tree_in):
         #print "Pt probe & match", probe_jet_pt
         jet4_trig.Fill(probe_jet_pt)
 
-jet4_eff = ROOT.TH1F("jet4_eff","jet-leg efficiency vs pT", 19,10,200)
-jet4_eff.Sumw2()
-jet4_eff.Divide(jet4_trig,jet4_ref,1,1,"B")
+    # Check!!
+    if len(taus) != 1:
+        continue
+
+    # Filter
+    if trigger == "45":
+        filterStatus  = evt.HLTFilter_hltQuadJet45IsoPFTau45
+        filterStatus20 = evt.HLTFilter_hltFilterPFTauTrack5TightIsoL1QuadJet20CentralPFTau45
+        filterStatus28 = evt.HLTFilter_hltFilterPFTauTrack5TightIsoL1QuadJet28CentralPFTau45
+        filterStatus2 = (filterStatus28 == 1) | (filterStatus20 == 1)
+    else:
+        filterStatus  = evt.HLTFilter_hltQuadJet40IsoPFTau40
+        filterStatus2 = evt.HLTFilter_hltFilterPFTauTrack5TightIsoL1QuadJet20CentralPFTau40
+
+    pass_tag_cond, pass_probe_cond, probe_tau_pt = trigger_tau(jets, taus[0], tauHLTs, filterStatus, filterStatus2)
+
+    if pass_tag_cond:
+        #print "Pt probe", probe_jet_pt
+        #print probe_tau_pt
+        tau_ref.Fill(probe_tau_pt)
+    if pass_tag_cond & pass_probe_cond:
+        #print "Pt probe & match", probe_jet_pt
+        #print probe_tau_pt
+        tau_trig.Fill(probe_tau_pt)
+
+
+
+#jet4_eff = ROOT.TH1F("jet4_eff","jet-leg efficiency vs pT", 19,10,200)
+#jet4_eff.Sumw2()
+#jet4_eff.Divide(jet4_trig,jet4_ref,1,1,"B")
 
 # Write to file
 f = ROOT.TFile( trigger + "_trigger_eff.root", "recreate")
 f.cd()
 jet4_ref.Write()
 jet4_trig.Write()
-jet4_eff.Write()
+tau_ref.Write()
+tau_trig.Write()
+#jet4_eff.Write()
 f.Close()
