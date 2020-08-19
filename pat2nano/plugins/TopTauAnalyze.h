@@ -51,6 +51,8 @@ class TopTauAnalyze : public edm::EDAnalyzer {
   bool value_trig[max_trig];
   const static int max_filt = 1000;
   bool value_filt[max_filt];
+  const static int max_prescale = 1000;
+  float value_prescale[max_prescale];
 
   // Vertices
   int value_ve_n;
@@ -148,13 +150,13 @@ class TopTauAnalyze : public edm::EDAnalyzer {
   float value_el_puChargedHadronIso[max_el];
   float value_el_photonIso[max_el];
   float value_el_trackIso[max_el];
-  bool value_el_elecIdLoose[max_el];
-  bool value_el_elecIdTight[max_el];
-  bool value_el_elecIdRobustLoose[max_el];
-  bool value_el_elecIdRobustTight[max_el];
-  bool value_el_elecIdWP90_r[max_el];
-  bool value_el_elecIdWP90_c [max_el];
-  bool value_el_cutbasedid [max_el];
+  int value_el_elecIdLoose[max_el];
+  int value_el_elecIdTight[max_el];
+  int value_el_elecIdRobustLoose[max_el];
+  int value_el_elecIdRobustTight[max_el];
+  int value_el_elecIdWP90_r[max_el];
+  int value_el_elecIdWP90_c [max_el];
+  int value_el_cutbasedid [max_el];
   float value_el_dxy[max_el];
   float value_el_chi2[max_el];
 
@@ -193,18 +195,18 @@ class TopTauAnalyze : public edm::EDAnalyzer {
   float value_tau_dxy[max_tau];
   int value_tau_decaymode[max_tau];
   float value_tau_reliso_all[max_tau];
-  bool value_tau_againstElectronLoose[max_tau];
-  bool value_tau_againstElectronMedium[max_tau];
-  bool value_tau_againstElectronTight[max_tau];
-  bool value_tau_againstMuonLoose[max_tau];
-  bool value_tau_againstMuonMedium[max_tau];
-  bool value_tau_againstMuonTight[max_tau];
-  bool value_tau_byLooseCombinedIsolationDeltaBetaCorr3Hits[max_tau];
-  bool value_tau_byMediumCombinedIsolationDeltaBetaCorr3Hits[max_tau];
-  bool value_tau_byTightCombinedIsolationDeltaBetaCorr3Hits[max_tau];
-  bool value_tau_byLooseCombinedIsolationDeltaBetaCorr[max_tau];
-  bool value_tau_byMediumCombinedIsolationDeltaBetaCorr[max_tau];
-  bool value_tau_byTightCombinedIsolationDeltaBetaCorr[max_tau];
+  int value_tau_againstElectronLoose[max_tau];
+  int value_tau_againstElectronMedium[max_tau];
+  int value_tau_againstElectronTight[max_tau];
+  int value_tau_againstMuonLoose[max_tau];
+  int value_tau_againstMuonMedium[max_tau];
+  int value_tau_againstMuonTight[max_tau];
+  int value_tau_byLooseCombinedIsolationDeltaBetaCorr3Hits[max_tau];
+  int value_tau_byMediumCombinedIsolationDeltaBetaCorr3Hits[max_tau];
+  int value_tau_byTightCombinedIsolationDeltaBetaCorr3Hits[max_tau];
+  int value_tau_byLooseCombinedIsolationDeltaBetaCorr[max_tau];
+  int value_tau_byMediumCombinedIsolationDeltaBetaCorr[max_tau];
+  int value_tau_byTightCombinedIsolationDeltaBetaCorr[max_tau];
   float value_tau_hlt40px[max_tau];
   float value_tau_hlt40py[max_tau];
   float value_tau_hlt40pz[max_tau];
@@ -232,10 +234,10 @@ class TopTauAnalyze : public edm::EDAnalyzer {
   float value_jet_scale[max_jet];
   float value_jet_emEnergyFraction[max_jet];
   float value_jet_n90[max_jet];
-  bool value_jet_tcDisc[max_jet];
-  bool value_jet_svDisc[max_jet];
-  bool value_jet_svEffDisc[max_jet];
-  bool value_jet_smDisc[max_jet];
+  int value_jet_tcDisc[max_jet];
+  int value_jet_svDisc[max_jet];
+  int value_jet_svEffDisc[max_jet];
+  int value_jet_smDisc[max_jet];
   float value_jet_hlt40px[max_jet];
   float value_jet_hlt40py[max_jet];
   float value_jet_hlt40pz[max_jet];

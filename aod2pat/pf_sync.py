@@ -62,7 +62,9 @@ process.MessageLogger.cerr.FwkReport.reportEvery = 10000
 # JSON (good luminosity sections), only if processing data
 if runOnMC == 0:
     print "Load lumi"
-    goodJSON = '/afs/cern.ch/work/l/llayer/CMSSW_5_3_32/src/workspace/pattuples2011/data/Cert_160404-180252_7TeV_ReRecoNov08_Collisions11_JSON.txt'
+    #goodJSON = '/afs/cern.ch/work/l/llayer/CMSSW_5_3_32/src/workspace/pattuples2011/data/Cert_160404-180252_7TeV_ReRecoNov08_Collisions11_JSON.txt'
+    goodJSON = '/afs/cern.ch/work/l/llayer/CMSSW_5_3_32/src/workspace/pattuples2011/data/Cert_160404-180252_7TeV_PromptReco_Collisions11_JSON_truncated.txt'
+    print goodJSON
     myLumis = LumiList.LumiList(filename = goodJSON).getCMSSWString().split(',')
     process.source.lumisToProcess = cms.untracked.VLuminosityBlockRange()
     process.source.lumisToProcess.extend(myLumis)
@@ -348,7 +350,7 @@ process.MyModule = cms.EDAnalyzer('TopTauAnalyze',
     tau_cut_pt      = cms.double(10),
     tau_cut_eta     = cms.double(2.5),    #!! original is 2.4
     jet_cut_pt      = cms.double(10),
-    jet_cut_eta     = cms.double(2.5),       
+    jet_cut_eta     = cms.double(2.5),
     verbose = cms.bool(True)
     )
 

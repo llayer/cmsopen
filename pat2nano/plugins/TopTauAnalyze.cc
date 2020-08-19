@@ -41,13 +41,17 @@ TopTauAnalyze::TopTauAnalyze(const edm::ParameterSet& cfg)
 
   // Trigger
   interestingTriggers = {
-    "HLT_QuadJet40_IsoPFTau40", "HLT_QuadJet45_IsoPFTau45", "HLT_Mu15_v", "HLT_Mu20_v", "HL_Mu24_v", "HLT_Mu30_v"
+    "HLT_QuadJet40_IsoPFTau40", "HLT_QuadJet45_IsoPFTau45", "HLT_Mu15_v", "HLT_Mu20_v", "HLT_Mu24_v", "HLT_Mu30_v",
+    "HLT_Mu15_v1", "HLT_Mu15_v2", "HLT_Mu15_v3", "HLT_Mu15_v4", "HLT_Mu15_v5",
+    "HLT_Mu20_v1", "HLT_Mu20_v2", "HLT_Mu20_v3", "HLT_Mu20_v4", "HLT_Mu20_v5",
+    "HLT_Mu24_v1", "HLT_Mu24_v2", "HLT_Mu24_v3", "HLT_Mu24_v4", "HLT_Mu24_v5",
+    "HLT_Mu30_v1", "HLT_Mu30_v2", "HLT_Mu30_v3", "HLT_Mu30_v4", "HLT_Mu30_v5"
   };
   for(size_t i = 0; i < interestingTriggers.size(); i++) {
-    tree->Branch(interestingTriggers[i].c_str(), value_trig + i, (interestingTriggers[i] + "/O").c_str());
+    tree->Branch(interestingTriggers[i].c_str(), value_trig + i, (interestingTriggers[i] + "/I").c_str());
   }
 
-  /*
+
   prescaleList = {
     "HLT_QuadJet40_v1","HLT_QuadJet40_v2","HLT_QuadJet40_v3","HLT_QuadJet40_v4","HLT_QuadJet40_v5",
     "HLT_QuadJet40_IsoPFTau40_v1","HLT_QuadJet40_IsoPFTau40_v2","HLT_QuadJet40_IsoPFTau40_v3",
@@ -56,10 +60,12 @@ TopTauAnalyze::TopTauAnalyze(const edm::ParameterSet& cfg)
     "HLT_QuadJet40_IsoPFTau40_v10","HLT_QuadJet40_IsoPFTau40_v11","HLT_QuadJet40_IsoPFTau40_v12",
     "HLT_QuadJet40_IsoPFTau40_v13","HLT_QuadJet40_IsoPFTau40_v14","HLT_QuadJet40_IsoPFTau40_v15"
   };
+  std::string prefix_prescale = "Prescale_";
   for(size_t i = 0; i < prescaleList.size(); i++) {
-    tree->Branch(prescaleList[i].c_str(), value_prescale + i, (prescaleList[i] + "/O").c_str());
+    std::string prescale_name = prefix_prescale + prescaleList[i];
+    tree->Branch( prescale_name.c_str(), value_prescale + i, (prescale_name + "/F").c_str());
   }
-  */
+
   filterList = {
     "hltQuadJet40", "hltQuadJet45", "hltQuadJet40IsoPFTau40", "HLTPFTauTightIsoSequence", "hltPFTau5Track", "hltPFTau5Track5",
     "hltFilterPFTauTrack5TightIsoL1QuadJet20Central", "hltFilterPFTauTrack5TightIsoL1QuadJet20CentralPFTau40",
@@ -70,7 +76,7 @@ TopTauAnalyze::TopTauAnalyze(const edm::ParameterSet& cfg)
   for(size_t i = 0; i < filterList.size(); i++) {
     std::string filt_name = prefix_filt + filterList[i];
     //std::cout << filt_name << std::endl;
-    tree->Branch( filt_name.c_str(), value_filt + i, (filt_name + "/O").c_str());
+    tree->Branch( filt_name.c_str(), value_filt + i, (filt_name + "/I").c_str());
   }
 
   // Vertices
@@ -82,8 +88,8 @@ TopTauAnalyze::TopTauAnalyze(const edm::ParameterSet& cfg)
   tree->Branch("PV_yerr", &value_ve_yerr, "PV_yerr/F");
   tree->Branch("PV_zerr", &value_ve_zerr, "PV_zerr/F");
   tree->Branch("PV_chi2", &value_ve_chi2, "PV_chi2/F");
-  tree->Branch("PV_isFake", &value_ve_isFake, "PV_isFake/O");
-  tree->Branch("PV_isValid", &value_ve_isValid, "PV_isValid/O");
+  tree->Branch("PV_isFake", &value_ve_isFake, "PV_isFake/I");
+  tree->Branch("PV_isValid", &value_ve_isValid, "PV_isValid/I");
   tree->Branch("PV_ndof", &value_ve_ndof, "PV_ndof/I");
   tree->Branch("PV_normalizedChi2", &value_ve_normalizedChi2, "PV_normalizedChi2/F");
   tree->Branch("PV_numberOfTracks", &value_ve_numberOfTracks, "PV_numberOfTracks/I");
@@ -110,10 +116,10 @@ TopTauAnalyze::TopTauAnalyze(const edm::ParameterSet& cfg)
 
   // Muons
   tree->Branch("nMuon", &value_mu_n, "nMuon/i");
-  tree->Branch("Muon_isPFMuon", value_mu_isPFMuon, "Muon_isPFMuon[nMuon]/O");
-  tree->Branch("Muon_isGlobalMuon", value_mu_isGlobalMuon, "Muon_isGlobalMuon[nMuon]/O");
-  tree->Branch("Muon_isTrackerMuon", value_mu_isTrackerMuon, "Muon_isTrackerMuon[nMuon]/O");
-  tree->Branch("Muon_isStandAloneMuon", value_mu_isStandAloneMuon, "Muon_isStandAloneMuon[nMuon]/O");
+  tree->Branch("Muon_isPFMuon", value_mu_isPFMuon, "Muon_isPFMuon[nMuon]/I");
+  tree->Branch("Muon_isGlobalMuon", value_mu_isGlobalMuon, "Muon_isGlobalMuon[nMuon]/I");
+  tree->Branch("Muon_isTrackerMuon", value_mu_isTrackerMuon, "Muon_isTrackerMuon[nMuon]/I");
+  tree->Branch("Muon_isStandAloneMuon", value_mu_isStandAloneMuon, "Muon_isStandAloneMuon[nMuon]/I");
   tree->Branch("Muon_pt", value_mu_pt, "Muon_pt[nMuon]/F");
   tree->Branch("Muon_px", value_mu_px, "Muon_px[nMuon]/F");
   tree->Branch("Muon_py", value_mu_py, "Muon_py[nMuon]/F");
@@ -163,13 +169,13 @@ TopTauAnalyze::TopTauAnalyze(const edm::ParameterSet& cfg)
   tree->Branch("Electron_trackIso", value_el_trackIso, "Electron_trackIso[nElectron]/F");
   tree->Branch("Electron_dxy", value_el_dxy, "Electron_dxy[nElectron]/F");
   tree->Branch("Electron_chi2", value_el_chi2, "Electron_chi2[nElectron]/F");
-  tree->Branch("Electron_elecIdLoose", value_el_elecIdLoose, "Electron_elecIdLoose[nElectron]/O");
-  tree->Branch("Electron_elecIdTight", value_el_elecIdTight, "Electron_elecIdTight[nElectron]/O");
-  tree->Branch("Electron_elecIdRobustLoose", value_el_elecIdRobustLoose, "Electron_elecIdRobustLoose[nElectron]/O");
-  tree->Branch("Electron_elecIdRobustTight", value_el_elecIdRobustTight, "Electron_elecIdRobustTight[nElectron]/O");
-  tree->Branch("Electron_elecIdWP90_r", value_el_elecIdWP90_r, "Electron_elecIdWP90_r[nElectron]/O");
-  tree->Branch("Electron_elecIdWP90_c", value_el_elecIdWP90_c, "Electron_elecIdWP90_c[nElectron]/O");
-  tree->Branch("Electron_cutbasedid", value_el_cutbasedid, "Electron_cutbasedid[nElectron]/O");
+  tree->Branch("Electron_elecIdLoose", value_el_elecIdLoose, "Electron_elecIdLoose[nElectron]/I");
+  tree->Branch("Electron_elecIdTight", value_el_elecIdTight, "Electron_elecIdTight[nElectron]/I");
+  tree->Branch("Electron_elecIdRobustLoose", value_el_elecIdRobustLoose, "Electron_elecIdRobustLoose[nElectron]/I");
+  tree->Branch("Electron_elecIdRobustTight", value_el_elecIdRobustTight, "Electron_elecIdRobustTight[nElectron]/I");
+  tree->Branch("Electron_elecIdWP90_r", value_el_elecIdWP90_r, "Electron_elecIdWP90_r[nElectron]/I");
+  tree->Branch("Electron_elecIdWP90_c", value_el_elecIdWP90_c, "Electron_elecIdWP90_c[nElectron]/I");
+  tree->Branch("Electron_cutbasedid", value_el_cutbasedid, "Electron_cutbasedid[nElectron]/I");
 
 
   // Taus
@@ -186,20 +192,20 @@ TopTauAnalyze::TopTauAnalyze(const edm::ParameterSet& cfg)
   tree->Branch("Tau_x", value_tau_x, "Tau_x[nTau]/F");
   tree->Branch("Tau_y", value_tau_y, "Tau_y[nTau]/F");
   tree->Branch("Tau_z", value_tau_z, "Tau_z[nTau]/F");
-  tree->Branch("Tau_dxy", value_tau_dxy, "Tau_leadTrackPt[nTau]/F");
+  tree->Branch("Tau_leadTrackPt", value_tau_leadTrackPt, "Tau_leadTrackPt[nTau]/F");
   tree->Branch("Tau_dxy", value_tau_dxy, "Tau_dxy[nTau]/F");
-  tree->Branch("Tau_againstElectronLoose", value_tau_againstElectronLoose, "Tau_againstElectronLoose[nTau]/O");
-  tree->Branch("Tau_againstElectronMedium", value_tau_againstElectronMedium, "Tau_againstElectronMedium[nTau]/O");
-  tree->Branch("Tau_againstElectronTight", value_tau_againstElectronTight, "Tau_againstElectronTight[nTau]/O");
-  tree->Branch("Tau_againstMuonLoose", value_tau_againstMuonLoose, "Tau_againstMuonLoose[nTau]/O");
-  tree->Branch("Tau_againstMuonMedium", value_tau_againstMuonMedium, "Tau_againstMuonMedium[nTau]/O");
-  tree->Branch("Tau_againstMuonTight", value_tau_againstMuonTight, "Tau_againstMuonTight[nTau]/O");
-  tree->Branch("Tau_byLooseCombinedIsolationDeltaBetaCorr3Hits", value_tau_byLooseCombinedIsolationDeltaBetaCorr3Hits, "Tau_byLooseCombinedIsolationDeltaBetaCorr3Hits[nTau]/O");
-  tree->Branch("Tau_byMediumCombinedIsolationDeltaBetaCorr3Hits", value_tau_byMediumCombinedIsolationDeltaBetaCorr3Hits, "Tau_byMediumCombinedIsolationDeltaBetaCorr3Hits[nTau]/O");
-  tree->Branch("Tau_byTightCombinedIsolationDeltaBetaCorr3Hits", value_tau_byTightCombinedIsolationDeltaBetaCorr3Hits, "Tau_byTightCombinedIsolationDeltaBetaCorr3Hits[nTau]/O");
-  tree->Branch("Tau_byLooseCombinedIsolationDeltaBetaCorr", value_tau_byLooseCombinedIsolationDeltaBetaCorr, "Tau_byLooseCombinedIsolationDeltaBetaCorr[nTau]/O");
-  tree->Branch("Tau_byMediumCombinedIsolationDeltaBetaCorr", value_tau_byMediumCombinedIsolationDeltaBetaCorr, "Tau_byMediumCombinedIsolationDeltaBetaCorr[nTau]/O");
-  tree->Branch("Tau_byTightCombinedIsolationDeltaBetaCorr", value_tau_byTightCombinedIsolationDeltaBetaCorr, "Tau_byTightCombinedIsolationDeltaBetaCorr[nTau]/O");
+  tree->Branch("Tau_againstElectronLoose", value_tau_againstElectronLoose, "Tau_againstElectronLoose[nTau]/I");
+  tree->Branch("Tau_againstElectronMedium", value_tau_againstElectronMedium, "Tau_againstElectronMedium[nTau]/I");
+  tree->Branch("Tau_againstElectronTight", value_tau_againstElectronTight, "Tau_againstElectronTight[nTau]/I");
+  tree->Branch("Tau_againstMuonLoose", value_tau_againstMuonLoose, "Tau_againstMuonLoose[nTau]/I");
+  tree->Branch("Tau_againstMuonMedium", value_tau_againstMuonMedium, "Tau_againstMuonMedium[nTau]/I");
+  tree->Branch("Tau_againstMuonTight", value_tau_againstMuonTight, "Tau_againstMuonTight[nTau]/I");
+  tree->Branch("Tau_byLooseCombinedIsolationDeltaBetaCorr3Hits", value_tau_byLooseCombinedIsolationDeltaBetaCorr3Hits, "Tau_byLooseCombinedIsolationDeltaBetaCorr3Hits[nTau]/I");
+  tree->Branch("Tau_byMediumCombinedIsolationDeltaBetaCorr3Hits", value_tau_byMediumCombinedIsolationDeltaBetaCorr3Hits, "Tau_byMediumCombinedIsolationDeltaBetaCorr3Hits[nTau]/I");
+  tree->Branch("Tau_byTightCombinedIsolationDeltaBetaCorr3Hits", value_tau_byTightCombinedIsolationDeltaBetaCorr3Hits, "Tau_byTightCombinedIsolationDeltaBetaCorr3Hits[nTau]/I");
+  tree->Branch("Tau_byLooseCombinedIsolationDeltaBetaCorr", value_tau_byLooseCombinedIsolationDeltaBetaCorr, "Tau_byLooseCombinedIsolationDeltaBetaCorr[nTau]/I");
+  tree->Branch("Tau_byMediumCombinedIsolationDeltaBetaCorr", value_tau_byMediumCombinedIsolationDeltaBetaCorr, "Tau_byMediumCombinedIsolationDeltaBetaCorr[nTau]/I");
+  tree->Branch("Tau_byTightCombinedIsolationDeltaBetaCorr", value_tau_byTightCombinedIsolationDeltaBetaCorr, "Tau_byTightCombinedIsolationDeltaBetaCorr[nTau]/I");
   tree->Branch("Tau_pxHLT40", value_tau_hlt40px, "Tau_pxHLT40[nTau]/F");
   tree->Branch("Tau_pyHLT40", value_tau_hlt40py, "Tau_pyHLT40[nTau]/F");
   tree->Branch("Tau_pzHLT40", value_tau_hlt40pz, "Tau_pzHLT40[nTau]/F");
@@ -329,6 +335,17 @@ void TopTauAnalyze::analyze(const edm::Event& evt, const edm::EventSetup& setup)
     if (filter){
       //std::cout<< filterList[i] << " " << filter->status() << std::endl;
       value_filt[i] = filter->status();
+    }
+  }
+
+  // Prescales
+  for (unsigned int i = 0; i < prescaleList.size (); i++) {
+    if(pTrigEvt.path(prescaleList[i])!=0){
+      value_prescale[i] = pTrigEvt.path(prescaleList[i])->prescale();
+      //cout << prescaleList[i] << "   " << value_prescale[i] << endl;
+    }
+     else{
+      value_prescale[i] = -9999.;
     }
   }
 
