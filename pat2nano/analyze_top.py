@@ -39,19 +39,18 @@ process.analyzeTau = cms.EDAnalyzer("TopTauAnalyze",
     jets = cms.InputTag("selectedPatJetsPF"),
     verbose = cms.bool(True)
 )"""
-process.analyzeTau = cms.EDAnalyzer("TopTauAnalyze",
-    trigger = cms.InputTag("TriggerResults::HLT"),
-    patTriggerEvent = cms.InputTag("patTriggerEventPF"),
-    taus = cms.InputTag("selectedPatTausPF"),
-    jets = cms.InputTag("selectedPatJetsPF"),
-    muons = cms.InputTag("selectedPatMuonsPF"),
-    electrons = cms.InputTag("selectedPatElectronsPF"),
-    vertices = cms.InputTag("goodOfflinePrimaryVertices"),
-    met   = cms.InputTag("patMETsPF"),
-    genEvent = cms.InputTag("genEvt"),
-    isData = cms.bool(True),
+process.analyzeTau = cms.EDAnalyzer('TopTauAnalyze',
+    isData = cms.bool(False),
+    electron_cut_pt     = cms.double(10),
+    electron_cut_eta    = cms.double(2.5),
+    muon_cut_pt         = cms.double(10),
+    muon_cut_eta        = cms.double(2.5),
+    tau_cut_pt      = cms.double(10),
+    tau_cut_eta     = cms.double(2.5),    #!! original is 2.4
+    jet_cut_pt      = cms.double(10),
+    jet_cut_eta     = cms.double(2.5),
     verbose = cms.bool(True)
-)
+    )
 
 #process.p = cms.Path(process.Top)
 process.p1 = cms.Path( process.analyzeTau)

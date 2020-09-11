@@ -76,12 +76,6 @@ def select_taus(evt, eta_cut = 2.3, pt_cut = 10., vtxmatch_cut = 1., dxy_cut=0.0
     Tau = namedtuple('Tau', 'eta pt px py pz e pxHLT pyHLT pzHLT eHLT')
     good_taus = []
 
-    """
-    if ( tau.leadTrackPt    <= TauLeadTrkPtCut_ ) continue
-    """
-
-    arr = np.array(evt.Tau_byMediumCombinedIsolationDeltaBetaCorr)
-
     for iTau in range(evt.nTau):
 
         #print "Taudisc", evt.Tau_byMediumCombinedIsolationDeltaBetaCorr[iTau]
@@ -98,7 +92,7 @@ def select_taus(evt, eta_cut = 2.3, pt_cut = 10., vtxmatch_cut = 1., dxy_cut=0.0
         # Lead track pt
         if evt.Tau_leadTrackPt[iTau] < leadTrackPt_cut: continue
         # Eta
-        # if(fabs(tau.p4.Eta())<1.566 && fabs(tau.p4.Eta())>1.4442)continue;
+        if (abs(evt.Tau_eta[iTau])<1.566) & (abs(evt.Tau_eta[iTau])>1.4442): continue
         if abs(evt.Tau_eta[iTau]) > eta_cut: continue
         # Pt cut
         if abs(evt.Tau_pt[iTau]) < pt_cut: continue
@@ -245,10 +239,13 @@ def trigger_tau(jets, tau, tausHLT, filterStatus, filterStatus2):
             if (jet_vec.DeltaR(jetHLT_vec)<0.4):
 
                 njet += 1
+
                 tau_vec = ROOT.TLorentzVector(tau.px, tau.py, tau.pz, tau.e)
                 deltaR = jet_vec.DeltaR(tau_vec)
                 if(deltaR < deltaRMin):
                     deltaRMin = deltaR
+
+
 
     #print njet, filterStatus, deltaRMin
 
@@ -263,13 +260,18 @@ def trigger_tau(jets, tau, tausHLT, filterStatus, filterStatus2):
         deltaRTrig =99.
 
         tauHLT_best = 0
+        #idx = -9999
         for tauHLT in tausHLT:
 
             tauHLT_vec = ROOT.TLorentzVector(tauHLT.px, tauHLT.py, tauHLT.pz, tauHLT.e)
             deltaRTrig = tau_vec.DeltaR(tauHLT_vec)
+            #print deltaRTrig
             if deltaRTrig<deltaRMinTrig:
                 deltaRMinTrig = deltaRTrig;
                 tauHLT_best = tauHLT_vec
+                #print tauHLT_best
+
+        #print tauHLT_best
 
         #print deltaRMinTrig, filterStatus, deltaRMin, deltaRMinTrig, filterStatus2
 
@@ -286,6 +288,7 @@ tree_in = ff.Get("MyModule/Events")
 
 jet4_ref = ROOT.TH1F("jet4_ref","jet4_ref", 19,10,200)
 jet4_trig = ROOT.TH1F("jet4_trig","jet4_trig", 19,10,200)
+#x2bins = np.array([0,5,10,15,20,25,30,35,40,45,50,60,70,80,90,100])
 x2bins = np.array([0,5,10,15,20,25,30,32.5,35,37.5,40,42.5,45,47.5,50,60,70,80,90])
 tau_ref = ROOT.TH1F("tau_ref","tau_ref", 18, x2bins)
 tau_trig = ROOT.TH1F("tau_trig","tau_trig", 18, x2bins)
@@ -297,21 +300,59 @@ for counter, evt in enumerate(tree_in):
         #break
 
     # Trigger
+    if (int(evt.run)<160431) | (int(evt.run)>178420): continue
     if ((int(evt.run) >= 165970) & (int(evt.run)<=166782)) | (int(evt.run)>=171050):
         trigger = "45"
     else:
         trigger = "40"
 
     """
+    #print evt.run, trigger
+    # Filter
+    if trigger == "45":
+        filterStatus  = evt.HLTFilter_hltQuadJet45IsoPFTau45
+        filterStatus20 = evt.HLTFilter_hltFilterPFTauTrack5TightIsoL1QuadJet20CentralPFTau45
+        filterStatus28 = evt.HLTFilter_hltFilterPFTauTrack5TightIsoL1QuadJet28CentralPFTau45
+        filterStatus2 = (filterStatus28 == 1) | (filterStatus20 == 1)
+    else:
+        filterStatus  = evt.HLTFilter_hltQuadJet40IsoPFTau40
+        filterStatus2 = evt.HLTFilter_hltFilterPFTauTrack5TightIsoL1QuadJet20CentralPFTau40
+    #print filterStatus, filterStatus20
     passTrigger40 = evt.HLT_QuadJet40_IsoPFTau40
     passTrigger45 = evt.HLT_QuadJet45_IsoPFTau45
     passTriggerMu15 = evt.HLT_Mu15_v
     passTriggerMu20 = evt.HLT_Mu20_v
-    passTriggerMu24 = evt.HL_Mu24_v
+    passTriggerMu24 = evt.HLT_Mu24_v
     passTriggerMu30 = evt.HLT_Mu30_v
+    passTriggerMu15_v1 = evt.HLT_Mu15_v1
+    passTriggerMu15_v2 = evt.HLT_Mu15_v2
+    passTriggerMu15_v3 = evt.HLT_Mu15_v3
+    passTriggerMu15_v4 = evt.HLT_Mu15_v4
+    passTriggerMu15_v5 = evt.HLT_Mu15_v5
+    passTriggerMu20_v1 = evt.HLT_Mu20_v1
+    passTriggerMu20_v2 = evt.HLT_Mu20_v2
+    passTriggerMu20_v3 = evt.HLT_Mu20_v3
+    passTriggerMu20_v4 = evt.HLT_Mu20_v4
+    passTriggerMu20_v5 = evt.HLT_Mu20_v5
+    passTriggerMu24_v1 = evt.HLT_Mu24_v1
+    passTriggerMu24_v2 = evt.HLT_Mu24_v2
+    passTriggerMu24_v3 = evt.HLT_Mu24_v3
+    passTriggerMu24_v4 = evt.HLT_Mu24_v4
+    passTriggerMu24_v5 = evt.HLT_Mu24_v5
+    passTriggerMu30_v1 = evt.HLT_Mu30_v1
+    passTriggerMu30_v2 = evt.HLT_Mu30_v2
+    passTriggerMu30_v3 = evt.HLT_Mu30_v3
+    passTriggerMu30_v4 = evt.HLT_Mu30_v4
+    passTriggerMu30_v5 = evt.HLT_Mu30_v5
 
-    pass_mu = passTriggerMu15 | passTriggerMu20 | passTriggerMu24 | passTriggerMu30
+    pass_mu = passTriggerMu15_v1 | passTriggerMu15_v2 | passTriggerMu15_v3 | passTriggerMu15_v4 | passTriggerMu15_v5 | \
+              passTriggerMu20_v1 | passTriggerMu20_v2 | passTriggerMu20_v3 | passTriggerMu20_v4 | passTriggerMu20_v5 | \
+              passTriggerMu24_v1 | passTriggerMu24_v2 | passTriggerMu24_v3 | passTriggerMu24_v4 | passTriggerMu24_v5 | \
+              passTriggerMu30_v1 | passTriggerMu30_v2 | passTriggerMu30_v3 | passTriggerMu30_v4 | passTriggerMu30_v5
+    #pass_mu = passTriggerMu15 | passTriggerMu20 | passTriggerMu24 | passTriggerMu30
     """
+
+
 
     # Object selections
     muons = select_muons(evt)
@@ -330,9 +371,33 @@ for counter, evt in enumerate(tree_in):
     print "Jets", len(jets)
     """
 
+    prescales = [
+    evt.Prescale_HLT_QuadJet40_IsoPFTau40_v1,evt.Prescale_HLT_QuadJet40_IsoPFTau40_v2,evt.Prescale_HLT_QuadJet40_IsoPFTau40_v3,
+    evt.Prescale_HLT_QuadJet40_IsoPFTau40_v4,evt.Prescale_HLT_QuadJet40_IsoPFTau40_v5,evt.Prescale_HLT_QuadJet40_IsoPFTau40_v6,
+    evt.Prescale_HLT_QuadJet40_IsoPFTau40_v7,evt.Prescale_HLT_QuadJet40_IsoPFTau40_v8,evt.Prescale_HLT_QuadJet40_IsoPFTau40_v9,
+    evt.Prescale_HLT_QuadJet40_IsoPFTau40_v10,evt.Prescale_HLT_QuadJet40_IsoPFTau40_v11,evt.Prescale_HLT_QuadJet40_IsoPFTau40_v12,
+    evt.Prescale_HLT_QuadJet40_IsoPFTau40_v13,evt.Prescale_HLT_QuadJet40_IsoPFTau40_v14,evt.Prescale_HLT_QuadJet40_IsoPFTau40_v15
+    ]
+
+    prescale = 0
+    for ps in prescales:
+        if ps != -9999:
+            prescale = ps
+
+    if int(prescale) != 1:
+        continue
+
     if len(jets) < 4:
         continue
+
+    if len(taus) < 1:
+        continue
+
     #if pass_mu == False:
+    #    continue
+
+    #if evt.nTau < 1:
+        #rint "no tau"
     #    continue
 
     #print evt.run, trigger
@@ -350,9 +415,12 @@ for counter, evt in enumerate(tree_in):
         #print "Pt probe & match", probe_jet_pt
         jet4_trig.Fill(probe_jet_pt)
 
+
     # Check!!
     if len(taus) != 1:
         continue
+
+    #print taus
 
     # Filter
     if trigger == "45":
@@ -364,15 +432,17 @@ for counter, evt in enumerate(tree_in):
         filterStatus  = evt.HLTFilter_hltQuadJet40IsoPFTau40
         filterStatus2 = evt.HLTFilter_hltFilterPFTauTrack5TightIsoL1QuadJet20CentralPFTau40
 
+    #print filterStatus, filterStatus2
+
     pass_tag_cond, pass_probe_cond, probe_tau_pt = trigger_tau(jets, taus[0], tauHLTs, filterStatus, filterStatus2)
 
     if pass_tag_cond:
         #print "Pt probe", probe_jet_pt
-        #print probe_tau_pt
+        print probe_tau_pt
         tau_ref.Fill(probe_tau_pt)
     if pass_tag_cond & pass_probe_cond:
         #print "Pt probe & match", probe_jet_pt
-        #print probe_tau_pt
+        print probe_tau_pt
         tau_trig.Fill(probe_tau_pt)
 
 

@@ -23,6 +23,10 @@ class TopTauAnalyze : public edm::EDAnalyzer {
   virtual void beginJob() ;
   virtual void analyze(const edm::Event&, const edm::EventSetup&);
   virtual void endJob() ;
+  virtual void beginLuminosityBlock(edm::LuminosityBlock const&, edm::EventSetup const&);
+  virtual void endLuminosityBlock(edm::LuminosityBlock const&, edm::EventSetup const&);
+  int getTauDecay(edm::Handle<reco::GenParticleCollection> particles, const pat::Tau * thePatTau);
+  int GetTTbarTruth (edm::Handle < reco::GenParticleCollection > genParticles);
 
   bool isData;
   double electron_cut_pt;
@@ -36,7 +40,13 @@ class TopTauAnalyze : public edm::EDAnalyzer {
   double jet_cut_pt;
   double jet_cut_eta;
 
+  // Event tree
   TTree *tree;
+
+  // Tree to store additional informations per analyzed file
+  TTree *info;
+  int nEventsTotal;
+  int nEventsFiltered;
 
   // Event information
   Int_t value_run;
@@ -48,9 +58,9 @@ class TopTauAnalyze : public edm::EDAnalyzer {
   std::vector<std::string> prescaleList;
   std::vector<std::string> filterList;
   const static int max_trig = 1000;
-  bool value_trig[max_trig];
+  int value_trig[max_trig];
   const static int max_filt = 1000;
-  bool value_filt[max_filt];
+  int value_filt[max_filt];
   const static int max_prescale = 1000;
   float value_prescale[max_prescale];
 
@@ -121,6 +131,10 @@ class TopTauAnalyze : public edm::EDAnalyzer {
   float value_mu_trackIso[max_mu];
   float value_mu_dxy[max_mu];
   float value_mu_chi2[max_mu];
+  float value_mu_genpx[max_mu];
+  float value_mu_genpy[max_mu];
+  float value_mu_genpz[max_mu];
+  float value_mu_gene[max_mu];
 
   // Electrons
   const static int max_el = 1000;
@@ -159,6 +173,10 @@ class TopTauAnalyze : public edm::EDAnalyzer {
   int value_el_cutbasedid [max_el];
   float value_el_dxy[max_el];
   float value_el_chi2[max_el];
+  float value_el_genpx[max_el];
+  float value_el_genpy[max_el];
+  float value_el_genpz[max_el];
+  float value_el_gene[max_el];
 
   // MET
   float value_met_pt;
@@ -215,6 +233,12 @@ class TopTauAnalyze : public edm::EDAnalyzer {
   float value_tau_hlt45py[max_tau];
   float value_tau_hlt45pz[max_tau];
   float value_tau_hlt45e[max_tau];
+  float value_tau_genpx[max_tau];
+  float value_tau_genpy[max_tau];
+  float value_tau_genpz[max_tau];
+  float value_tau_gene[max_tau];
+  float value_tau_leptonOrigin[max_tau];
+  float value_tau_decay[max_tau];
 
   // Jets
   const static int max_jet = 1000;
@@ -246,6 +270,14 @@ class TopTauAnalyze : public edm::EDAnalyzer {
   float value_jet_hlt45py[max_jet];
   float value_jet_hlt45pz[max_jet];
   float value_jet_hlt45e[max_jet];
+  float value_jet_genpx[max_jet];
+  float value_jet_genpy[max_jet];
+  float value_jet_genpz[max_jet];
+  float value_jet_gene[max_jet];
+  float value_jet_genpartonpx[max_jet];
+  float value_jet_genpartonpy[max_jet];
+  float value_jet_genpartonpz[max_jet];
+  float value_jet_genpartone[max_jet];
 
   // Gen Event
   float value_nLep_;

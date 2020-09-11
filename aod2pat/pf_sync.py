@@ -17,7 +17,7 @@ else:
   runOnMC = int(sys.argv[2])
 
 print "Run on MC = ", runOnMC
-maxEvents = -1
+maxEvents = 100
 skim = False
 ########################################################################
 #################### Setup process #####################################
@@ -83,6 +83,10 @@ process.out = cms.OutputModule('PoolOutputModule',
 ########################################################################
 #################### Configure Analyzer ##################################
 ########################################################################
+
+# Count events before and after filter operations
+process.nEventsTotal = cms.EDProducer("EventCountProducer")
+process.nEventsFiltered = cms.EDProducer("EventCountProducer")
 
 ################
 ### Trigger ####
@@ -341,8 +345,13 @@ if skim:
 ##########  NanoAOD ################
 ####################################
 
+if runOnMC:
+    isData = False
+else:
+    isData = True
+
 process.MyModule = cms.EDAnalyzer('TopTauAnalyze',
-    isData = cms.bool(True),
+    isData = cms.bool(isData),
     electron_cut_pt     = cms.double(10),
     electron_cut_eta    = cms.double(2.5),
     muon_cut_pt         = cms.double(10),
@@ -371,29 +380,37 @@ removeSpecificPATObjects(process, names = ['Photons'], postfix = 'PF')
 #cms.ignore(process.mvaNonTrigV0) + \
 
 if skim:
-    base_path = process.hltSelector * \
+    base_path = process.nEventsTotal * \
+                process.hltSelector * \
                 process.goodOfflinePrimaryVertices * \
                 process.patPF2PATSequencePF * \
                 process.countJets * \
                 process.countTaus * \
+                process.nEventsFiltered * \
                 process.MyModule
 else:
-    base_path = process.goodOfflinePrimaryVertices * \
+    base_path = process.nEventsTotal * \
+                process.goodOfflinePrimaryVertices * \
                 process.patPF2PATSequencePF * \
+                process.nEventsFiltered * \
                 process.MyModule
 
 if runOnMC == 1:
     process.load("TopQuarkAnalysis.TopEventProducers.sequences.ttGenEvent_cff")
     process.taujet = cms.Path(base_path + process.makeGenEvt)
+    print "Create gen event"
 else:
     process.taujet = cms.Path(base_path) #+ process.makeGenEvt)
 
 
 #cms.Path(process.taujet)
 process.out.SelectEvents = cms.untracked.PSet(SelectEvents = cms.vstring('taujet'))
-process.out.outputCommands = cms.untracked.vstring('drop *')
+process.out.outputCommands = cms.untracked.vstring(
+    'drop *',
+    'keep *_nEventsTotal_*_*',
+    'keep *_nEventsFiltered_*_*')
 
-process.TFileService = cms.Service("TFileService", fileName = cms.string("nano.root") )
+process.TFileService = cms.Service("TFileService", fileName = cms.string("nano_mc.root") )
 
 """
 process.out.outputCommands = cms.untracked.vstring(
