@@ -238,6 +238,10 @@ TopTauAnalyze::TopTauAnalyze(const edm::ParameterSet& cfg)
 
   // MET
   tree->Branch("MET_pt", &value_met_pt, "MET_pt/F");
+  tree->Branch("MET_px", &value_met_px, "MET_px/F");
+  tree->Branch("MET_py", &value_met_py, "MET_py/F");
+  tree->Branch("MET_pz", &value_met_pz, "MET_pz/F");
+  tree->Branch("MET_e", &value_met_e, "MET_e/F");
   tree->Branch("MET_phi", &value_met_phi, "MET_phi/F");
   tree->Branch("MET_sumet", &value_met_sumet, "MET_sumet/F");
 
@@ -256,10 +260,11 @@ TopTauAnalyze::TopTauAnalyze(const edm::ParameterSet& cfg)
   tree->Branch("Jet_y", value_jet_y, "Jet_y[nJet]/F");
   tree->Branch("Jet_z", value_jet_z, "Jet_z[nJet]/F");
   tree->Branch("Jet_scale", value_jet_scale, "Jet_scale[nJet]/F");
+  tree->Branch("Jet_csvDisc", value_jet_csvDisc, "Jet_csvDisc[nJet]/F");
   tree->Branch("Jet_tcDisc", value_jet_tcDisc, "Jet_tcDisc[nJet]/F");
-  tree->Branch("Jet_svDisc", value_jet_svDisc, "Jet_svDisc[nJet]/F");
-  tree->Branch("Jet_svEffDisc", value_jet_svEffDisc, "Jet_svEffDisc[nJet]/F");
-  tree->Branch("Jet_smDisc", value_jet_smDisc, "Jet_smDisc[nJet]/F");
+  //tree->Branch("Jet_svDisc", value_jet_svDisc, "Jet_svDisc[nJet]/F");
+  //tree->Branch("Jet_svEffDisc", value_jet_svEffDisc, "Jet_svEffDisc[nJet]/F");
+  //tree->Branch("Jet_smDisc", value_jet_smDisc, "Jet_smDisc[nJet]/F");
   tree->Branch("Jet_pxHLT40", value_jet_hlt40px, "Jet_pxHLT40[nJet]/F");
   tree->Branch("Jet_pyHLT40", value_jet_hlt40py, "Jet_pyHLT40[nJet]/F");
   tree->Branch("Jet_pzHLT40", value_jet_hlt40pz, "Jet_pzHLT40[nJet]/F");
@@ -269,6 +274,7 @@ TopTauAnalyze::TopTauAnalyze(const edm::ParameterSet& cfg)
   tree->Branch("Jet_pzHLT45", value_jet_hlt45pz, "Jet_pzHLT45[nJet]/F");
   tree->Branch("Jet_eHLT45", value_jet_hlt45e, "Jet_eHLT45[nJet]/F");
   if ( isData != 1 ) {
+    tree->Branch("Jet_flavour", value_jet_flavour, "Jet_flavour[nJet]/I");
     tree->Branch("Jet_genpx", value_jet_genpx, "Jet_genpx[nJet]/F");
     tree->Branch("Jet_genpy", value_jet_genpy, "Jet_genpy[nJet]/F");
     tree->Branch("Jet_genpz", value_jet_genpz, "Jet_genpz[nJet]/F");
@@ -280,7 +286,8 @@ TopTauAnalyze::TopTauAnalyze(const edm::ParameterSet& cfg)
   }
 
   // genEvent
-  if( isData == false ){
+  if( !isData ){
+    tree->Branch("genEvent_tmeme", &value_tmeme_, "genEvent_tmeme/I");
     tree->Branch("genEvent_nLep", &value_nLep_, "genEvent_nLep/F");
     tree->Branch("genEvent_topPt", &value_topPt_, "genEvent_topPt/F");
     tree->Branch("genEvent_topEta", &value_topEta_, "genEvent_topEta/F");
@@ -313,14 +320,14 @@ void TopTauAnalyze::analyze(const edm::Event& evt, const edm::EventSetup& setup)
   using namespace reco;
   using namespace std;
 
-  //std::cout << endl << "Start analysis for event: " << value_event << endl;
-
   ///////////////////////////
   // Event information
   ///////////////////////////
   value_run = evt.run();
   value_lumi_block = evt.luminosityBlock();
   value_event = evt.id().event();
+
+  //std::cout << endl << "Analyzing event with ID: " << value_event << endl;
 
   ///////////////////////////
   // Trigger
@@ -684,7 +691,7 @@ void TopTauAnalyze::analyze(const edm::Event& evt, const edm::EventSetup& setup)
           evt.getByLabel ("genParticles", genParticles);
 
           value_tau_decay[value_tau_n] = getTauDecay(genParticles, &(*it));
-          cout<< " Found tau with decay number" << value_tau_decay[value_tau_n] << endl;
+          //cout<< " Found tau with decay number" << value_tau_decay[value_tau_n] << endl;
 
         }
 
@@ -703,7 +710,7 @@ void TopTauAnalyze::analyze(const edm::Event& evt, const edm::EventSetup& setup)
         if (muref2.isNonnull() && muref2->pt()>10.) { leptonOrigin = -13; }
         value_tau_leptonOrigin[value_tau_n] = leptonOrigin;
 
-        cout<< " Found tau with lepton origin" << leptonOrigin << endl;
+        //cout<< " Found tau with lepton origin" << leptonOrigin << endl;
 
       }
       value_tau_n++;
@@ -756,15 +763,19 @@ void TopTauAnalyze::analyze(const edm::Event& evt, const edm::EventSetup& setup)
       value_jet_y[value_jet_n] = it->vy();
       value_jet_z[value_jet_n] = it->vz();
       value_jet_scale[value_jet_n] = it->jecFactor("Uncorrected");
-      value_jet_tcDisc[value_jet_n] = it->bDiscriminator ("trackCountingHighEffBJetTags");
-      value_jet_svDisc[value_jet_n] = it->bDiscriminator ("simpleSecondaryVertexBJetTags");
-      value_jet_svEffDisc[value_jet_n] = it->bDiscriminator ("simpleSecondaryVertexHighEffBJetTags");
-      value_jet_smDisc[value_jet_n] = it->bDiscriminator ("softMuonBJetTags");
+      // New b-taggers
+      value_jet_tcDisc[value_jet_n] = it->bDiscriminator ("trackCountingHighPurBJetTags");
+      value_jet_csvDisc[value_jet_n] = it->bDiscriminator ("combinedSecondaryVertexBJetTags");
+      //value_jet_tcDisc[value_jet_n] = it->bDiscriminator ("trackCountingHighEffBJetTags");
+      //value_jet_svDisc[value_jet_n] = it->bDiscriminator ("simpleSecondaryVertexBJetTags");
+      //value_jet_svEffDisc[value_jet_n] = it->bDiscriminator ("simpleSecondaryVertexHighEffBJetTags");
+      //value_jet_smDisc[value_jet_n] = it->bDiscriminator ("softMuonBJetTags");
 
       //cout<< endl << "bTag " << it->bDiscriminator ("simpleSecondaryVertexHighEffBJetTags") <<endl;
       //cout<< endl << "bTag " << it->bDiscriminator ("trackCountingHighEffBJetTags") <<endl;
       //cout<< endl << "bTag " << it->bDiscriminator ("simpleSecondaryVertexBJetTags") <<endl;
       //cout<< endl << "bTag " << it->bDiscriminator ("softMuonBJetTags") <<endl;
+      //cout<< endl << "bTag " << it->bDiscriminator ("combinedSecondaryVertexBJetTags") <<endl;
 
 
       const pat::TriggerObjectRef trigRef40( matchHelper.triggerMatchObject( jets, iJet,
@@ -803,6 +814,7 @@ void TopTauAnalyze::analyze(const edm::Event& evt, const edm::EventSetup& setup)
     }
 
     if(!isData){
+      value_jet_flavour[value_jet_n] = it->partonFlavour();
       if(it->genJet() != 0){
         value_jet_genpx[value_jet_n] = it->genJet()->px();
         value_jet_genpy[value_jet_n] = it->genJet()->py();
@@ -822,26 +834,43 @@ void TopTauAnalyze::analyze(const edm::Event& evt, const edm::EventSetup& setup)
 
 
   ///////////////////////////
-  // TTbar event
+  // MC event
   ///////////////////////////
 
+  if( !isData){
 
-  if( isData == false){
+    // PDF weights
+    /*
+    edm::InputTag pdfWeightTag("pdfWeights:cteq66"); // or any other PDF set
+    edm::Handle<std::vector<double> > weightHandle;
+    evt.getByLabel(pdfWeightTag, weightHandle);
 
+    std::vector<double> weights = (*weightHandle);
+    std::cout << "Event weight for central PDF:" << weights[0] << std::endl;
 
+    unsigned int nmembers = weights.size();
+    cout << "PDFweights N: " << nmembers << std::endl;
+    //for (unsigned int j=0; j<nmembers; j++) {
+      //std::cout << "Event weight for PDF variation +" << (j+1)/2 << ": " << weights[j] << std::endl;
+      //std::cout << "Event weight for PDF variation -" << (j+1)/2 << ": " << weights[j+1] << std::endl;
+      //cev.pdfWeights.push_back(float(weights[j]));
+    //}
+    */
 
+    // TTbar event
     Handle < reco::GenParticleCollection > genParticles;
     evt.getByLabel ("genParticles", genParticles);
-
-    int tmeme = GetTTbarTruth(genParticles);
-    std::cout << "TMEME" << tmeme << std::endl;
-
-
-    /*
     edm::Handle<TtGenEvent> genEvent;
     evt.getByLabel("genEvt", genEvent);
+
+    //std::cout << "isTtBar " << genEvent->isTtBar() << std::endl;
+
     if( genEvent->isTtBar() ){
 
+      int tmeme = GetTTbarTruth(genParticles);
+      //std::cout << "TMEME" << tmeme << std::endl;
+
+      value_tmeme_ = tmeme;
       value_nLep_ = genEvent->numberOfLeptons();
       value_topPt_ = genEvent->top()->pt();
       value_topEta_ = genEvent->top()->eta();
@@ -853,7 +882,7 @@ void TopTauAnalyze::analyze(const edm::Event& evt, const edm::EventSetup& setup)
       value_ttbarEta_ = genEvent->topPair()->eta();
       value_ttbarPhi_ = genEvent->topPair()->phi();
 
-    }*/
+    }
 
   }
 
@@ -874,8 +903,8 @@ int TopTauAnalyze::getTauDecay(edm::Handle<reco::GenParticleCollection> genParti
 
     if (abs(p->pdgId()) == 15 && p->status() == 2){
 
-      std::cout << "Stable tau" << std::endl;
-      std::cout << "Taugen " << aGenTau->pt() << " Taupat " << thePatTau->genLepton()->pt() << std::endl;
+      //std::cout << "Stable tau" << std::endl;
+      //std::cout << "Taugen " << aGenTau->pt() << " Taupat " << thePatTau->genLepton()->pt() << std::endl;
 
       if ((thePatTau->genLepton() != NULL) && abs(thePatTau->genLepton()->pt()-aGenTau->pt()) < 0.00001){
         matchedGenLepton = true;
@@ -1004,8 +1033,7 @@ int TopTauAnalyze::GetTTbarTruth (edm::Handle < reco::GenParticleCollection > ge
     const reco::Candidate *W = &(*genParticles)[i];
 
 
-  //    // finding top and antitop
-  //    //------------------------
+    // finding top and antitop
     if (abs (paIt.pdgId ()) == 6 && paIt.status () == 3) {
       if (paIt.pdgId () == 6) {
         Top1 = &(*genParticles)[i];
@@ -1015,8 +1043,7 @@ int TopTauAnalyze::GetTTbarTruth (edm::Handle < reco::GenParticleCollection > ge
       }
     }
 
-  //       // finding B1 & B2:
-  //       //------------------------
+    // finding B1 & B2:
     if (abs (paIt.pdgId ()) == 6 && paIt.status () == 3) {
       int FoundWB = 0;
       int FoundB1 = -1;
@@ -1059,8 +1086,7 @@ int TopTauAnalyze::GetTTbarTruth (edm::Handle < reco::GenParticleCollection > ge
 
     for (unsigned int j = 0; j < paIt.numberOfDaughters (); j++) {
       if (abs (paIt.daughter (j)->pdgId ()) == 12 || abs (paIt.daughter (j)->pdgId ()) == 14 || abs (paIt.daughter (j)->pdgId ()) == 16) {
-  //     // finding nue/antinue ( t->W->nue )
-  //     //--------------------------------
+        // finding nue/antinue ( t->W->nue )
         if (abs (paIt.daughter (j)->pdgId ()) == 12) {
           if (paIt.daughter (j)->pdgId () == -12) {
             Nu1 = paIt.daughter (j);
@@ -1069,8 +1095,7 @@ int TopTauAnalyze::GetTTbarTruth (edm::Handle < reco::GenParticleCollection > ge
             Nu2 = paIt.daughter (j);
           }
         }
-  //     // finding numu/antinumu ( t->W->numu )
-  //     //------------------------------------
+        // finding numu/antinumu ( t->W->numu )
         if (abs (paIt.daughter (j)->pdgId ()) == 14) {
           if (paIt.daughter (j)->pdgId () == -14) {
             Nu1 = paIt.daughter (j);
@@ -1079,8 +1104,7 @@ int TopTauAnalyze::GetTTbarTruth (edm::Handle < reco::GenParticleCollection > ge
             Nu2 = paIt.daughter (j);
           }
         }
-  //     // finding nutau/antinutau ( t->W->nutau )
-  //     //---------------------------------------
+        // finding nutau/antinutau ( t->W->nutau )
         if (abs (paIt.daughter (j)->pdgId ()) == 16) {
           if (paIt.daughter (j)->pdgId () == -16) {
             Nu1 = paIt.daughter (j);
@@ -1094,8 +1118,7 @@ int TopTauAnalyze::GetTTbarTruth (edm::Handle < reco::GenParticleCollection > ge
 
       if (abs (paIt.daughter (j)->pdgId ()) == 11 || abs (paIt.daughter (j)->pdgId ()) == 13 || abs (paIt.daughter (j)->pdgId ()) == 15) {
 
-  //     // finding electron/positron ( t->W->e )
-  //     //--------------------------------
+        // finding electron/positron ( t->W->e )
         if (abs (paIt.daughter (j)->pdgId ()) == 11) {
           tmeme += 1;
           if (paIt.daughter (j)->pdgId () == 11) {
@@ -1109,8 +1132,7 @@ int TopTauAnalyze::GetTTbarTruth (edm::Handle < reco::GenParticleCollection > ge
             Qlep2 = (paIt.daughter (j)->pdgId () == 11) ? -1 : 1;
           }
         }
-  //     // finding muon/antimuon ( t->W->muon )
-  //     //-------------------------------------
+        // finding muon/antimuon ( t->W->muon )
         if (abs (paIt.daughter (j)->pdgId ()) == 13) {
           tmeme += 10;
           if (paIt.daughter (j)->pdgId () == 13) {
@@ -1124,8 +1146,7 @@ int TopTauAnalyze::GetTTbarTruth (edm::Handle < reco::GenParticleCollection > ge
             Qlep2 = (paIt.daughter (j)->pdgId () == 13) ? -1 : 1;
           }
         }
-  //     // finding tau/antitau ( t->W->tau )
-  //     //-------------------------------------
+        // finding tau/antitau ( t->W->tau )
         if (abs (paIt.daughter (j)->pdgId ()) == 15) {
           tmeme += 10000;
           if (paIt.daughter (j)->pdgId () == 15) {
@@ -1240,9 +1261,9 @@ void TopTauAnalyze::endLuminosityBlock(const edm::LuminosityBlock & lumi, const 
 
   edm::Handle<edm::MergeableCounter> nEventsTotalCounter;
   lumi.getByLabel(edm::InputTag("nEventsTotal"), nEventsTotalCounter);
-  std::cout << "*****************************" << std::endl;
-  std::cout << "NEVENTS " << nEventsTotalCounter->value << std::endl;
-  std::cout << "*****************************" << std::endl;
+  //std::cout << "*****************************" << std::endl;
+  //std::cout << "NEVENTS " << nEventsTotalCounter->value << std::endl;
+  //std::cout << "*****************************" << std::endl;
   nEventsTotal += nEventsTotalCounter->value;
 
   edm::Handle<edm::MergeableCounter> nEventsFilteredCounter;

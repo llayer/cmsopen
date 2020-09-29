@@ -258,10 +258,11 @@ class TopTauAnalyze : public edm::EDAnalyzer {
   float value_jet_scale[max_jet];
   float value_jet_emEnergyFraction[max_jet];
   float value_jet_n90[max_jet];
-  int value_jet_tcDisc[max_jet];
-  int value_jet_svDisc[max_jet];
-  int value_jet_svEffDisc[max_jet];
-  int value_jet_smDisc[max_jet];
+  float value_jet_csvDisc[max_jet];
+  float value_jet_tcDisc[max_jet];
+  //float value_jet_svDisc[max_jet];
+  //float value_jet_svEffDisc[max_jet];
+  //float value_jet_smDisc[max_jet];
   float value_jet_hlt40px[max_jet];
   float value_jet_hlt40py[max_jet];
   float value_jet_hlt40pz[max_jet];
@@ -270,6 +271,7 @@ class TopTauAnalyze : public edm::EDAnalyzer {
   float value_jet_hlt45py[max_jet];
   float value_jet_hlt45pz[max_jet];
   float value_jet_hlt45e[max_jet];
+  int value_jet_flavour[max_jet];
   float value_jet_genpx[max_jet];
   float value_jet_genpy[max_jet];
   float value_jet_genpz[max_jet];
@@ -280,6 +282,7 @@ class TopTauAnalyze : public edm::EDAnalyzer {
   float value_jet_genpartone[max_jet];
 
   // Gen Event
+  int value_tmeme_;
   float value_nLep_;
   float value_topPt_;
   float value_topEta_;

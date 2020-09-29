@@ -51,7 +51,8 @@ if runOnMC == 0:
     #files = ["root://eospublic.cern.ch//eos/opendata/cms/Run2011A/MultiJet/AOD/12Oct2013-v1/00000/001D2AFA-8B43-E311-AC56-02163E009EC4.root"]
     files = ["root://eospublic.cern.ch//eos/opendata/cms/Run2011A/MultiJet/AOD/12Oct2013-v1/20001/BE90B0AD-EF4B-E311-8429-003048F010A2.root"]
 else:
-    files = ["root://eospublic.cern.ch//eos/opendata/cms/MonteCarlo2011/Summer11LegDR/TTJets_TuneZ2_7TeV-madgraph-tauola/AODSIM/PU_S13_START53_LV6-v1/00000/0005D1FB-4BCF-E311-9FE4-002590A8312A.root"]
+    #files = ["root://eospublic.cern.ch//eos/opendata/cms/MonteCarlo2011/Summer11LegDR/TTJets_TuneZ2_7TeV-madgraph-tauola/AODSIM/PU_S13_START53_LV6-v1/00000/0005D1FB-4BCF-E311-9FE4-002590A8312A.root"]
+    files = ["file:tt.root"]
 
 process.source = cms.Source(
     "PoolSource", fileNames=cms.untracked.vstring(*files))
@@ -304,17 +305,22 @@ process.patElectronsPF.electronIDSources.mvaNonTrigV0 = cms.InputTag("mvaNonTrig
 #  with crab, ass these two lines after
 #  eval `scramv1 runtime -sh in crab_.../job/CMSSW.sh
 ####################################
+
 """
-process.pdfWeights = cms.EDProducer("PdfWeightProducer",
-            # Fix POWHEG if buggy (this PDF set will also appear on output,
-            # so only two more PDF sets can be added in PdfSetNames if not "")
-            #FixPOWHEG = cms.untracked.string("cteq66.LHgrid"),
-            #GenTag = cms.untracked.InputTag("genParticles"),
-            PdfInfoTag = cms.untracked.InputTag("generator"),
-            PdfSetNames = cms.untracked.vstring(
-                    "cteq66.LHgrid"
-            )
-)
+if runOnMC:
+
+
+    print "Produce pdf weights"
+    process.pdfWeights = cms.EDProducer("PdfWeightProducer",
+                # Fix POWHEG if buggy (this PDF set will also appear on output,
+                # so only two more PDF sets can be added in PdfSetNames if not "")
+                #FixPOWHEG = cms.untracked.string("cteq66.LHgrid"),
+                #GenTag = cms.untracked.InputTag("genParticles"),
+                PdfInfoTag = cms.untracked.InputTag("generator"),
+                PdfSetNames = cms.untracked.vstring(
+                        "cteq66.LHgrid"
+                )
+    )
 """
 
 ####################################
@@ -386,31 +392,33 @@ if skim:
                 process.patPF2PATSequencePF * \
                 process.countJets * \
                 process.countTaus * \
-                process.nEventsFiltered * \
-                process.MyModule
+                process.nEventsFiltered
 else:
     base_path = process.nEventsTotal * \
                 process.goodOfflinePrimaryVertices * \
                 process.patPF2PATSequencePF * \
-                process.nEventsFiltered * \
-                process.MyModule
+                process.nEventsFiltered
+
 
 if runOnMC == 1:
     process.load("TopQuarkAnalysis.TopEventProducers.sequences.ttGenEvent_cff")
-    process.taujet = cms.Path(base_path + process.makeGenEvt)
+    #process.taujet = cms.Path( process.pdfWeights + base_path + process.makeGenEvt + process.MyModule)
+    process.taujet = cms.Path( base_path + process.makeGenEvt + process.MyModule)
     print "Create gen event"
 else:
-    process.taujet = cms.Path(base_path) #+ process.makeGenEvt)
+    process.taujet = cms.Path(base_path + process.MyModule) #+ process.makeGenEvt)
 
 
 #cms.Path(process.taujet)
 process.out.SelectEvents = cms.untracked.PSet(SelectEvents = cms.vstring('taujet'))
 process.out.outputCommands = cms.untracked.vstring(
-    'drop *',
-    'keep *_nEventsTotal_*_*',
-    'keep *_nEventsFiltered_*_*')
+    'drop *'
+    )
+    #'drop *',
+    #'keep *_nEventsTotal_*_*',
+    #'keep *_nEventsFiltered_*_*')
 
-process.TFileService = cms.Service("TFileService", fileName = cms.string("nano_mc.root") )
+process.TFileService = cms.Service("TFileService", fileName = cms.string("nano.root") )
 
 """
 process.out.outputCommands = cms.untracked.vstring(
