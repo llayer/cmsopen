@@ -116,30 +116,30 @@ def select_taus(evt, eta_cut = 2.3, pt_cut = 10., vtxmatch_cut = 1., dxy_cut=0.0
 def select_jets(evt, eta_cut = 2.5, pt_cut = 10., trigger="45"):
 
     Jet = namedtuple('Jet', 'eta pt px py pz e pxHLT pyHLT pzHLT eHLT csvDisc tcDisc flavour')
+    #Jet = namedtuple('Jet', 'eta pt px py pz e pxHLT pyHLT pzHLT eHLT')
     good_jets = []
 
     for iJet in range(evt.nJet):
-
-
-        #print evt.Jet_csvDisc[iJet], evt.Jet_tcDisc[iJet]
-
 
         # Eta cut
         if abs(evt.Jet_eta[iJet]) > eta_cut: continue
         # Pt cut
         if abs(evt.Jet_pt[iJet]) < pt_cut: continue
 
+
         if trigger == "45":
-            good_jets.append(Jet( evt.Jet_eta[iJet], evt.Jet_pt[iJet], evt.Jet_px[iJet], evt.Jet_py[iJet],
-                                  evt.Jet_pz[iJet], evt.Jet_e[iJet], evt.Jet_pxHLT45[iJet],
-                                  evt.Jet_pyHLT45[iJet], evt.Jet_pzHLT45[iJet], evt.Jet_eHLT45[iJet],
-                                  evt.Jet_csvDisc[iJet], evt.Jet_tcDisc[iJet], evt.Jet_flavour[iJet]))
+            hlt = [evt.Jet_pxHLT45[iJet], evt.Jet_pyHLT45[iJet], evt.Jet_pzHLT45[iJet], evt.Jet_eHLT45[iJet]]
         else:
-            good_jets.append(Jet( evt.Jet_eta[iJet], evt.Jet_pt[iJet], evt.Jet_px[iJet], evt.Jet_py[iJet],
-                          evt.Jet_pz[iJet], evt.Jet_e[iJet], evt.Jet_pxHLT40[iJet],
-                          evt.Jet_pyHLT40[iJet], evt.Jet_pzHLT40[iJet], evt.Jet_eHLT40[iJet],
-                          evt.Jet_csvDisc[iJet], evt.Jet_tcDisc[iJet], evt.Jet_flavour[iJet]))
-        #print "HLT", evt.Jet_pxHLT40[iJet], evt.Jet_pxHLT45[iJet]
+            hlt = [evt.Jet_pxHLT40[iJet], evt.Jet_pyHLT40[iJet], evt.Jet_pzHLT40[iJet], evt.Jet_eHLT40[iJet]]
+
+
+        good_jets.append(Jet( evt.Jet_eta[iJet], evt.Jet_pt[iJet], evt.Jet_px[iJet], evt.Jet_py[iJet],
+                              evt.Jet_pz[iJet], evt.Jet_e[iJet], hlt[0], hlt[1], hlt[2], hlt[3],
+                              evt.Jet_csvDisc[iJet], evt.Jet_tcDisc[iJet], evt.Jet_flavour[iJet]))
+
+
+        #good_jets.append(Jet( evt.Jet_eta[iJet], evt.Jet_pt[iJet], evt.Jet_px[iJet], evt.Jet_py[iJet],
+        #                      evt.Jet_pz[iJet], evt.Jet_e[iJet], hlt[0], hlt[1], hlt[2], hlt[3]))
 
     return good_jets
 

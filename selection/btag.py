@@ -5,7 +5,7 @@ ROOT.gSystem.Load('libCondFormatsBTauObjects')
 ROOT.gSystem.Load('libCondToolsBTau')
 
 # get the sf data loaded
-calib = ROOT.BTagCalibration('csv', 'CSV.csv')
+calib = ROOT.BTagCalibration('csv', '/afs/cern.ch/work/l/llayer/CMSSW_10_2_18/src/CSV.csv')
 # making a std::vector<std::string>> in python is a bit awkward,
 # but works with root (needed to load other sys types):
 v_sys = getattr(ROOT, 'vector<string>')()

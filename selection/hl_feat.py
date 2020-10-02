@@ -42,7 +42,7 @@ def eigenvalues_momtensor(input_vectors, r=2):
     # return momentumTensor normalized to determinant 1
     momentumTensor = (1./norm)*momentumTensor
 
-    print momentumTensor
+    #print momentumTensor
 
     # CV: TMatrixDSym::EigenVectors returns eigen-values and eigen-vectors
     # ordered by descending eigen-values, so no need to do any sorting H_ere...
@@ -138,11 +138,11 @@ def hlFeatures(jets, tau, met):
     # Event shape variables - needed!
     hl["ht"] = HT
 
-    print input_vectors
+    #print input_vectors
 
     eigenValues = eigenvalues_momtensor(input_vectors)
 
-    print eigenValues
+    #print eigenValues
 
     hl['aplanarity'] = eval_aplanarity(eigenValues)
     hl['sphericity']  = eval_sphericity(eigenValues)
