@@ -8,11 +8,17 @@
 #include "DataFormats/Common/interface/TriggerResults.h"
 #include "DataFormats/Common/interface/MergeableCounter.h"
 #include "FWCore/Common/interface/TriggerNames.h"
+#include "FWCore/Framework/interface/Run.h"
 #include "FWCore/ServiceRegistry/interface/Service.h"
 #include "PhysicsTools/PatUtils/interface/TriggerHelper.h"
 #include "DataFormats/PatCandidates/interface/TriggerObject.h"
 #include "FWCore/Framework/interface/TriggerNamesService.h"
 #include "FWCore/Framework/interface/LuminosityBlock.h"
+#include "SimDataFormats/GeneratorProducts/interface/GenEventInfoProduct.h"
+#include "SimDataFormats/GeneratorProducts/interface/GenRunInfoProduct.h"
+#include "SimDataFormats/GeneratorProducts/interface/LHEEventProduct.h"
+#include "SimDataFormats/GeneratorProducts/interface/LHERunInfoProduct.h"
+#include "SimDataFormats/GeneratorProducts/interface/WeightsInfo.h"
 #include "TLorentzVector.h"
 #include "TopTauAnalyze.h"
 
@@ -23,6 +29,8 @@ TopTauAnalyze::TopTauAnalyze(const edm::ParameterSet& cfg)
   edm::Service<TFileService> fs;
 
   isData            = cfg.getParameter < bool >      ("isData");
+  skim_jets         = cfg.getParameter < bool >      ("skim_jets");
+  skim_tau          = cfg.getParameter < bool >      ("skim_tau");
   electron_cut_pt   = cfg.getParameter < double >    ("electron_cut_pt");
   electron_cut_eta  = cfg.getParameter < double >    ("electron_cut_eta");
   muon_cut_pt       = cfg.getParameter < double >    ("muon_cut_pt");
@@ -40,6 +48,7 @@ TopTauAnalyze::TopTauAnalyze(const edm::ParameterSet& cfg)
   tree->Branch("run", &value_run);
   tree->Branch("luminosityBlock", &value_lumi_block);
   tree->Branch("event", &value_event);
+  tree->Branch("isData", &value_isData);
 
   // Trigger
   interestingTriggers = {
@@ -307,6 +316,13 @@ TopTauAnalyze::TopTauAnalyze(const edm::ParameterSet& cfg)
   nEventsFiltered = 0;
   info->Branch("nEventsFiltered", &nEventsFiltered);
 
+  /*
+  btag = fs->make<TTree>("btag", "btag");
+  btag->Branch("flavour", &b_flavour, "Jet_flavour/I");
+  btag->Branch("pt", &b_pt, "Jet_pt/F");
+  btag->Branch("eta", &b_eta, "Jet_eta/F");
+  btag->Branch("csvDisc", &b_csvDisc, "Jet_csvDisc/F");
+  */
 }
 
 TopTauAnalyze::~TopTauAnalyze()
@@ -316,9 +332,11 @@ TopTauAnalyze::~TopTauAnalyze()
 void TopTauAnalyze::analyze(const edm::Event& evt, const edm::EventSetup& setup)
 {
 
+
   using namespace edm;
   using namespace reco;
   using namespace std;
+
 
   ///////////////////////////
   // Event information
@@ -326,7 +344,59 @@ void TopTauAnalyze::analyze(const edm::Event& evt, const edm::EventSetup& setup)
   value_run = evt.run();
   value_lumi_block = evt.luminosityBlock();
   value_event = evt.id().event();
+  value_isData = isData;
 
+  cout<< endl << "analyze" << endl;
+
+  /*
+  auto const& run = evt.getRun();
+  edm::Handle<GenRunInfoProduct> genRunInfo;
+  run.getByLabel( "generator", genRunInfo );
+
+  double crossSection = genRunInfo->crossSection();
+
+  std::cout << "CrossSection!: " << crossSection << std::endl;
+
+  edm::Handle<LHEEventProduct> EvtHandle ;
+  evt.getByLabel( "source" , EvtHandle ) ;
+  //double w0 = EvtHandle->originalXWGTUP();
+  auto weights = EvtHandle->weights();
+  std::cout<< "Weights " << weights.size() << std::endl;
+  */
+
+  /*
+  for (auto& weight : EvtHandle->weights()) {
+    printf("Weight  %+9.5f   rel %+9.5f   for id %s\n", weight.wgt, weight.wgt / w0, weight.id.c_str());
+  }
+  */
+  //typedef gen::WeightsInfo WGT;
+  //std::vector<WGT> = EvtHandle->weights();
+  //const double& w = EvtHandle->weights()[0];
+  //cout << w << endl;
+  //cout << EvtHandle->weights()[0] << endl;
+  //int whichWeight = XXX;
+  //theWeight *= EvtHandle->weights()[whichWeight].wgt/EvtHandle->originalXWGTUP();
+
+  /*
+  edm::Handle<LHERunInfoProduct> lherun;
+  typedef std::vector<LHERunInfoProduct::Header>::const_iterator headers_const_iterator;
+  run.getByLabel( "source", lherun );
+  LHERunInfoProduct myLHERunInfoProduct = *(lherun.product());
+  typedef std::vector<std::string>::const_iterator const_iterator;
+  */
+  /*
+  for (headers_const_iterator iter=myLHERunInfoProduct.headers_begin(); iter!=myLHERunInfoProduct.headers_end(); iter++){
+    std::cout << iter->tag() << std::endl;
+    std::cout << iter->size() << std::endl;
+
+    //auto lines_begin = iter->begin();
+    //auto lines_end = iter->end();
+
+    for (const_iterator it = iter->begin() ; it != iter->end(); ++it){
+      std::cout << ' ' << *it << std::endl;
+    }
+  }
+  */
   //std::cout << endl << "Analyzing event with ID: " << value_event << endl;
 
   ///////////////////////////
@@ -743,10 +813,13 @@ void TopTauAnalyze::analyze(const edm::Event& evt, const edm::EventSetup& setup)
   // 2011 data: https://twiki.cern.ch/twiki/bin/view/CMS/TWikiTopRefEventSel2011#Basic_objects_general_info
   Handle<vector<pat::Jet>> jets;
   evt.getByLabel(InputTag("selectedPatJetsPF"), jets);
+
   value_jet_n = 0;
   int iJet = 0;
   //std::cout << std::endl << jets->size() << std::endl;
   for (auto it = jets->begin(); it != jets->end(); it++) {
+
+    //cout << " Jet " << iJet << " has jet Pt = " << it->pt() << endl;
     //std::cout << it->pt();
     if ( (it->pt() > jet_cut_pt) && (abs (it->eta ()) < jet_cut_eta )) {
 
@@ -766,6 +839,8 @@ void TopTauAnalyze::analyze(const edm::Event& evt, const edm::EventSetup& setup)
       // New b-taggers
       value_jet_tcDisc[value_jet_n] = it->bDiscriminator ("trackCountingHighPurBJetTags");
       value_jet_csvDisc[value_jet_n] = it->bDiscriminator ("combinedSecondaryVertexBJetTags");
+
+
       //value_jet_tcDisc[value_jet_n] = it->bDiscriminator ("trackCountingHighEffBJetTags");
       //value_jet_svDisc[value_jet_n] = it->bDiscriminator ("simpleSecondaryVertexBJetTags");
       //value_jet_svEffDisc[value_jet_n] = it->bDiscriminator ("simpleSecondaryVertexHighEffBJetTags");
@@ -810,25 +885,36 @@ void TopTauAnalyze::analyze(const edm::Event& evt, const edm::EventSetup& setup)
         value_jet_hlt45pz[value_jet_n] = -9999;
         value_jet_hlt45e[value_jet_n] = -9999;
       }
+
+      if(!isData){
+        value_jet_flavour[value_jet_n] = it->partonFlavour();
+        if(it->genJet() != 0){
+          value_jet_genpx[value_jet_n] = it->genJet()->px();
+          value_jet_genpy[value_jet_n] = it->genJet()->py();
+          value_jet_genpz[value_jet_n] = it->genJet()->pz();
+          value_jet_gene[value_jet_n] = it->genJet()->energy();
+        }
+        if(it->genParton() != 0 ){
+          value_jet_genpartonpx[value_jet_n] = it->genParton()->px();
+          value_jet_genpartonpy[value_jet_n] = it->genParton()->py();
+          value_jet_genpartonpz[value_jet_n] = it->genParton()->pz();
+          value_jet_genpartone[value_jet_n] = it->genParton()->energy();
+        }
+
+        //std::cout << std::endl << " pt " << it->pt()  <<" csvDisc " << it->bDiscriminator("combinedSecondaryVertexBJetTags") << " Flavour " << it->partonFlavour() <<  std::endl;
+
+        /*
+        b_flavour = it->partonFlavour();
+        b_pt = it->pt();
+        b_eta = it->eta();
+        b_csvDisc = it->bDiscriminator ("combinedSecondaryVertexBJetTags");
+        btag->Fill();
+        */
+      }
+
       value_jet_n++;
-    }
 
-    if(!isData){
-      value_jet_flavour[value_jet_n] = it->partonFlavour();
-      if(it->genJet() != 0){
-        value_jet_genpx[value_jet_n] = it->genJet()->px();
-        value_jet_genpy[value_jet_n] = it->genJet()->py();
-        value_jet_genpz[value_jet_n] = it->genJet()->pz();
-        value_jet_gene[value_jet_n] = it->genJet()->energy();
-      }
-      if(it->genParton() != 0 ){
-        value_jet_genpartonpx[value_jet_n] = it->genParton()->px();
-        value_jet_genpartonpy[value_jet_n] = it->genParton()->py();
-        value_jet_genpartonpz[value_jet_n] = it->genParton()->pz();
-        value_jet_genpartone[value_jet_n] = it->genParton()->energy();
-      }
     }
-
     iJet++;
   }
 
@@ -838,6 +924,20 @@ void TopTauAnalyze::analyze(const edm::Event& evt, const edm::EventSetup& setup)
   ///////////////////////////
 
   if( !isData){
+
+    edm::Handle<GenEventInfoProduct> genEvtInfo;
+    evt.getByLabel( "generator", genEvtInfo );
+    qScale = genEvtInfo->qScale();  // in case of Pythia6, this will be pypars/pari(23)
+    //const std::vector<double>& binningValues = genEvtInfo->binningValues(); // in case of Pythia6, this will be pypars/pari(17)
+    //std::vector<double>& evtWeights = genEvtInfo->weights();
+    double theWeight = genEvtInfo->weight();
+
+    std::cout << "Event weight " << theWeight << std::endl;
+
+    //edm::Handle<LHEEventProduct> EvtHandle ;
+    //evt.getByLabel( "source" , EvtHandle ) ;
+
+
 
     // PDF weights
     /*
@@ -886,10 +986,31 @@ void TopTauAnalyze::analyze(const edm::Event& evt, const edm::EventSetup& setup)
 
   }
 
-  tree->Fill();
 
+  ///////////////////////////
+  // Preskimming if selected
+  ///////////////////////////
+
+  if( (skim_jets==true) || (skim_tau ==true) ){
+    if( pass_prefilter() ){
+      tree->Fill();
+    }
+  }
+  else{
+    tree->Fill();
+  }
 }
 
+
+bool TopTauAnalyze::pass_prefilter(){
+  if((skim_jets == true) && (value_jet_n < 4)){
+    return false;
+  }
+  if((skim_tau == true) && (value_tau_n < 1)){
+    return false;
+  }
+  return true;
+}
 
 int TopTauAnalyze::getTauDecay(edm::Handle<reco::GenParticleCollection> genParticles, const pat::Tau *thePatTau){
 
@@ -1272,6 +1393,22 @@ void TopTauAnalyze::endLuminosityBlock(const edm::LuminosityBlock & lumi, const 
 
 }
 
+/*
+void TopTauAnalyze::beginRun(edm::Run& run, edm::EventSetup const& setup)
+{
+}
+*/
+void TopTauAnalyze::endRun(edm::Run& run, edm::EventSetup const& setup)
+{
+  /*
+  edm::Handle<GenRunInfoProduct> genRunInfo;
+  run.getByLabel( "generator", genRunInfo );
+
+  double crossSection = genRunInfo->crossSection();
+
+  std::cout << "CrossSection!: " << crossSection << std::endl;
+  */
+}
 
 
 void TopTauAnalyze::beginJob()
@@ -1283,6 +1420,8 @@ void TopTauAnalyze::endJob()
 
   // Fill information about the analysis of the file
   info->Fill();
+
+  std::cout<< std::endl << "Number of events stored: " << tree->GetEntries() << " / " << nEventsTotal << std::endl;
 
 }
 

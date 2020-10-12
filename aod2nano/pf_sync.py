@@ -9,16 +9,17 @@ import FWCore.PythonUtilities.LumiList as LumiList
 # can be invoked with no parameters passed, in this case use default values
 #
 if len(sys.argv) < 2:
-  print("Usage: cmsRun analyzer_cfg.py <mc flag>")
+  print("Usage: cmsRun analyzer_cfg.py <mc flag> <skim tau flag>")
   runOnMC = 1
+  skim = 1
   # do not stop execution at this point, run with default arguments
   #sys.exit("Wrong usage!")
 else:
   runOnMC = int(sys.argv[2])
 
 print "Run on MC = ", runOnMC
-maxEvents = 100
-skim = False
+maxEvents = -1
+#skim = False
 ########################################################################
 #################### Setup process #####################################
 ########################################################################
@@ -45,6 +46,7 @@ else:
     process.GlobalTag.connect = cms.string('sqlite_file:/cvmfs/cms-opendata-conddb.cern.ch/START53_LV6A1.db')
     process.GlobalTag.globaltag = 'START53_LV6A1::All'
 
+
 process.options = cms.untracked.PSet(wantSummary = cms.untracked.bool(False))
 process.maxEvents = cms.untracked.PSet(input = cms.untracked.int32(maxEvents))
 if runOnMC == 0:
@@ -63,8 +65,8 @@ process.MessageLogger.cerr.FwkReport.reportEvery = 10000
 # JSON (good luminosity sections), only if processing data
 if runOnMC == 0:
     print "Load lumi"
-    #goodJSON = '/afs/cern.ch/work/l/llayer/CMSSW_5_3_32/src/workspace/pattuples2011/data/Cert_160404-180252_7TeV_ReRecoNov08_Collisions11_JSON.txt'
-    goodJSON = '/afs/cern.ch/work/l/llayer/CMSSW_5_3_32/src/workspace/pattuples2011/data/Cert_160404-180252_7TeV_PromptReco_Collisions11_JSON_truncated.txt'
+    goodJSON = '/afs/cern.ch/work/l/llayer/CMSSW_5_3_32/src/workspace/pattuples2011/data/Cert_160404-180252_7TeV_ReRecoNov08_Collisions11_JSON.txt'
+    #goodJSON = '/afs/cern.ch/work/l/llayer/CMSSW_5_3_32/src/workspace/pattuples2011/data/Cert_160404-180252_7TeV_PromptReco_Collisions11_JSON_truncated.txt'
     print goodJSON
     myLumis = LumiList.LumiList(filename = goodJSON).getCMSSWString().split(',')
     process.source.lumisToProcess = cms.untracked.VLuminosityBlockRange()
@@ -97,6 +99,7 @@ process.nEventsFiltered = cms.EDProducer("EventCountProducer")
 # Filter
 #
 
+"""
 if skim:
     # accept if any path succeeds (explicit)
     from HLTrigger.HLTfilters.hltHighLevel_cfi import *
@@ -104,6 +107,7 @@ if skim:
         HLTPaths = ['HLT_QuadJet40_IsoPFTau40*', 'HLT_QuadJet45_IsoPFTau45*'],
         throw = False
         )
+"""
 #
 # Trigger matching
 #
@@ -327,44 +331,54 @@ if runOnMC:
 #  Basic object selections
 ####################################
 
+# Basic cuts - apply in analyzer
+"""
+process.selectedPatMuonsPF.cut = 'pt > 10. && abs(eta) < 2.5'
+process.selectedPatElectronsPF.cut = 'pt > 10. && abs(eta) < 2.5'
+process.selectedPatTausPF.cut = 'pt > 10. && abs(eta) < 2.5'
+process.selectedPatJetsPF.cut = 'pt > 10. && abs(eta) < 2.5'
+"""
 
-if skim:
+"""
+# 4 Jets are always needed
+process.countJets = cms.EDFilter("CandViewCountFilter",
+     src = cms.InputTag('selectedPatJetsPF'),
+     minNumber = cms.uint32(4)
+)
 
-    # Basic cuts - apply in analyzer
-    """
-    process.selectedPatMuonsPF.cut = 'pt > 10. && abs(eta) < 2.5'
-    process.selectedPatElectronsPF.cut = 'pt > 10. && abs(eta) < 2.5'
-    process.selectedPatTausPF.cut = 'pt > 10. && abs(eta) < 2.5'
-    process.selectedPatJetsPF.cut = 'pt > 10. && abs(eta) < 2.5'
-    """
-    process.countJets = cms.EDFilter("CandViewCountFilter",
-         src = cms.InputTag('selectedPatJetsPF'),
-         minNumber = cms.uint32(3)
-    )
-
+# Except for the jet trigger measurement also a Tau is needed
+if skim_tau:
     process.countTaus = cms.EDFilter("CandViewCountFilter",
          src = cms.InputTag('selectedPatTausPF'),
          minNumber = cms.uint32(1)
     )
-
+"""
 ####################################
 ##########  NanoAOD ################
 ####################################
 
 if runOnMC:
     isData = False
+    skim_jets = False
+    skim_tau = False
+    jet_cut_pt = 10.
+    tau_cut_pt = 10.
 else:
     isData = True
+    skim_jets = False
+    skim_tau = False
 
 process.MyModule = cms.EDAnalyzer('TopTauAnalyze',
     isData = cms.bool(isData),
+    skim_jets = cms.bool(skim_jets),
+    skim_tau = cms.bool(skim_tau),
     electron_cut_pt     = cms.double(10),
     electron_cut_eta    = cms.double(2.5),
     muon_cut_pt         = cms.double(10),
     muon_cut_eta        = cms.double(2.5),
-    tau_cut_pt      = cms.double(10),
+    tau_cut_pt      = cms.double(tau_cut_pt),
     tau_cut_eta     = cms.double(2.5),    #!! original is 2.4
-    jet_cut_pt      = cms.double(10),
+    jet_cut_pt      = cms.double(jet_cut_pt),
     jet_cut_eta     = cms.double(2.5),
     verbose = cms.bool(True)
     )
@@ -385,9 +399,9 @@ removeSpecificPATObjects(process, names = ['Photons'], postfix = 'PF')
 #cms.ignore(process.mvaTrigV0) + \
 #cms.ignore(process.mvaNonTrigV0) + \
 
-if skim:
+"""
+if skim_tau:
     base_path = process.nEventsTotal * \
-                process.hltSelector * \
                 process.goodOfflinePrimaryVertices * \
                 process.patPF2PATSequencePF * \
                 process.countJets * \
@@ -397,8 +411,14 @@ else:
     base_path = process.nEventsTotal * \
                 process.goodOfflinePrimaryVertices * \
                 process.patPF2PATSequencePF * \
+                process.countJets * \
                 process.nEventsFiltered
+"""
 
+base_path = process.nEventsTotal * \
+            process.goodOfflinePrimaryVertices * \
+            process.patPF2PATSequencePF * \
+            process.nEventsFiltered
 
 if runOnMC == 1:
     process.load("TopQuarkAnalysis.TopEventProducers.sequences.ttGenEvent_cff")

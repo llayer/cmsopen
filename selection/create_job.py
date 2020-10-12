@@ -13,7 +13,7 @@ error = err/$(ProcId).$(ClusterID).err
 log = log/$(ProcId).$(ClusterID).log
 max_retries = 1
 RequestCpus = 1
-+MaxRuntime = 10800
++MaxRuntime = 1200
 queue arguments from arguments.txt\
 """
 
@@ -24,9 +24,9 @@ def mkdir(path):
 
 
 def parse_arguments():
-    if not len(sys.argv) == 3:
-        raise Exception("./create_job.py PROCESS PATH_TO_JOBDIR")
-    return {"process": sys.argv[1], "jobdir": sys.argv[2]}
+    if not len(sys.argv) == 4:
+        raise Exception("./create_job.py PROCESS PATH_TO_JOBDIR JOB_TYPE")
+    return {"process": sys.argv[1], "jobdir": sys.argv[2], "jobtype": sys.argv[3]}
 
 
 def main(args):
@@ -65,7 +65,11 @@ def main(args):
     arglist.close()
 
     # Write job file
-    jobfile = open("job.sh", "r").read()
+    if args["jobtype"] == "trigger":
+        job_sh_file = "job_trigger.sh"
+    else:
+        job_sh_file = "job.sh"
+    jobfile = open(job_sh_file, "r").read()
     job = open(os.path.join(jobdir, "{PROCESS}.sh".format(PROCESS=process)), "w")
     job.write(jobfile)
     job.close()

@@ -11,6 +11,7 @@
 #include "FWCore/ServiceRegistry/interface/Service.h"
 #include "CommonTools/UtilAlgos/interface/TFileService.h"
 
+
 class TopTauAnalyze : public edm::EDAnalyzer {
 
  public:
@@ -23,12 +24,17 @@ class TopTauAnalyze : public edm::EDAnalyzer {
   virtual void beginJob() ;
   virtual void analyze(const edm::Event&, const edm::EventSetup&);
   virtual void endJob() ;
+  //virtual void beginRun(edm::Run&, edm::EventSetup const&);
+  virtual void endRun(edm::Run&, edm::EventSetup const&);
   virtual void beginLuminosityBlock(edm::LuminosityBlock const&, edm::EventSetup const&);
   virtual void endLuminosityBlock(edm::LuminosityBlock const&, edm::EventSetup const&);
   int getTauDecay(edm::Handle<reco::GenParticleCollection> particles, const pat::Tau * thePatTau);
   int GetTTbarTruth (edm::Handle < reco::GenParticleCollection > genParticles);
+  bool pass_prefilter();
 
   bool isData;
+  bool skim_jets;
+  bool skim_tau;
   double electron_cut_pt;
   double electron_cut_eta;
   double photon_cut_pt;
@@ -42,6 +48,13 @@ class TopTauAnalyze : public edm::EDAnalyzer {
 
   // Event tree
   TTree *tree;
+  /*
+  TTree *btag;
+  int b_flavour;
+  float b_pt;
+  float b_eta;
+  float b_csvDisc;
+  */
 
   // Tree to store additional informations per analyzed file
   TTree *info;
@@ -52,6 +65,11 @@ class TopTauAnalyze : public edm::EDAnalyzer {
   Int_t value_run;
   UInt_t value_lumi_block;
   ULong64_t value_event;
+  Int_t value_isData;
+
+  // MC event
+  double qScale;
+
 
   // Trigger
   std::vector<std::string> interestingTriggers;

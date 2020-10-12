@@ -1,7 +1,40 @@
+import sys
 import ROOT
 from collections import namedtuple
 import numpy as np
 from object_selection import *
+
+
+def select_jets_hack(evt, isData = False, eta_cut = 2.5, pt_cut = 10., trigger="45"):
+
+    Jet = namedtuple('Jet', 'eta pt px py pz e pxHLT pyHLT pzHLT eHLT')
+    #Jet = namedtuple('Jet', 'eta pt px py pz e pxHLT pyHLT pzHLT eHLT')
+    good_jets = []
+
+    for iJet in range(evt.nJet):
+
+        #print "csvDisc", round(evt.Jet_csvDisc[iJet], 2), "Flavour", abs(evt.Jet_flavour[iJet]), "Pt", round(evt.Jet_pt[iJet],2), "Eta", round(abs(evt.Jet_eta[iJet]),2)
+
+        # Eta cut
+        if abs(evt.Jet_eta[iJet]) > eta_cut: continue
+        # Pt cut
+        if abs(evt.Jet_pt[iJet]) < pt_cut: continue
+
+
+        if trigger == "45":
+            hlt = [evt.Jet_pxHLT45[iJet], evt.Jet_pyHLT45[iJet], evt.Jet_pzHLT45[iJet], evt.Jet_eHLT45[iJet]]
+        else:
+            hlt = [evt.Jet_pxHLT40[iJet], evt.Jet_pyHLT40[iJet], evt.Jet_pzHLT40[iJet], evt.Jet_eHLT40[iJet]]
+
+        if isData:
+            flavour = -9999.
+        else:
+            flavour = evt.Jet_flavour[iJet]
+
+        good_jets.append(Jet( evt.Jet_eta[iJet], evt.Jet_pt[iJet], evt.Jet_px[iJet], evt.Jet_py[iJet],
+                              evt.Jet_pz[iJet], evt.Jet_e[iJet], hlt[0], hlt[1], hlt[2], hlt[3]))
+
+    return good_jets
 
 
 
@@ -121,7 +154,7 @@ def hlt_match_tau(tau, tauHLTs):
 def createTable(type):
 
     # Define the input tree
-    ff = ROOT.TFile('/eos/user/l/llayer/opendata_files/Run2011A_SingleMu/Run2011A_SingleMu_100.root')
+    ff = ROOT.TFile( '/eos/user/l/llayer/opendata_files/Run2011A_MultiJet/Run2011A_MultiJet_00C33FCA-6E43-E311-BE16-003048F1BFB6_631.root' )# '/eos/user/l/llayer/opendata_files/Run2011A_SingleMu/Run2011A_SingleMu_100.root')
     tree_in = ff.Get("MyModule/Events")
 
     # Define the output tree
@@ -132,37 +165,39 @@ def createTable(type):
     id = array('i',[0])
     run = array('i',[0])
     trig_type = array('i',[0])
-    trigger_mu = array('i',[0]*4)
-    trigger_mu_v1to5 = array('i',[0]*20)
-    ps = array('d',[0]*15)
+    #ps = array('d',[0]*15)
     n_taus = array('i',[0])
     n_taus40 = array('i',[0])
     tree.Branch("id",  id,  'id/I')
     tree.Branch("run",  run,  'run/I')
     tree.Branch("trig_type",  trig_type,  'trig_type/I')
-    tree.Branch("trigger_mu",  trigger_mu,  'trigger_mu[4]/I')
-    tree.Branch("trigger_mu_v1to5",  trigger_mu_v1to5,  'trigger_mu_v1to5[20]/I')
-    tree.Branch("ps",  ps,  'ps[15]/D')
+    #tree.Branch("ps",  ps,  'ps[15]/D')
     tree.Branch("n_taus",  n_taus,  'n_taus/I')
     tree.Branch("n_taus40",  n_taus40,  'n_taus40/I')
 
     if type == "jet":
+        trigger_mu = array('i',[0]*4)
+        trigger_mu_v1to5 = array('i',[0]*20)
         jet_probe_pt = array('d',[0])
         jet_probe_eta = array('d',[0])
         jet_probe_pxHLT = array('d',[0])
+        tree.Branch("trigger_mu",  trigger_mu,  'trigger_mu[4]/I')
+        tree.Branch("trigger_mu_v1to5",  trigger_mu_v1to5,  'trigger_mu_v1to5[20]/I')
         tree.Branch("jet_probe_pt",  jet_probe_pt,  'jet_probe_pt/D')
         tree.Branch("jet_probe_eta",  jet_probe_eta,  'jet_probe_eta/D')
         tree.Branch("jet_probe_pxHLT",  jet_probe_pxHLT,  'jet_probe_pxHLT/D')
     elif type == "tau":
+        tau_filterStatus1 = array('i',[0])
+        tau_filterStatus2 = array('i',[0])
         tau_probe_pt = array('d',[0])
         tau_probe_eta = array('d',[0])
-        tau_probe_pxHLT = array('d',[0])
         tau_probe_match_dR = array('d',[0])
         tau_probe_hlt_eta = array('d',[0])
         tau_probe_hlt_pt = array('d',[0])
+        tree.Branch("tau_filterStatus1",  tau_filterStatus1,  'tau_filterStatus1/I')
+        tree.Branch("tau_filterStatus2",  tau_filterStatus2,  'tau_filterStatus2/I')
         tree.Branch("tau_probe_pt",  tau_probe_pt,  'tau_probe_pt/D')
         tree.Branch("tau_probe_eta",  tau_probe_eta,  'tau_probe_eta/D')
-        tree.Branch("tau_probe_pxHLT",  tau_probe_pxHLT,  'tau_probe_pxHLT/D')
         tree.Branch("tau_probe_match_dR",  tau_probe_match_dR,  'tau_probe_match_dR/D')
         tree.Branch("tau_probe_hlt_eta",  tau_probe_hlt_eta,  'tau_probe_hlt_eta/D')
         tree.Branch("tau_probe_hlt_pt",  tau_probe_hlt_pt,  'tau_probe_hlt_pt/D')
@@ -203,7 +238,7 @@ def createTable(type):
         taus = select_taus(evt)
         taus = clean_taus(taus, muons, electrons)
         tauHLTs = select_tauHLT(evt)
-        jets = select_jets(evt, trigger = trigger)
+        jets = select_jets_hack(evt, isData = True, trigger = trigger)
 
         # Event selection
         if len(jets) < 4:
@@ -253,6 +288,8 @@ def createTable(type):
 
             if pass_fourjet_tag(jets, taus[0], filterStatus):
                 deltaRMinTrig, tauHLT_eta, tauHLT_pt = hlt_match_tau(taus[0], tauHLTs)
+                tau_filterStatus1[0] = filterStatus
+                tau_filterStatus2[0] = filterStatus2
                 tau_probe_pt[0] = taus[0].pt
                 tau_probe_eta[0] = taus[0].eta
                 tau_probe_match_dR[0] = deltaRMinTrig
@@ -272,11 +309,12 @@ def createTable(type):
 
 if __name__ == "__main__":
 
-    """
     if len(sys.argv) > 1:
-        isData = sys.argv[1]
+        type = int(sys.argv[1])
     else:
-        isData = 0
-    print "isData =", isData
-    """
-    createTable(type="jet")
+        type = 1
+    print "type =", type
+    if type == 0:
+        createTable(type="jet")
+    else:
+        createTable(type="tau")

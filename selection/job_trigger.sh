@@ -23,7 +23,7 @@ echo "Output directory:" $OUTPUT_DIR
 CMSSW_BASE=/afs/cern.ch/work/l/llayer/CMSSW_10_2_18
 echo "CMSSW base:" $CMSSW_BASE
 
-CONFIG=${CMSSW_BASE}/src//event_selection.py
+CONFIG=${CMSSW_BASE}/src//trigger.py
 
 echo "CMSSW config:" $CONFIG
 
@@ -55,9 +55,7 @@ cd $THIS_DIR
 mkdir -p configs/
 CONFIG_COPY=configs/cfg_${ID}.py
 cp $CONFIG $CONFIG_COPY
-cp ${CMSSW_BASE}/src/hl_feat.py configs/hl_feat.py
 cp ${CMSSW_BASE}/src/object_selection.py configs/object_selection.py
-cp ${CMSSW_BASE}/src/btag.py configs/btag.py
 
 # Modify CMSSW config to run only a single file
 #sed -i -e "s,^files =,files = ['"${FILE}"'] #,g" $CONFIG_COPY
@@ -79,7 +77,7 @@ cat $CONFIG_COPY
 # Run CMSSW config
 #cmsRun $CONFIG_COPY 0
 
-if [[ ${FILE} == *"Run2011"* ]]; then
+if [[ ${FILE} == *"MultiJet"* ]]; then
     python $CONFIG_COPY 1
 else
     python $CONFIG_COPY 0

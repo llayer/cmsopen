@@ -2,16 +2,25 @@
 
 # Define path for job directories
 BASE_PATH=/afs/cern.ch/work/l/llayer/CMSSW_10_2_18/src/out
-#BASE_PATH=/path/to/job/directory
+#BASE_PATH=/path/to/job/director
 mkdir -p $BASE_PATH
+
+# Type of job
+#OB_TYPE="selection"
+JOB_TYPE="trigger"
 
 # Set processes
 PROCESSES=( \
     #Run2011A_MultiJet \
+    Missing_Run2011A_MultiJet \
     #Run2011B_MultiJet \
     #Run2011A_SingleMu \
     #Run2011B_SingleMu \
-    TTJets \
+    #Run2011A_MultiJet_Trigger \
+    #Run2011B_MultiJet_Trigger \
+    #Run2011A_SingleMu_Trigger \
+    #Run2011B_SingleMu_Trigger \
+    #TTJets \
     #WJetsToLNu \
     #DYJetsToLL \
     #T_TuneZ2_s \
@@ -25,7 +34,8 @@ PROCESSES=( \
 # Create JDL files and job directories
 for PROCESS in ${PROCESSES[@]}
 do
-    python create_job.py $PROCESS $BASE_PATH
+    #ls -d /eos/user/l/llayer/opendata_files/$PROCESS/* > data/$PROCESS.txt
+    python create_job.py $PROCESS $BASE_PATH $JOB_TYPE
 done
 
 # Submit jobs

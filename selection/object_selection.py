@@ -113,13 +113,15 @@ def select_taus(evt, eta_cut = 2.3, pt_cut = 10., vtxmatch_cut = 1., dxy_cut=0.0
     return good_taus
 
 
-def select_jets(evt, eta_cut = 2.5, pt_cut = 10., trigger="45"):
+def select_jets(evt, isData = False, eta_cut = 2.5, pt_cut = 10., trigger="45"):
 
     Jet = namedtuple('Jet', 'eta pt px py pz e pxHLT pyHLT pzHLT eHLT csvDisc tcDisc flavour')
     #Jet = namedtuple('Jet', 'eta pt px py pz e pxHLT pyHLT pzHLT eHLT')
     good_jets = []
 
     for iJet in range(evt.nJet):
+
+        #print "csvDisc", round(evt.Jet_csvDisc[iJet], 2), "Flavour", abs(evt.Jet_flavour[iJet]), "Pt", round(evt.Jet_pt[iJet],2), "Eta", round(abs(evt.Jet_eta[iJet]),2)
 
         # Eta cut
         if abs(evt.Jet_eta[iJet]) > eta_cut: continue
@@ -132,10 +134,14 @@ def select_jets(evt, eta_cut = 2.5, pt_cut = 10., trigger="45"):
         else:
             hlt = [evt.Jet_pxHLT40[iJet], evt.Jet_pyHLT40[iJet], evt.Jet_pzHLT40[iJet], evt.Jet_eHLT40[iJet]]
 
+        if isData:
+            flavour = -9999
+        else:
+            flavour = evt.Jet_flavour[iJet]
 
         good_jets.append(Jet( evt.Jet_eta[iJet], evt.Jet_pt[iJet], evt.Jet_px[iJet], evt.Jet_py[iJet],
                               evt.Jet_pz[iJet], evt.Jet_e[iJet], hlt[0], hlt[1], hlt[2], hlt[3],
-                              evt.Jet_csvDisc[iJet], evt.Jet_tcDisc[iJet], evt.Jet_flavour[iJet]))
+                              evt.Jet_csvDisc[iJet], evt.Jet_tcDisc[iJet], flavour))
 
 
         #good_jets.append(Jet( evt.Jet_eta[iJet], evt.Jet_pt[iJet], evt.Jet_px[iJet], evt.Jet_py[iJet],
