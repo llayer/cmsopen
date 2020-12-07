@@ -4,31 +4,11 @@ import ROOT
 from root_numpy import fill_hist
 import xgboost as xgb
 from sklearn.model_selection import train_test_split
-
-sample_names = [ "data", "qcd", "signal", "tt_bkg", "wz", "single_t"]
-cols = ['ht', 'aplanarity', 'sphericity', 'chargeEta', 'met', 'deltaPhiTauMet', 'mt', 'mTauJet', 'label']
-
-samples = {}
-
-for s in sample_names:
-    samples[s] = pd.read_hdf("/afs/cern.ch/work/l/llayer/CMSSW_10_2_18/src/samples/" + s +".h5")
-    if s == "data":
-        pass
-    elif s == "qcd":
-        samples[s]['weight'] = 0.24
-    else:
-        samples[s]['weight'] = samples[s]['norm'] * samples[s]['trigger_weight_new'] #* samples[s]["btag_weight1"]
+import glob
+import random
+import matplotlib.pyplot as plt
 
 
-def prepare_data( sig, bkg, n_sig=5000, n_bkg=5000, test_size = 0.5 ):
-
-    sig["label"] = 1
-    bkg["label"] = 0
-    data = pd.concat( [sig[cols][0:n_sig], bkg[cols][0:n_bkg]], axis=0)
-
-    features = data.drop(['label'], axis=1).values
-    labels = data[['label']].values.ravel()
-    return train_test_split(features, labels, test_size=test_size, random_state=42)
 
 # Overtraining
 def compare_train_test(clf, X_train, y_train, X_test, y_test, bins=15):
@@ -72,14 +52,76 @@ def compare_train_test(clf, X_train, y_train, X_test, y_test, bins=15):
     plt.ylabel("Arbitrary units")
     plt.yscale("log")
     plt.legend(loc='best')
+    plt.savefig("bdt/overtrain.png")
+    
+    
+def train_test_split(df, n = 5000):
 
-if __name__ == "__main__":
+    df.reset_index(drop=True, inplace=True)
+    indices = list(df.index)
+    train_id = random.sample(indices, n)
+    test_id = list(set(indices) - set(train_id))
+    train_mask = df.index.isin(train_id)
+    test_mask = df.index.isin(test_id)
+    cond = [train_mask, test_mask]
+    choice = ["train", "test"]
+    df['train_flag'] = np.select(cond, choice)
+    
+    
+def train(n_sig = 4000, n_bkg = 4000):
+    
+    files = glob.glob("candidates/*.h5")
+    samples = {}
+    for sample in files:
+        sample_name = sample.split("/")[-1][:-3]
+        print(sample_name)
+        samples[sample_name] = pd.read_hdf(sample)
+    
+    print("Prepare training data")
+    
+    signal = samples["TTJets_signal"]
+    bkg = samples["QCD"]
+    
+    train_test_split(signal, n_sig)
+    train_test_split(bkg, n_bkg)
+    
+    print(list(signal))
+    
+    signal["label"] = 0
+    bkg["label"] = 1
+    
+    signal_train = signal[signal["train_flag"] == "train"]
+    signal_test = signal[signal["train_flag"] == "test"]
+    bkg_train = bkg[bkg["train_flag"] == "train"]
+    bkg_test = bkg[bkg["train_flag"] == "test"]
+    
+    train_data = pd.concat([signal_train, bkg_train], axis=0)
+    test_data = pd.concat([signal_test, bkg_test], axis=0)
+    
+    features = ['ht', 'aplanarity', 'sphericity', 'chargeEta', 'met', 'deltaPhiTauMet', 'mt', 'mTauJet']
 
-    X_train, X_test, y_train, y_test = prepare_data()
+    X_train = train_data[features].values
+    weights = train_data['trigger_weight'] * train_data['Jet_btag_weight1']
+    y_train = train_data["label"].values.ravel()
+    
+    X_test = test_data[features].values
+    y_test = test_data["label"].values.ravel()   
+    
+    print("Train model")
+    
     # Define model
-    model_bdt = xgb.XGBClassifier(n_estimators=1000, learning_rate = 0.01, n_jobs = 1)
+    bdt = xgb.XGBClassifier(n_estimators=1000, learning_rate = 0.01, n_jobs = 1)
     # Fit
-    model_bdt.fit(X_train, y_train, eval_metric=["logloss"], verbose=False)
+    bdt.fit(X_train, y_train, eval_metric=["logloss"], verbose=False)
+    
+    # Plot
+    compare_train_test(bdt, X_train, y_train, X_test, y_test, bins=15)
+        
     # Predict
-    for s in samples:
-        samples[s]["xgb"] = model_bdt.predict_proba(samples[s][var].values)[:,0]
+    print("Predicting...") 
+    
+    for sample in samples:
+        samples[sample]["bdt"] = bdt.predict_proba(samples[sample][features].values)[:,0]    
+        samples[sample].to_hdf("bdt/" + sample + ".h5", "frame", mode='w')
+    
+

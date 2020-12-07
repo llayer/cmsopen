@@ -8,6 +8,7 @@ import plot
 import stack
 import fit
 import glob
+import ml
 import root_pandas
 
 
@@ -28,6 +29,17 @@ def event_selection(outpath = "samples/"):
         
         path = "/eos/user/l/llayer/opendata_files/preselection_merged/" + sample + ".root"
         df, cut_flow = selection.event_selection(path, isData = isData, isTT = isTT)
+        
+        """
+        df = selection.met_requirement(df)
+        cut_flow["met"] = len(df)
+        
+        df["Jet_nbtags"] = df["Jet_csvDisc"].apply( lambda x : btag.count_btags(x, njets=-1) )
+        df = btag.at_least_1tag(df)
+        cut_flow["btag"] = len(df)
+        """
+        print( cut_flow )
+        
         df.to_hdf(outpath + sample + ".h5", "frame", mode='w')
     
     
@@ -51,10 +63,10 @@ def candidates(sample, invert_btag = False, njets=-1):
     # MET cut
     df = selection.met_requirement(df)
 
-    """
+    
     # HL features
     df = pd.concat([df, df.apply(lambda ev : pd.Series(hl.hlFeatures(ev, njets=njets)), axis=1)], axis=1)
-    """
+    
 
     # MC weights
     if not isData:
@@ -133,10 +145,10 @@ def plot_vars(variables):
         if sample == "Data":
             pass
         elif sample == "QCD":
-            samples[sample]['weight'] = 0.27
+            samples[sample]['weight'] = 0.24
         else:
             #samples[sample]['new_trigger_weight'] = new_samples[sample].apply(lambda ev : weights.trigger_weight(ev), axis=1)
-            samples[sample]['weight'] = samples[sample]['norm'] * samples[sample]['trigger_weight']
+            samples[sample]['weight'] = samples[sample]['norm'] * samples[sample]['trigger_weight'] * samples[sample]['Jet_btag_weight1']
             #new_samples[sample]['btag_weight2']
     
     print( "Plotting" )
@@ -144,6 +156,16 @@ def plot_vars(variables):
     sample_names = ["TTJets_bkg", "WZJets", "STJets", "QCD", "TTJets_signal"]
     for var in variables:
         stack.plot( "histos/histos.root", var["var_name"], sample_names )
+    
+    
+    
+def bdt():
+    
+    ml.train()
+        
+    
+    
+    
     
     
 def fit_xsec(var = "MET_met"):
@@ -160,7 +182,9 @@ if __name__ == "__main__":
     ev_sel = False
     proc_cands = False
     do_plotting = False
-    do_fit = True
+    run_bdt = False
+    plot_bdt = True
+    do_fit = False
     
     if ev_sel:
         event_selection()
@@ -181,6 +205,12 @@ if __name__ == "__main__":
             #{"var_name" : "mTauJet", "bins" : 20, "xlow" : 0., "xup" : 2500.}
         ]
         plot_vars(variables)
+        
+    if run_bdt:
+        bdt()
+        
+    if plot_bdt:
+        plot_vars({"var_name" : "bdt", "bins" : 15, "xlow" : 0., "xup" : 1.})
         
     if do_fit:
         fit_xsec()

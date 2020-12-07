@@ -8,11 +8,15 @@ import numpy as np
 import glob
 from coffea.btag_tools import BTagScaleFactor
 
-def nanoObject(tree, prefix):
+
+def nanoObject(tree, prefix, from_cartesian = False):
     branches = set(k.decode('ascii') for k in tree.keys() if k.decode('ascii')[:len(prefix)] == prefix)
-    p4branches = [prefix + k for k in ['pt', 'eta', 'phi', 'mass']]
-    #branches -= set(p4branches)
-    objp4 = uproot_methods.TLorentzVectorArray.from_ptetaphim(*[tree[b].array() for b in p4branches])
+    if from_cartesian:
+        p4branches = [prefix + k for k in ['px', 'py', 'pz', 'e']]
+        objp4 = uproot_methods.TLorentzVectorArray.from_cartesian(*[tree[b].array() for b in p4branches])
+    else:
+        p4branches = [prefix + k for k in ['pt', 'eta', 'phi', 'mass']]
+        objp4 = uproot_methods.TLorentzVectorArray.from_ptetaphim(*[tree[b].array() for b in p4branches])
     branches = {k[len(prefix):]: tree[k].array() for k in branches}
     obj = awkward.JaggedArray.zip(p4=objp4, **branches)
     return obj
@@ -148,6 +152,21 @@ def met_requirement(df, met_cut = 20.):
     return df[df['MET_met']>met_cut]
 
 
+def hlt_requirement(tau_hlt, jet_hlt):
+    
+    tau_mask = tau_hlt.counts > 0
+    jet_mask = jet_hlt.counts > 0
+    
+    return jet_mask & tau_mask
+
+
+def hlt_match(obj, obj_hlt, deltaR = 0.5):
+    
+    cross = obj['p4'].cross(obj_hlt['p4'], nested=True)
+    mask = (cross.i0.delta_r(cross.i1) < deltaR).any()
+    return obj[mask]
+
+
 def to_np(df, prefix):
     col_names = list(df)
     cols = list(k for k in col_names if k[:len(prefix)] == prefix)
@@ -182,7 +201,10 @@ def event_selection(file_path = "TTJets/TTJets_FEC891EB-8CC6-E311-9BD5-002590A88
     muon = nanoObject(events, "Muon_")
     tau = nanoObject(events, "Tau_") 
     met = pd.DataFrame(nanoCollection(events, "MET_"))
-    
+    #if isData:
+    tau_hlt = nanoObject(events, "TauHLT_", from_cartesian=True)
+    jet_hlt = nanoObject(events, "JetHLT_", from_cartesian=True)
+
     #
     # Object selections
     #
@@ -201,17 +223,37 @@ def event_selection(file_path = "TTJets/TTJets_FEC891EB-8CC6-E311-9BD5-002590A88
     # Event selections
     #
     
-    # Trigger selection
+    # Selections for real data
     if isData:
+        
+        # Trigger selection
         mask_trigger = pass_trigger(evt)
         good_tau = good_tau[mask_trigger]
         good_muon = good_muon[mask_trigger]
         good_electron = good_electron[mask_trigger]
         good_clean_jet = good_clean_jet[mask_trigger]
+        jet_hlt = jet_hlt[mask_trigger]   
+        tau_hlt = tau_hlt[mask_trigger]  
         met = met[mask_trigger]   
         evt = evt[mask_trigger]     
-        
         event_counts["trigger"] = len(evt)
+        
+    # HLT matching
+
+    hlt_mask = hlt_requirement(tau_hlt, jet_hlt)
+    good_tau = good_tau[hlt_mask]
+    good_muon = good_muon[hlt_mask]
+    good_electron = good_electron[hlt_mask]
+    good_clean_jet = good_clean_jet[hlt_mask]
+    jet_hlt = jet_hlt[hlt_mask]   
+    tau_hlt = tau_hlt[hlt_mask]  
+    met = met[hlt_mask]   
+    evt = evt[hlt_mask]  
+    event_counts["hlt"] = len(evt)
+
+    good_clean_jet = hlt_match(good_clean_jet, jet_hlt)
+    good_tau = hlt_match(good_tau, tau_hlt)
+        
     
     # Lepton veto
     mask_lep_veto = lep_veto(good_muon, good_electron)
@@ -221,6 +263,7 @@ def event_selection(file_path = "TTJets/TTJets_FEC891EB-8CC6-E311-9BD5-002590A88
     evt = evt[mask_lep_veto]
     
     event_counts["lep_veto"] = len(evt)
+    
     
     # Four jets
     mask_four_jet = four_jets(good_clean_jet)
