@@ -12,13 +12,12 @@ output = out/$(ProcId).$(ClusterID).out
 error = err/$(ProcId).$(ClusterID).err
 log = log/$(ProcId).$(ClusterID).log
 requirements = (OpSysAndVer =?= "SLCern6")
-max_retries = 2
+max_retries = 1
 RequestCpus = 1
-+JobFlavour = "workday"
++MaxRuntime = 3600
 queue arguments from arguments.txt\
 """
-#+MaxRuntime = 10800
-#+JobFlavour = "testmatch"
+
 
 def mkdir(path):
     if not os.path.exists(path):

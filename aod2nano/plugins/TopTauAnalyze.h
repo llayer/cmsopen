@@ -66,10 +66,21 @@ class TopTauAnalyze : public edm::EDAnalyzer {
   UInt_t value_lumi_block;
   ULong64_t value_event;
   Int_t value_isData;
+  Int_t value_isTT;
 
   // MC event
-  double qScale;
-
+  float cteq66_pdf_weights[45];
+  float genWeight;
+  int partonFlavor1;
+  int partonFlavor2;
+  float x1;
+  float x2;
+  float qScale;
+  int num_pileup_bc0;
+  int num_pileup_bcp1;
+  int num_pileup_bcm1;
+  int runNb;
+  int n_bc;
 
   // Trigger
   std::vector<std::string> interestingTriggers;
@@ -122,10 +133,10 @@ class TopTauAnalyze : public edm::EDAnalyzer {
   // Muons
   const static int max_mu = 1000;
   UInt_t value_mu_n;
-  float value_mu_isPFMuon[max_mu];
-  float value_mu_isGlobalMuon[max_mu];
-  float value_mu_isTrackerMuon[max_mu];
-  float value_mu_isStandAloneMuon[max_mu];
+  int value_mu_isPFMuon[max_mu];
+  int value_mu_isGlobalMuon[max_mu];
+  int value_mu_isTrackerMuon[max_mu];
+  int value_mu_isStandAloneMuon[max_mu];
   float value_mu_pt[max_mu];
   float value_mu_px[max_mu];
   float value_mu_py[max_mu];
@@ -234,9 +245,25 @@ class TopTauAnalyze : public edm::EDAnalyzer {
   int value_tau_againstElectronLoose[max_tau];
   int value_tau_againstElectronMedium[max_tau];
   int value_tau_againstElectronTight[max_tau];
+  int value_tau_againstElectronLooseMVA3[max_tau];
+  int value_tau_againstElectronMediumMVA3[max_tau];
+  int value_tau_againstElectronTightMVA3[max_tau];
+  int value_tau_againstElectronVTightMVA3[max_tau];
   int value_tau_againstMuonLoose[max_tau];
   int value_tau_againstMuonMedium[max_tau];
-  int value_tau_againstMuonTight[max_tau];
+  int value_tau_againstMuonTight[max_tau]; 
+  int value_tau_againstMuonLoose2[max_tau];
+  int value_tau_againstMuonMedium2[max_tau];
+  int value_tau_againstMuonTight2[max_tau];
+  int value_tau_againstMuonLoose3[max_tau];
+  int value_tau_againstMuonMedium3[max_tau];
+  int value_tau_againstMuonTight3[max_tau];
+  int value_tau_byLooseIsolationMVA[max_tau];
+  int value_tau_byMediumIsolationMVA[max_tau];
+  int value_tau_byTightIsolationMVA[max_tau];
+  int value_tau_byLooseIsolationMVA2[max_tau];
+  int value_tau_byMediumIsolationMVA2[max_tau];
+  int value_tau_byTightIsolationMVA2[max_tau];
   int value_tau_byLooseCombinedIsolationDeltaBetaCorr3Hits[max_tau];
   int value_tau_byMediumCombinedIsolationDeltaBetaCorr3Hits[max_tau];
   int value_tau_byTightCombinedIsolationDeltaBetaCorr3Hits[max_tau];

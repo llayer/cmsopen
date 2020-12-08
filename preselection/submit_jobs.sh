@@ -1,18 +1,18 @@
 #!/bin/bash
 
 # Define path for job directories
-BASE_PATH=/afs/cern.ch/work/l/llayer/CMSSW_5_3_32/src/workspace/pattuples2011/out
+BASE_PATH=$PWD/out
 #BASE_PATH=/path/to/job/directory
 mkdir -p $BASE_PATH
 
 # Set processes
 PROCESSES=( \
-    Run2011A_MultiJet \
-    #missing_Run2011A_MultiJet \
-    Run2011B_MultiJet \
-    Run2011A_SingleMu \
-    #missing_Run2011A_SingleMu \
-    Run2011B_SingleMu \
+    #test \
+    #Run2011A_MultiJet \
+    #Run2011B_MultiJet \
+    #Missing_Run2011A_MultiJet \
+    #Run2011A_SingleMu \
+    #Run2011B_SingleMu \
     TTJets \
     WJetsToLNu \
     DYJetsToLL \
@@ -27,6 +27,7 @@ PROCESSES=( \
 # Create JDL files and job directories
 for PROCESS in ${PROCESSES[@]}
 do
+    ls -d /eos/user/l/llayer/opendata_files/legacy_id/$PROCESS/* > data/$PROCESS.txt
     python create_job.py $PROCESS $BASE_PATH
 done
 

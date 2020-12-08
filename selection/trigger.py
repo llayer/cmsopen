@@ -5,39 +5,6 @@ import numpy as np
 from object_selection import *
 
 
-def select_jets_hack(evt, isData = False, eta_cut = 2.5, pt_cut = 10., trigger="45"):
-
-    Jet = namedtuple('Jet', 'eta pt px py pz e pxHLT pyHLT pzHLT eHLT')
-    #Jet = namedtuple('Jet', 'eta pt px py pz e pxHLT pyHLT pzHLT eHLT')
-    good_jets = []
-
-    for iJet in range(evt.nJet):
-
-        #print "csvDisc", round(evt.Jet_csvDisc[iJet], 2), "Flavour", abs(evt.Jet_flavour[iJet]), "Pt", round(evt.Jet_pt[iJet],2), "Eta", round(abs(evt.Jet_eta[iJet]),2)
-
-        # Eta cut
-        if abs(evt.Jet_eta[iJet]) > eta_cut: continue
-        # Pt cut
-        if abs(evt.Jet_pt[iJet]) < pt_cut: continue
-
-
-        if trigger == "45":
-            hlt = [evt.Jet_pxHLT45[iJet], evt.Jet_pyHLT45[iJet], evt.Jet_pzHLT45[iJet], evt.Jet_eHLT45[iJet]]
-        else:
-            hlt = [evt.Jet_pxHLT40[iJet], evt.Jet_pyHLT40[iJet], evt.Jet_pzHLT40[iJet], evt.Jet_eHLT40[iJet]]
-
-        if isData:
-            flavour = -9999.
-        else:
-            flavour = evt.Jet_flavour[iJet]
-
-        good_jets.append(Jet( evt.Jet_eta[iJet], evt.Jet_pt[iJet], evt.Jet_px[iJet], evt.Jet_py[iJet],
-                              evt.Jet_pz[iJet], evt.Jet_e[iJet], hlt[0], hlt[1], hlt[2], hlt[3]))
-
-    return good_jets
-
-
-
 def mu_trigger(evt):
 
     trigger_mu = []
@@ -154,7 +121,7 @@ def hlt_match_tau(tau, tauHLTs):
 def createTable(type):
 
     # Define the input tree
-    ff = ROOT.TFile( '/eos/user/l/llayer/opendata_files/Run2011A_MultiJet/Run2011A_MultiJet_00C33FCA-6E43-E311-BE16-003048F1BFB6_631.root' )# '/eos/user/l/llayer/opendata_files/Run2011A_SingleMu/Run2011A_SingleMu_100.root')
+    ff = ROOT.TFile( '/eos/user/l/llayer/opendata_files/legacy/Run2011A_MultiJet/Run2011A_MultiJet_0014AFE5-E44B-E311-8FDC-02163E00C5D5_1.root' )# '/eos/user/l/llayer/opendata_files/Run2011A_SingleMu/Run2011A_SingleMu_100.root')
     tree_in = ff.Get("MyModule/Events")
 
     # Define the output tree
@@ -235,10 +202,10 @@ def createTable(type):
         # Object selections
         muons = select_muons(evt)
         electrons = select_electrons(evt)
-        taus = select_taus(evt)
+        taus = select_taus(evt, pt_cut=10.)
         taus = clean_taus(taus, muons, electrons)
         tauHLTs = select_tauHLT(evt)
-        jets = select_jets_hack(evt, isData = True, trigger = trigger)
+        jets = select_jets(evt, isData = True, trigger = trigger, pt_cut=10.)
 
         # Event selection
         if len(jets) < 4:

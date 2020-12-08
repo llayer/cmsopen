@@ -9,23 +9,18 @@ def reliso03(TrkIso03, ECaloIso03, HCaloIso03, pt):
     return (TrkIso03+ECaloIso03+HCaloIso03) / pt
 
 
-def select_muons(evt, eta_cut = 2.5, pt_cut = 10., reliso_cut = 0.15, vtxmatch_cut = 1.):
+def select_muons(evt, eta_cut = 2.4, pt_cut = 10., reliso_cut = 0.15, vtxmatch_cut = 1.):
+
+    # <s type="Muon"     PtThreshold="10." EtaThreshold="2.4" RelIso="0.15" D0Cut="0.02"
+    # VertexMatchThr="1." NofValidHits="0"  NofValidTkHits="10" NormChi2="10" />
 
     Muon = namedtuple('Muon', 'pt px py pz e')
     good_muons = []
 
     for iMu in range(evt.nMuon):
 
-        """
-        //if((muon.MuonType-(muon.MuonType/10)*10) ==0) continue; //isTrackerMuon
-        //if(muon.Chi2           >=MuonNormChi2_)         continue;
-        //if(muon.NTrValidHits   <=MuonNofValidTrHits_)   continue;
-        //if(muon.NValidHits     <=MuonNofValidHits_  )   continue;
-        //if(fabs(muon.D0Inner)  >=MuonD0Cut_)            continue;
-        """
-
         # Global muon
-        if evt.Muon_isGlobalMuon[iMu] == False: continue
+        if evt.Muon_isGlobalMuon[iMu] < 1: continue
         # Eta cut
         if abs(evt.Muon_eta[iMu]) > eta_cut: continue
         # Pt cut
@@ -42,7 +37,11 @@ def select_muons(evt, eta_cut = 2.5, pt_cut = 10., reliso_cut = 0.15, vtxmatch_c
     return good_muons
 
 
-def select_electrons(evt, eta_cut = 2.5, pt_cut = 10., reliso_cut = 0.15, vtxmatch_cut = 1.):
+def select_electrons(evt, eta_cut = 2.5, pt_cut = 15., reliso_cut = 0.15, vtxmatch_cut = 1.):
+
+    # <s type="Electron" PtThreshold="15." EtaThreshold="2.5" RelIso="0.15" D0Cut="0.04" VertexMatchThr="1."
+    # DElectronETSCThr="15" RemuThr="0.1"/>
+    # CHECK DIFFERENCE
 
     Electron = namedtuple('Electron', 'pt px py pz e')
     good_electrons = []
@@ -72,7 +71,10 @@ def select_electrons(evt, eta_cut = 2.5, pt_cut = 10., reliso_cut = 0.15, vtxmat
     return good_electrons
 
 
-def select_taus(evt, eta_cut = 2.3, pt_cut = 10., vtxmatch_cut = 1., dxy_cut=0.04, leadTrackPt_cut=5., trigger="45"):
+def select_taus(evt, eta_cut = 2.3, pt_cut = 45., vtxmatch_cut = 1., dxy_cut=0.04, leadTrackPt_cut=10., trigger="45"):
+
+    # <s type="Tau"      Algo="selectedPatTausPF2PAT" PtThreshold="45." EtaThreshold="2.3" RelIso="0.15" D0Cut="0.04"
+    # VertexMatchThr="1." TauLeadTrkPtCut="10."/>
 
     Tau = namedtuple('Tau', 'eta pt px py pz e pxHLT pyHLT pzHLT eHLT charge')
     good_taus = []
@@ -82,24 +84,25 @@ def select_taus(evt, eta_cut = 2.3, pt_cut = 10., vtxmatch_cut = 1., dxy_cut=0.0
         #print "Taudisc", evt.Tau_byMediumCombinedIsolationDeltaBetaCorr[iTau]
         #print "leadTrackPt", evt.Tau_leadTrackPt[iTau]
 
-        if evt.Tau_byMediumCombinedIsolationDeltaBetaCorr[iTau] == 0: continue
-        if evt.Tau_againstMuonTight[iTau] == 0: continue
-        if evt.Tau_againstElectronTight[iTau] == 0: continue
+        #if evt.Tau_byMediumCombinedIsolationDeltaBetaCorr3Hits[iTau] != 1 : continue
+        if evt.Tau_byMediumCombinedIsolationDeltaBetaCorr[iTau] != 1 : continue
+        if evt.Tau_againstMuonTight[iTau] != 1: continue
+        if evt.Tau_againstElectronTight[iTau] != 1: continue
 
         #print "Taudisc_b", evt.Tau_byMediumCombinedIsolationDeltaBetaCorr[iTau] == 0
         #print "Taudisc2", evt.Tau_byMediumCombinedIsolationDeltaBetaCorr[iTau]
 
-
-        # Lead track pt
-        if evt.Tau_leadTrackPt[iTau] < leadTrackPt_cut: continue
         # Eta
         if (abs(evt.Tau_eta[iTau])<1.566) & (abs(evt.Tau_eta[iTau])>1.4442): continue
         if abs(evt.Tau_eta[iTau]) > eta_cut: continue
         # Pt cut
         if abs(evt.Tau_pt[iTau]) < pt_cut: continue
+        # Lead track pt
+        if evt.Tau_leadTrackPt[iTau] < leadTrackPt_cut: continue
         # Vtx cut
         if abs(evt.Tau_z[iTau] - evt.PV_z) > vtxmatch_cut: continue
         if abs( evt.Tau_dxy[iTau] )  >= dxy_cut: continue
+
         #print evt.Tau_dxy[iTau]
         if trigger == "45":
             good_taus.append(Tau( evt.Tau_eta[iTau], evt.Tau_pt[iTau], evt.Tau_px[iTau], evt.Tau_py[iTau],
@@ -113,7 +116,9 @@ def select_taus(evt, eta_cut = 2.3, pt_cut = 10., vtxmatch_cut = 1., dxy_cut=0.0
     return good_taus
 
 
-def select_jets(evt, isData = False, eta_cut = 2.5, pt_cut = 10., trigger="45"):
+def select_jets(evt, isData = False, eta_cut = 2.4, pt_cut = 20., trigger="45"):
+
+    # <s type="Jet"      Algo="pf" PtThreshold="20." EtaThreshold="2.4" />
 
     Jet = namedtuple('Jet', 'eta pt px py pz e pxHLT pyHLT pzHLT eHLT csvDisc tcDisc flavour')
     #Jet = namedtuple('Jet', 'eta pt px py pz e pxHLT pyHLT pzHLT eHLT')
@@ -197,6 +202,7 @@ def clean_jets(jets, taus, muons, electrons, R=0.4):
 
         deltaRmu = 10000
         deltaRel = 10000
+        deltaRtau = 10000
 
         jet_4vec = ROOT.TLorentzVector(jet.px, jet.py, jet.pz, jet.e)
 
@@ -218,10 +224,10 @@ def clean_jets(jets, taus, muons, electrons, R=0.4):
 
             tau_4vec = ROOT.TLorentzVector(tau.px, tau.py, tau.pz, tau.e)
             deltaR = jet_4vec.DeltaR(tau_4vec)
-            if(deltaR < deltaRel):
-                deltaRel = deltaR
+            if(deltaR < deltaRtau):
+                deltaRtau = deltaR
 
-        if ( deltaRmu > R)  & (deltaRel > R):
+        if ( deltaRmu > R)  & (deltaRel > R) & (deltaRtau > R):
             good_jets.append(jet)
 
     return good_jets

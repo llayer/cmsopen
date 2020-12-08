@@ -51,10 +51,10 @@ process.options = cms.untracked.PSet(wantSummary = cms.untracked.bool(False))
 process.maxEvents = cms.untracked.PSet(input = cms.untracked.int32(maxEvents))
 if runOnMC == 0:
     #files = ["root://eospublic.cern.ch//eos/opendata/cms/Run2011A/MultiJet/AOD/12Oct2013-v1/00000/001D2AFA-8B43-E311-AC56-02163E009EC4.root"]
-    files = ["root://eospublic.cern.ch//eos/opendata/cms/Run2011A/MultiJet/AOD/12Oct2013-v1/20001/BE90B0AD-EF4B-E311-8429-003048F010A2.root"]
+    files = ["file:data_test.root"]#  "root://eospublic.cern.ch//eos/opendata/cms/Run2011A/MultiJet/AOD/12Oct2013-v1/20001/BE90B0AD-EF4B-E311-8429-003048F010A2.root"]
 else:
     #files = ["root://eospublic.cern.ch//eos/opendata/cms/MonteCarlo2011/Summer11LegDR/TTJets_TuneZ2_7TeV-madgraph-tauola/AODSIM/PU_S13_START53_LV6-v1/00000/0005D1FB-4BCF-E311-9FE4-002590A8312A.root"]
-    files = ["file:tt.root"]
+    files = ["file:tt.root"] # wjets.root"] #
 
 process.source = cms.Source(
     "PoolSource", fileNames=cms.untracked.vstring(*files))
@@ -229,6 +229,7 @@ if runOnMC == 0:
     jecLevels.append('L2L3Residual')
 
 from PhysicsTools.PatAlgos.tools.pfTools import usePF2PAT
+
 usePF2PAT(process,
           runPF2PAT = True,
           postfix = postfix,
@@ -238,9 +239,9 @@ usePF2PAT(process,
           jetCorrections = ('AK5PFchs', jecLevels),
           typeIMetCorrections = True,
           )
+
 #from PhysicsTools.PatAlgos.tools.pfTools import *
 #adaptPFTaus( process, tauType='hpsPFTau', postfix=postfix ) # necessary??
-
 
 ####################################
 #  top projections in PF2PAT:
@@ -313,16 +314,18 @@ process.patElectronsPF.electronIDSources.mvaNonTrigV0 = cms.InputTag("mvaNonTrig
 """
 if runOnMC:
 
-
     print "Produce pdf weights"
     process.pdfWeights = cms.EDProducer("PdfWeightProducer",
                 # Fix POWHEG if buggy (this PDF set will also appear on output,
                 # so only two more PDF sets can be added in PdfSetNames if not "")
-                #FixPOWHEG = cms.untracked.string("cteq66.LHgrid"),
+                # FixPOWHEG = cms.untracked.string("cteq66.LHgrid"),
                 #GenTag = cms.untracked.InputTag("genParticles"),
                 PdfInfoTag = cms.untracked.InputTag("generator"),
                 PdfSetNames = cms.untracked.vstring(
-                        "cteq66.LHgrid"
+                    #"cteq66.LHgrid",
+                    #"NNPDF10_100.LHgrid"
+                    "cteq66.LHgrid",
+                    #"NNPDF10_100.LHgrid"
                 )
     )
 """
@@ -367,6 +370,8 @@ else:
     isData = True
     skim_jets = False
     skim_tau = False
+    jet_cut_pt = 10.
+    tau_cut_pt = 10.
 
 process.MyModule = cms.EDAnalyzer('TopTauAnalyze',
     isData = cms.bool(isData),
@@ -415,6 +420,7 @@ else:
                 process.nEventsFiltered
 """
 
+
 base_path = process.nEventsTotal * \
             process.goodOfflinePrimaryVertices * \
             process.patPF2PATSequencePF * \
@@ -423,7 +429,7 @@ base_path = process.nEventsTotal * \
 if runOnMC == 1:
     process.load("TopQuarkAnalysis.TopEventProducers.sequences.ttGenEvent_cff")
     #process.taujet = cms.Path( process.pdfWeights + base_path + process.makeGenEvt + process.MyModule)
-    process.taujet = cms.Path( base_path + process.makeGenEvt + process.MyModule)
+    process.taujet = cms.Path(  base_path + process.makeGenEvt + process.MyModule)
     print "Create gen event"
 else:
     process.taujet = cms.Path(base_path + process.MyModule) #+ process.makeGenEvt)

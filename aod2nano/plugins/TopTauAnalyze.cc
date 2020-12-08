@@ -19,6 +19,7 @@
 #include "SimDataFormats/GeneratorProducts/interface/LHEEventProduct.h"
 #include "SimDataFormats/GeneratorProducts/interface/LHERunInfoProduct.h"
 #include "SimDataFormats/GeneratorProducts/interface/WeightsInfo.h"
+#include "SimDataFormats/PileupSummaryInfo/interface/PileupSummaryInfo.h"
 #include "TLorentzVector.h"
 #include "TopTauAnalyze.h"
 
@@ -49,6 +50,7 @@ TopTauAnalyze::TopTauAnalyze(const edm::ParameterSet& cfg)
   tree->Branch("luminosityBlock", &value_lumi_block);
   tree->Branch("event", &value_event);
   tree->Branch("isData", &value_isData);
+
 
   // Trigger
   interestingTriggers = {
@@ -222,6 +224,22 @@ TopTauAnalyze::TopTauAnalyze(const edm::ParameterSet& cfg)
   tree->Branch("Tau_againstMuonLoose", value_tau_againstMuonLoose, "Tau_againstMuonLoose[nTau]/I");
   tree->Branch("Tau_againstMuonMedium", value_tau_againstMuonMedium, "Tau_againstMuonMedium[nTau]/I");
   tree->Branch("Tau_againstMuonTight", value_tau_againstMuonTight, "Tau_againstMuonTight[nTau]/I");
+  tree->Branch("Tau_againstElectronLooseMVA3", value_tau_againstElectronLooseMVA3, "Tau_againstElectronLooseMVA3[nTau]/I");
+  tree->Branch("Tau_gainstElectronMediumMVA3", value_tau_againstElectronMediumMVA3, "Tau_gainstElectronMediumMVA3[nTau]/I");
+  tree->Branch("Tau_gainstElectronTightMVA3", value_tau_againstElectronTightMVA3, "Tau_gainstElectronTightMVA3[nTau]/I");
+  tree->Branch("Tau_againstElectronVTightMVA3", value_tau_againstElectronVTightMVA3, "Tau_againstElectronVTightMVA3[nTau]/I");
+  tree->Branch("Tau_againstMuonLoose2", value_tau_againstMuonLoose2, "Tau_againstMuonLoose2[nTau]/I");
+  tree->Branch("Tau_againstMuonMedium2", value_tau_againstMuonMedium2, "Tau_againstMuonMedium2[nTau]/I");
+  tree->Branch("Tau_againstMuonTight2", value_tau_againstMuonTight2, "Tau_againstMuonTight2[nTau]/I");
+  tree->Branch("Tau_againstMuonLoose3", value_tau_againstMuonLoose3, "Tau_againstMuonLoose3[nTau]/I");
+  tree->Branch("Tau_againstMuonMedium3", value_tau_againstMuonMedium3, "Tau_againstMuonMedium3[nTau]/I");
+  tree->Branch("Tau_againstMuonTight3", value_tau_againstMuonTight3, "Tau_againstMuonTight3[nTau]/I");
+  tree->Branch("Tau_byLooseIsolationMVA", value_tau_byLooseIsolationMVA, "Tau_byLooseIsolationMVA[nTau]/I");
+  tree->Branch("Tau_byMediumIsolationMVA", value_tau_byMediumIsolationMVA, "Tau_byMediumIsolationMVA[nTau]/I");
+  tree->Branch("Tau_byTightIsolationMVA", value_tau_byTightIsolationMVA, "Tau_byTightIsolationMVA[nTau]/I");
+  tree->Branch("Tau_byLooseIsolationMVA2", value_tau_byLooseIsolationMVA2, "Tau_byLooseIsolationMVA2[nTau]/I");
+  tree->Branch("Tau_byMediumIsolationMVA2", value_tau_byMediumIsolationMVA2, "Tau_byMediumIsolationMVA2[nTau]/I");
+  tree->Branch("Tau_byTightIsolationMVA2", value_tau_byTightIsolationMVA2, "Tau_byTightIsolationMVA2[nTau]/I");
   tree->Branch("Tau_byLooseCombinedIsolationDeltaBetaCorr3Hits", value_tau_byLooseCombinedIsolationDeltaBetaCorr3Hits, "Tau_byLooseCombinedIsolationDeltaBetaCorr3Hits[nTau]/I");
   tree->Branch("Tau_byMediumCombinedIsolationDeltaBetaCorr3Hits", value_tau_byMediumCombinedIsolationDeltaBetaCorr3Hits, "Tau_byMediumCombinedIsolationDeltaBetaCorr3Hits[nTau]/I");
   tree->Branch("Tau_byTightCombinedIsolationDeltaBetaCorr3Hits", value_tau_byTightCombinedIsolationDeltaBetaCorr3Hits, "Tau_byTightCombinedIsolationDeltaBetaCorr3Hits[nTau]/I");
@@ -296,6 +314,23 @@ TopTauAnalyze::TopTauAnalyze(const edm::ParameterSet& cfg)
 
   // genEvent
   if( !isData ){
+
+    // MC event info
+    //tree->Branch("MCEvt_cteq66_pdf_weights", cteq66_pdf_weights, "MCEvt_cteq66_pdf_weights[45]/F");
+    tree->Branch("MCEvt_genWeight", &genWeight);
+    tree->Branch("MCEvt_partonFlavor1", &partonFlavor1);
+    tree->Branch("MCEvt_partonFlavor2", &partonFlavor2);
+    tree->Branch("MCEvt_x1", &x1);
+    tree->Branch("MCEvt_x2", &x2);
+    tree->Branch("MCEvt_qScale", &qScale);
+    tree->Branch("MCEvt_num_pileup_bc0", &num_pileup_bc0);
+    tree->Branch("MCEvt_num_pileup_bcp1", &num_pileup_bcp1);
+    tree->Branch("MCEvt_num_pileup_bcm1", &num_pileup_bcm1);
+    tree->Branch("MCEvt_runNb", &runNb);
+    tree->Branch("MCEvt_n_bc", &n_bc);
+    tree->Branch("MCEvt_isTT", &value_isTT);
+
+    // TTbar
     tree->Branch("genEvent_tmeme", &value_tmeme_, "genEvent_tmeme/I");
     tree->Branch("genEvent_nLep", &value_nLep_, "genEvent_nLep/F");
     tree->Branch("genEvent_topPt", &value_topPt_, "genEvent_topPt/F");
@@ -346,7 +381,7 @@ void TopTauAnalyze::analyze(const edm::Event& evt, const edm::EventSetup& setup)
   value_event = evt.id().event();
   value_isData = isData;
 
-  cout<< endl << "analyze" << endl;
+  //cout<< endl << "analyze" << endl;
 
   /*
   auto const& run = evt.getRun();
@@ -700,6 +735,7 @@ void TopTauAnalyze::analyze(const edm::Event& evt, const edm::EventSetup& setup)
       }
 
       //https://twiki.cern.ch/twiki/bin/viewauth/CMS/TauIDRecommendation
+      //https://twiki.cern.ch/twiki/bin/view/CMSPublic/NutShellRecipeFor5312AndNewer
       auto tauIDs = it->tauIDs();
       for (unsigned int i = 0; i < tauIDs.size (); i++) {
         //std::cout << "tau discr " << tauIDs[i].first << " value " << tauIDs[i].second << std::endl;
@@ -709,6 +745,22 @@ void TopTauAnalyze::analyze(const edm::Event& evt, const edm::EventSetup& setup)
         if(tauIDs[i].first == "againstMuonLoose") value_tau_againstMuonLoose[value_tau_n] = tauIDs[i].second;
         if(tauIDs[i].first == "againstMuonMedium") value_tau_againstMuonMedium[value_tau_n] = tauIDs[i].second;
         if(tauIDs[i].first == "againstMuonTight") value_tau_againstMuonTight[value_tau_n] = tauIDs[i].second;
+        if(tauIDs[i].first == "againstElectronLooseMVA3") value_tau_againstElectronLooseMVA3[value_tau_n] = tauIDs[i].second;
+        if(tauIDs[i].first == "againstElectronMediumMVA3") value_tau_againstElectronMediumMVA3[value_tau_n] = tauIDs[i].second;
+        if(tauIDs[i].first == "againstElectronTightMVA3") value_tau_againstElectronTightMVA3[value_tau_n] = tauIDs[i].second;
+        if(tauIDs[i].first == "againstElectronVTightMVA3") value_tau_againstElectronVTightMVA3[value_tau_n] = tauIDs[i].second;
+        if(tauIDs[i].first == "againstMuonLoose2") value_tau_againstMuonLoose2[value_tau_n] = tauIDs[i].second;
+        if(tauIDs[i].first == "againstMuonMedium2") value_tau_againstMuonMedium2[value_tau_n] = tauIDs[i].second;
+        if(tauIDs[i].first == "againstMuonTight2") value_tau_againstMuonTight2[value_tau_n] = tauIDs[i].second;
+        if(tauIDs[i].first == "againstMuonLoose3") value_tau_againstMuonLoose3[value_tau_n] = tauIDs[i].second;
+        if(tauIDs[i].first == "againstMuonMedium3") value_tau_againstMuonMedium3[value_tau_n] = tauIDs[i].second;
+        if(tauIDs[i].first == "againstMuonTight3") value_tau_againstMuonTight3[value_tau_n] = tauIDs[i].second;
+        if(tauIDs[i].first == "byLooseIsolationMVA") value_tau_byLooseIsolationMVA[value_tau_n] = tauIDs[i].second;
+        if(tauIDs[i].first == "byMediumIsolationMVA") value_tau_byMediumIsolationMVA[value_tau_n] = tauIDs[i].second;
+        if(tauIDs[i].first == "byTightIsolationMVA") value_tau_byTightIsolationMVA[value_tau_n] = tauIDs[i].second;
+        if(tauIDs[i].first == "byLooseIsolationMVA2") value_tau_byLooseIsolationMVA2[value_tau_n] = tauIDs[i].second;
+        if(tauIDs[i].first == "byMediumIsolationMVA2") value_tau_byMediumIsolationMVA2[value_tau_n] = tauIDs[i].second;
+        if(tauIDs[i].first == "byTightIsolationMVA2") value_tau_byTightIsolationMVA2[value_tau_n] = tauIDs[i].second;
         if(tauIDs[i].first == "byLooseCombinedIsolationDeltaBetaCorr") value_tau_byLooseCombinedIsolationDeltaBetaCorr[value_tau_n] = tauIDs[i].second;
         if(tauIDs[i].first == "byMediumCombinedIsolationDeltaBetaCorr") value_tau_byMediumCombinedIsolationDeltaBetaCorr[value_tau_n] = tauIDs[i].second;
         if(tauIDs[i].first == "byTightCombinedIsolationDeltaBetaCorr") value_tau_byTightCombinedIsolationDeltaBetaCorr[value_tau_n] = tauIDs[i].second;
@@ -927,35 +979,61 @@ void TopTauAnalyze::analyze(const edm::Event& evt, const edm::EventSetup& setup)
 
     edm::Handle<GenEventInfoProduct> genEvtInfo;
     evt.getByLabel( "generator", genEvtInfo );
-    qScale = genEvtInfo->qScale();  // in case of Pythia6, this will be pypars/pari(23)
+    //qScale = genEvtInfo->qScale();  // in case of Pythia6, this will be pypars/pari(23)
     //const std::vector<double>& binningValues = genEvtInfo->binningValues(); // in case of Pythia6, this will be pypars/pari(17)
     //std::vector<double>& evtWeights = genEvtInfo->weights();
-    double theWeight = genEvtInfo->weight();
+    genWeight = genEvtInfo->weight();
+    partonFlavor1 = genEvtInfo->pdf()->id.first;
+    partonFlavor2 = genEvtInfo->pdf()->id.second;
+    x1 = genEvtInfo->pdf()->x.first;
+    x2 = genEvtInfo->pdf()->x.second;
+    qScale = genEvtInfo->pdf()->scalePDF;
 
-    std::cout << "Event weight " << theWeight << std::endl;
+    //typedef gen::PdfInfo PDF;
+    //const PDF *pdf_ev = genEvtInfo->pdf();
+
+    //std::cout << "Scale PDF " << pdf_ev->scalePDF << std::endl;
 
     //edm::Handle<LHEEventProduct> EvtHandle ;
     //evt.getByLabel( "source" , EvtHandle ) ;
 
-
-
-    // PDF weights
     /*
     edm::InputTag pdfWeightTag("pdfWeights:cteq66"); // or any other PDF set
     edm::Handle<std::vector<double> > weightHandle;
     evt.getByLabel(pdfWeightTag, weightHandle);
 
     std::vector<double> weights = (*weightHandle);
-    std::cout << "Event weight for central PDF:" << weights[0] << std::endl;
+    //std::cout << "Event weight for central PDF:" << weights[0] << " Size: " << weights.size() <<std::endl;
 
     unsigned int nmembers = weights.size();
-    cout << "PDFweights N: " << nmembers << std::endl;
-    //for (unsigned int j=0; j<nmembers; j++) {
-      //std::cout << "Event weight for PDF variation +" << (j+1)/2 << ": " << weights[j] << std::endl;
-      //std::cout << "Event weight for PDF variation -" << (j+1)/2 << ": " << weights[j+1] << std::endl;
-      //cev.pdfWeights.push_back(float(weights[j]));
-    //}
+    for (unsigned int i=0; i<nmembers; i++) {
+      cteq66_pdf_weights[i] = weights[i];
+      //std::cout << "Event weight: " << cteq66_pdf_weights[i] <<std::endl;
+    }
     */
+
+    edm::InputTag PileupSrc_("addPileupInfo");
+    Handle<std::vector< PileupSummaryInfo > >  PupInfo;
+    evt.getByLabel(PileupSrc_, PupInfo);
+
+    std::vector<PileupSummaryInfo>::const_iterator PVI;
+
+    //std::cout << "pu summary 189 " << PupInfo->size() << std::endl;
+    // (then, for example, you can do)
+    for(PVI = PupInfo->begin(); PVI != PupInfo->end(); ++PVI) {
+      n_bc = PVI->getBunchCrossing();
+      //std::cout << " Pileup Information: bunchXing, nvtx, size : " << n_bc << std::endl;
+      //<< PVI->getPU_NumInteractions()  << " "
+      //<< PVI->getPU_zpositions().size() << std::endl;
+
+
+      num_pileup_bc0    = PVI->getPU_NumInteractions();
+      num_pileup_bcp1   = PVI->getPU_NumInteractions();
+      num_pileup_bcm1   = PVI->getPU_NumInteractions();
+
+      runNb = PVI->getTrueNumInteractions();
+
+    }
 
     // TTbar event
     Handle < reco::GenParticleCollection > genParticles;
@@ -964,6 +1042,8 @@ void TopTauAnalyze::analyze(const edm::Event& evt, const edm::EventSetup& setup)
     evt.getByLabel("genEvt", genEvent);
 
     //std::cout << "isTtBar " << genEvent->isTtBar() << std::endl;
+
+    value_isTT = genEvent->isTtBar();
 
     if( genEvent->isTtBar() ){
 
