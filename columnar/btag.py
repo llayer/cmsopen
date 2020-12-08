@@ -136,7 +136,10 @@ def b_weight_method2(ev, njets = -1):
 
         if iJet == njets:
             break
-        weight_0tags = weight_0tags * (1 - sf * eff)
+        try:
+            weight_0tags = weight_0tags * (1 - sf * eff)
+        except:
+            print("sf", sf, "eff", eff)
 
         iJet += 1
 

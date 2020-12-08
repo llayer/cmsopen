@@ -14,8 +14,8 @@ def save_var(sample, name, var_name, bins = 20, xlow = 0., xup = 350):
     #print s, hist.Integral()
     hist.Write()
 
-def vars_to_histos(samples, variables):
-    file = ROOT.TFile("histos/histos.root", 'recreate')
+def vars_to_histos(samples, variables, file_name = "histos"):
+    file = ROOT.TFile("histos/" + file_name + ".root", 'recreate')
     for name, sample in samples.items():
         for var in variables:
             save_var(sample, name, var["var_name"], var["bins"], var["xlow"], var["xup"])

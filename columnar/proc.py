@@ -130,13 +130,13 @@ def proc_candidates(outpath="candidates/", njets = -1):
         new_samples[sample].to_hdf(outpath + sample + ".h5", "frame", mode='w')
     
     
-def plot_vars(variables):
+def plot_vars( variables, inpath = "candidates"):
     
-    files = glob.glob("candidates/*.h5")
+    files = glob.glob(inpath + "/*.h5")
     samples = {}
     for sample in files:
         sample_name = sample.split("/")[-1][:-3]
-        print(sample_name)
+        #print(sample_name)
         samples[sample_name] = pd.read_hdf(sample)
         
     # Final weights
@@ -145,37 +145,43 @@ def plot_vars(variables):
         if sample == "Data":
             pass
         elif sample == "QCD":
-            samples[sample]['weight'] = 0.24
+            samples[sample]['weight'] = samples[sample]['btag_weight'] * 10.
         else:
             #samples[sample]['new_trigger_weight'] = new_samples[sample].apply(lambda ev : weights.trigger_weight(ev), axis=1)
             samples[sample]['weight'] = samples[sample]['norm'] * samples[sample]['trigger_weight'] * samples[sample]['Jet_btag_weight1']
+            print(sample, sum(samples[sample]['weight']))
             #new_samples[sample]['btag_weight2']
     
     print( "Plotting" )
-    plot.vars_to_histos(samples, variables)
+    if inpath == "bdt":
+        file_name = "bdt"
+        
+        #samples["TTJets_signal"] = samples["TTJets_signal"][samples["TTJets_signal"]["train_flag"] == "test"]
+        #print("TTJets_signal", sum(samples["TTJets_signal"]['weight']))
+        samples["QCD"] = samples["QCD"][samples["QCD"]["train_flag"] == "test"]
+    else:
+        file_name = "histos"
+    plot.vars_to_histos(samples, variables, file_name = file_name)
     sample_names = ["TTJets_bkg", "WZJets", "STJets", "QCD", "TTJets_signal"]
     for var in variables:
-        stack.plot( "histos/histos.root", var["var_name"], sample_names )
+        stack.plot( "histos/" + file_name + ".root", var["var_name"], sample_names )
     
     
     
 def bdt():
     
     ml.train()
-        
+            
     
     
-    
-    
-    
-def fit_xsec(var = "MET_met"):
+def fit_xsec(var = "MET_met", file_name = "histos"):
     
     sample_names = ["Data", "TTJets_bkg", "WZJets", "STJets", "QCD", "TTJets_signal"]
-    sf_tt_sig, sf_qcd = fit.fit("histos/histos.root", sample_names, var)
+    sf_tt_sig, sf_qcd = fit.fit("histos/" + file_name + ".root", sample_names, var)
     sfs = {}
     sfs["TTJets_signal"] = sf_tt_sig
     sfs["QCD"] = sf_qcd
-    stack.plot( "histos/histos.root", var, sample_names[1:], sfs )
+    stack.plot( "histos/" + file_name + ".root", var, sample_names[1:], sfs )
     
 if __name__ == "__main__":
     
@@ -183,8 +189,8 @@ if __name__ == "__main__":
     proc_cands = False
     do_plotting = False
     run_bdt = False
-    plot_bdt = True
-    do_fit = False
+    plot_bdt = False
+    do_fit = True
     
     if ev_sel:
         event_selection()
@@ -210,10 +216,10 @@ if __name__ == "__main__":
         bdt()
         
     if plot_bdt:
-        plot_vars({"var_name" : "bdt", "bins" : 15, "xlow" : 0., "xup" : 1.})
+        plot_vars([{"var_name" : "bdt", "bins" : 15, "xlow" : 0., "xup" : 1.}], inpath = "bdt")
         
     if do_fit:
-        fit_xsec()
+        fit_xsec(var = "bdt", file_name = "bdt")
         
 
 
