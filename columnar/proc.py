@@ -145,7 +145,7 @@ def plot_vars( variables, inpath = "candidates"):
         if sample == "Data":
             pass
         elif sample == "QCD":
-            samples[sample]['weight'] = samples[sample]['btag_weight'] * 10.
+            samples[sample]['weight'] = samples[sample]['btag_weight'] * 9.
         else:
             #samples[sample]['new_trigger_weight'] = new_samples[sample].apply(lambda ev : weights.trigger_weight(ev), axis=1)
             samples[sample]['weight'] = samples[sample]['norm'] * samples[sample]['trigger_weight'] * samples[sample]['Jet_btag_weight1']
@@ -189,8 +189,8 @@ if __name__ == "__main__":
     proc_cands = False
     do_plotting = False
     run_bdt = False
-    plot_bdt = False
-    do_fit = True
+    plot_bdt = True
+    do_fit = False
     
     if ev_sel:
         event_selection()
