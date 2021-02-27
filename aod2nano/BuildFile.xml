@@ -15,6 +15,7 @@
 <use   name="DataFormats/EgammaCandidates"/>
 <use   name="DataFormats/PatCandidates"/>
 <use   name="DataFormats/Math"/>
+<use   name="SimDataFormats/GeneratorProducts"/>
 <use   name="TopAnalysis/TopUtils"/>
 <use   name="AnalysisDataFormats/TopObjects"/>
 <use   name="TopQuarkAnalysis/TopKinFitter"/>
