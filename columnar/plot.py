@@ -4,14 +4,30 @@ import ROOT
 from root_numpy import fill_hist
 import btag
 
+def stack_weight(weight, n):
+    return np.full(n ,weight)
+
 def save_var(sample, name, var_name, bins = 20, xlow = 0., xup = 350):
 
     hist = ROOT.TH1D(name + "_" + var_name, name + "_" + var_name, bins, xlow, xup)
     hist.Sumw2()
-    if name == "Data":
-        fill_hist(hist, sample[var_name])
+    # Flatten if the column is a list
+    if "Jet_" in var_name:
+        series = sample[var_name].apply(pd.Series).stack().reset_index(drop=True)
+        if name != "Data":
+            sample['weight_stacked'] = sample.apply(lambda x : stack_weight(x["weight"] ,x["nJets"]), axis=1)
+            weights = sample['weight_stacked'].apply(pd.Series).stack().reset_index(drop=True)
     else:
-        fill_hist(hist, sample[var_name], weights = sample["weight"])
+        series = sample[var_name]
+        if name != "Data":
+            weights = sample["weight"]
+    if name == "Data":
+        fill_hist(hist, series)
+    else:
+        #print (name, var_name)
+        #print (len(series))
+        #print (len(sample["weight"]))
+        fill_hist(hist, series, weights = weights)
     #print s, hist.Integral()
     hist.Write()
 
@@ -54,6 +70,7 @@ def plot_btag_weights():
 
     
     # QCD Mistag
+    var = {"var_name" : "MET_met", "bins" : 30, "xlow" : 0., "xup" : 300}
     data = pd.read_hdf("samples/" + "Run2011A_MultiJet" + ".h5")
     data['nJets'] = data["Jet_pt"].str.len()
     data["Jet_nbtags"] = data["Jet_csvDisc"].apply( lambda x : btag.count_btags(x, njets=-1) )

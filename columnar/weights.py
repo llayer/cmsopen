@@ -22,7 +22,7 @@ h_eff_tau40 = f.Get("tau_eff_40")
 h_eff_tau45 = f.Get("tau_eff_45")
 
 
-def trigger_weight(ev):
+def trigger_weight(ev, trigger_frac=0.218):
 
     jet_pt0 = ev["Jet_pt"][0]
     jet_pt1 = ev["Jet_pt"][1]
@@ -30,7 +30,7 @@ def trigger_weight(ev):
     tau_pt = ev["Tau_pt"][0]
     
     trigRange = np.random.uniform(low=0.0, high=1.0)
-    if trigRange<0.218: #0.208 new lumi
+    if trigRange < trigger_frac: #0.218: #0.208 new lumi
         jet_hist = h_eff_jet40
         tau_hist = h_eff_tau40
     else:

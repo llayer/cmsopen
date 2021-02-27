@@ -21,7 +21,7 @@ def setStyle():
     setTDRStyle()
 
 
-def plot(infile, var, sample_names, sfs = None):
+def plot(infile, var, xtitle, sample_names, sfs = None):
 
     #self.setStyle()
 
@@ -150,7 +150,7 @@ def plot(infile, var, sample_names, sfs = None):
     hdata.Draw("eSAMEpx0")
 
 
-    lumi_sqrtS = " 3.9 fb^{-1}  (7 TeV)"
+    lumi_sqrtS = " 4.2 fb^{-1}  (7 TeV)"
     #    print lumi_sqrtS
     iPos = 0
     # writing the lumi information and the CMS "logo"
@@ -221,7 +221,7 @@ def plot(infile, var, sample_names, sfs = None):
     ratio.GetXaxis().SetTitleSize(0.16)
     ratio.GetYaxis().SetTitleSize(0.16)
     ratio.GetYaxis().SetRangeUser(0.,2.)
-    ratio.GetXaxis().SetTitle(var)
+    ratio.GetXaxis().SetTitle(xtitle)
     ratio.GetXaxis().SetLabelOffset(0.04)
     ratio.GetYaxis().SetLabelOffset(0.01)
     ratio.Draw("epx0esame")

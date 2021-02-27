@@ -71,16 +71,19 @@ def candidates(sample, invert_btag = False, njets=-1):
     # MC weights
     if not isData:
 
+        hlt_40, hlt_45 = weights.lumi()
+        total_lumi = hlt_40 + hlt_45
+        trigger_frac = hlt_40 / float(hlt_45)
         df = pd.concat([df, df.apply(lambda ev: pd.Series(btag.eval_sf_eff(ev)), axis=1)], axis=1)
         df["Jet_btag_weight1"] = df.apply(lambda ev : btag.b_weight_method1(ev, njets=njets), axis=1)
         df["Jet_btag_weight2"] = df.apply(lambda ev : btag.b_weight_method2(ev, njets=njets), axis=1)
         # trigger weights
-        df["trigger_weight"] = df.apply(lambda ev : weights.trigger_weight(ev), axis=1)
+        df["trigger_weight"] = df.apply(lambda ev : weights.trigger_weight(ev, trigger_frac), axis=1)
         # normalization
         counts_path = "/eos/user/l/llayer/opendata_files/preselection_merged/" + sample + "_counts.root"
         total_counts = root_pandas.read_root(counts_path)
         xsec = weights.get_xsec(sample)
-        weights.norm(df, total_counts, xsec)
+        weights.norm(df, total_counts, xsec, lumi = total_lumi)
     
     # QCD
     if isData & invert_btag:
@@ -145,10 +148,14 @@ def plot_vars( variables, inpath = "candidates"):
         if sample == "Data":
             pass
         elif sample == "QCD":
-            samples[sample]['weight'] = samples[sample]['btag_weight'] * 9.
+            if inpath == "bdt":
+                scale_qcd = 9.
+            else:
+                scale_qcd = 4.3
+            samples[sample]['weight'] = samples[sample]['btag_weight'] * scale_qcd
         else:
             #samples[sample]['new_trigger_weight'] = new_samples[sample].apply(lambda ev : weights.trigger_weight(ev), axis=1)
-            samples[sample]['weight'] = samples[sample]['norm'] * samples[sample]['trigger_weight'] * samples[sample]['Jet_btag_weight1']
+            samples[sample]['weight'] = samples[sample]['norm'] * (1/1000) * samples[sample]['trigger_weight'] * samples[sample]['Jet_btag_weight1']
             print(sample, sum(samples[sample]['weight']))
             #new_samples[sample]['btag_weight2']
     
@@ -164,9 +171,9 @@ def plot_vars( variables, inpath = "candidates"):
     plot.vars_to_histos(samples, variables, file_name = file_name)
     sample_names = ["TTJets_bkg", "WZJets", "STJets", "QCD", "TTJets_signal"]
     for var in variables:
-        stack.plot( "histos/" + file_name + ".root", var["var_name"], sample_names )
+        stack.plot( "histos/" + file_name + ".root", var["var_name"], var["xtitle"], sample_names )
     
-    
+    print("Plotting done")
     
 def bdt():
     
@@ -187,9 +194,9 @@ if __name__ == "__main__":
     
     ev_sel = False
     proc_cands = False
-    do_plotting = False
+    do_plotting = True
     run_bdt = False
-    plot_bdt = True
+    plot_bdt = False
     do_fit = False
     
     if ev_sel:
@@ -201,25 +208,32 @@ if __name__ == "__main__":
     if do_plotting:
         
         variables = [
-            {"var_name" : "MET_met", "bins" : 30, "xlow" : 0., "xup" : 400},
-            {"var_name" : "Tau_pt", "bins" : 30, "xlow" : 0., "xup" : 250},
-            #{"var_name" : "aplanarity", "bins" : 20, "xlow" : 0., "xup" : 0.5},
-            #{"var_name" : "ht", "bins" : 20, "xlow" : 0., "xup" : 1600.},
-            #{"var_name" : "chargeEta", "bins" : 20, "xlow" : -3., "xup" : 3.},
-            #{"var_name" : "deltaPhiTauMet", "bins" : 20, "xlow" : 0., "xup" : 3.2},
-            #{"var_name" : "mt", "bins" : 20, "xlow" : 0., "xup" : 300.},
-            #{"var_name" : "mTauJet", "bins" : 20, "xlow" : 0., "xup" : 2500.}
+            {"var_name" : "MET_met", "bins" : 30, "xlow" : 0., "xup" : 400, "xtitle" : "MET [GeV]"},
+            {"var_name" : "Tau_pt", "bins" : 30, "xlow" : 0., "xup" : 250, "xtitle" : "p_{T}(#tau) [GeV]"},
+            {"var_name" : "aplanarity", "bins" : 20, "xlow" : 0., "xup" : 0.5, "xtitle" : "aplanarity"},
+            {"var_name" : "ht", "bins" : 20, "xlow" : 0., "xup" : 1600., "xtitle" : "H_{T} [GeV]"},
+            {"var_name" : "chargeEta", "bins" : 20, "xlow" : -3., "xup" : 3., "xtitle" : "q #times #eta(#tau)"},
+            {"var_name" : "deltaPhiTauMet", "bins" : 20, "xlow" : 0., "xup" : 3.2, "xtitle" : "#Delta#phi(#tau, MET)"},
+            {"var_name" : "mt", "bins" : 20, "xlow" : 0., "xup" : 300., "xtitle" : "M_{T}(#tau, MET) [GeV]"},
+            {"var_name" : "mTauJet", "bins" : 20, "xlow" : 0., "xup" : 2500., "xtitle" :"M(#tau, jets) [GeV]"},
+            {"var_name" : "nJets", "bins" : 10, "xlow" : 0., "xup" : 10., "xtitle" : "N. of jets"},
+            {"var_name" : "Jet_pt", "bins" : 30, "xlow" : 0., "xup" : 400., "xtitle" : "p_{T}(jet) [GeV]"},
+            {"var_name" : "Jet_eta", "bins" : 30, "xlow" : -3., "xup" : 3., "xtitle" : "#eta(jet)"},
+            {"var_name" : "sphericity", "bins" : 20, "xlow" : 0., "xup" : 1.0, "xtitle" : "sphericity"}
+            
         ]
         plot_vars(variables)
         
     if run_bdt:
         bdt()
+        plot_vars([{"var_name" : "bdt", "bins" : 15, "xlow" : 0., "xup" : 1., "xtitle" : 0.}], inpath = "bdt")
         
     if plot_bdt:
-        plot_vars([{"var_name" : "bdt", "bins" : 15, "xlow" : 0., "xup" : 1.}], inpath = "bdt")
+        plot_vars([{"var_name" : "bdt", "bins" : 15, "xlow" : 0., "xup" : 1., "xtitle" : 0.}], inpath = "bdt")
         
     if do_fit:
         fit_xsec(var = "bdt", file_name = "bdt")
+        #fit_xsec(var = "MET_met")
         
 
 

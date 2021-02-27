@@ -91,8 +91,12 @@ def train(n_sig = 4000, n_bkg = 4000):
     bkg["label"] = 1
     
     signal_train = signal[signal["train_flag"] == "train"]
+    signal_train["weights"] = signal_train['trigger_weight'] * signal_train['Jet_btag_weight1']
+    signal_train["weights"] = signal_train["weights"] * (1. / np.mean(signal_train["weights"]))
     signal_test = signal[signal["train_flag"] == "test"]
     bkg_train = bkg[bkg["train_flag"] == "train"]
+    bkg_train["weights"] = bkg_train['btag_weight']
+    bkg_train["weights"] = bkg_train["weights"] * (1. / np.mean(bkg_train["weights"]))
     bkg_test = bkg[bkg["train_flag"] == "test"]
     
     train_data = pd.concat([signal_train, bkg_train], axis=0)
@@ -101,8 +105,9 @@ def train(n_sig = 4000, n_bkg = 4000):
     features = ['ht', 'aplanarity', 'sphericity', 'chargeEta', 'met', 'deltaPhiTauMet', 'mt', 'mTauJet']
 
     X_train = train_data[features].values
-    weights = train_data['trigger_weight'] * train_data['Jet_btag_weight1']
     y_train = train_data["label"].values.ravel()
+    weights = train_data["weights"]
+    print(weights)
     
     X_test = test_data[features].values
     y_test = test_data["label"].values.ravel()   
@@ -112,7 +117,7 @@ def train(n_sig = 4000, n_bkg = 4000):
     # Define model
     bdt = xgb.XGBClassifier(n_estimators=1000, learning_rate = 0.01, n_jobs = 1)
     # Fit
-    bdt.fit(X_train, y_train, eval_metric=["logloss"], verbose=False)
+    bdt.fit(X_train, y_train, sample_weight = weights, eval_metric=["logloss"], verbose=False) # sample_weight
     
     # Plot
     compare_train_test(bdt, X_train, y_train, X_test, y_test, bins=15)

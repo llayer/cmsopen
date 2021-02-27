@@ -1,31 +1,33 @@
-from coffea.nanoaod import NanoEvents
+#from coffea.nanoaod import NanoEvents
 import awkward
-import awkward1
+#import awkward1
 import uproot_methods
 import uproot
 import root_pandas
 import pandas as pd
 import numpy as np
 import glob
+import jetmet
 from coffea.btag_tools import BTagScaleFactor
 
 
-def nanoObject(tree, prefix, from_cartesian = False):
-    branches = set(k.decode('ascii') for k in tree.keys() if k.decode('ascii')[:len(prefix)] == prefix)
+def nanoObject(tree, prefix, branches, from_cartesian = False):
+    #branches = set(k.decode('ascii') for k in tree.keys() if k.decode('ascii')[:len(prefix)] == prefix)
+    
     if from_cartesian:
         p4branches = [prefix + k for k in ['px', 'py', 'pz', 'e']]
         objp4 = uproot_methods.TLorentzVectorArray.from_cartesian(*[tree[b].array() for b in p4branches])
     else:
         p4branches = [prefix + k for k in ['pt', 'eta', 'phi', 'mass']]
         objp4 = uproot_methods.TLorentzVectorArray.from_ptetaphim(*[tree[b].array() for b in p4branches])
-    branches = {k[len(prefix):]: tree[k].array() for k in branches}
+    branches = {k: tree[prefix + k].array() for k in branches}
     obj = awkward.JaggedArray.zip(p4=objp4, **branches)
     return obj
 
 
-def nanoCollection(tree, prefix):
-    branches = set(k.decode('ascii') for k in tree.keys() if k.decode('ascii')[:len(prefix)] == prefix)
-    obj = {k[len(prefix):]: tree[k].array() for k in branches}
+def nanoCollection(tree, prefix, branches):
+    #branches = set(k.decode('ascii') for k in tree.keys() if k.decode('ascii')[:len(prefix)] == prefix)
+    obj = {k: tree[prefix + k].array() for k in branches}
     return obj
 
 
@@ -82,7 +84,7 @@ def select_tau(tau, vtx, eta_cut = 2.3, pt_cut = 45., vtxmatch_cut = 1., dxy_cut
     
     return tau[ iso_cut & nomuon_cut & noele_cut& leadTrackPt_cut & eta_cut & pt_cut & vtx_cut & dxy_cut]
 
-
+    
 def select_jet(jet, eta_cut = 2.4, pt_cut = 20.):
     
     # Eta cut
@@ -151,11 +153,15 @@ def four_jets(jet):
 
 def jet_requirement(jet, pt_cut=45.):
     
+    return (jet["pt"] > pt_cut).sum() >= 3
+
+    """
     pt_jet0 = jet["pt"][:,0] > pt_cut
     pt_jet1 = jet["pt"][:,1] > pt_cut
     pt_jet2 = jet["pt"][:,2] > pt_cut
     
     return pt_jet0 & pt_jet1 & pt_jet2
+    """
 
 
 def met_requirement(df, met_cut = 20.):
@@ -184,11 +190,26 @@ def to_np(df, prefix):
     for col in cols:
         df[col] = np.array(df[col])
 
+        
+        
+       
+def apply_mask(event, mask):
+     
+    event["evt"] = event["evt"][mask] 
+    event["vtx"] = event["vtx"][mask]
+    event["jet"] = event["jet"][mask]
+    event["electron"] = event["electron"][mask]
+    event["muon"] = event["muon"][mask]
+    event["tau"] = event["tau"][mask]
+    event["met"] = event["met"][mask]
+    event["tau_hlt"] = event["tau_hlt"][mask]
+    event["jet_hlt"] = event["jet_hlt"][mask]
 
-def event_selection(file_path = "TTJets/TTJets_FEC891EB-8CC6-E311-9BD5-002590A88802_3079.root", isData = False, isTT = False):
+    
+def event_selection(file_path, isData = False, isTT = False, corrLevel = "cent"):
         
     in_file = file_path.split("/")[-1]
-    print( "Processing:", in_file, "isData:", isData, "isTT:", isTT)
+    print( "Processing:", in_file, "isData:", isData, "isTT:", isTT, "corrLevel", corrLevel)
         
     # Load file
     f = uproot.open(file_path)
@@ -197,38 +218,58 @@ def event_selection(file_path = "TTJets/TTJets_FEC891EB-8CC6-E311-9BD5-002590A88
     event_counts = {}
     event_counts["preselected"] = len(events)
     
-    #arr = tt.arrays()
+    event = {}
     
     # Load event vars
     event_vars = ["event", "run", "luminosityBlock", "HLT_QuadJet40_IsoPFTau40", "HLT_QuadJet45_IsoPFTau45"]
     if isTT:
         event_vars.append("genEvent_tmeme")
-    evt = pd.DataFrame(eventCollection(events, event_vars))
-    
+    event["evt"] = pd.DataFrame(eventCollection(events, event_vars))
+ 
     # Load objects
-    vtx = nanoCollection(events, "PV_")
-    jet = nanoObject(events, "Jet_")
-    electron = nanoObject(events, "Electron_")
-    muon = nanoObject(events, "Muon_")
-    tau = nanoObject(events, "Tau_") 
-    met = pd.DataFrame(nanoCollection(events, "MET_"))
+    event["vtx"] = pd.DataFrame(nanoCollection(events, "PV_", ["z"]))
+    jet_vars = ['pt', 'px', 'py', 'pz', 'eta', 'phi', 'mass', 'e', 'csvDisc']
+    if not isData:
+        jet_vars += [ 'flavour', 'genpx', 'genpy' ]
+    event["jet"] = nanoObject(events, "Jet_", jet_vars)
+    electron_vars = ['TrkIso03', 'ECaloIso03', 'cutbasedid', 'HCaloIso03', 'pt', 'eta', 'z']
+    event["electron"] = nanoObject(events, "Electron_", electron_vars)
+    muon_vars = ['TrkIso03', 'ECaloIso03', 'isGlobalMuon', 'HCaloIso03', 'pt', 'eta', 'z']
+    event["muon"] = nanoObject(events, "Muon_", muon_vars)
+    tau_vars = ['pt', 'px', 'py', 'pz', 'eta', 'phi', 'mass', 'e', 'charge', 'byMediumCombinedIsolationDeltaBetaCorr',
+                'z', 'leadTrackPt', 'dxy', 'againstMuonTight', 'againstElectronTight']
+    event["tau"] = nanoObject(events, "Tau_", tau_vars) 
+    met_vars = ['pt', 'px', 'py', 'pz', 'e']
+    event["met"] = pd.DataFrame(nanoCollection(events, "MET_", met_vars))
     #if isData:
-    tau_hlt = nanoObject(events, "TauHLT_", from_cartesian=True)
-    jet_hlt = nanoObject(events, "JetHLT_", from_cartesian=True)
-
+    event["tau_hlt"] = nanoObject(events, "TauHLT_", branches = [], from_cartesian=True)
+    event["jet_hlt"] = nanoObject(events, "JetHLT_", branches = [], from_cartesian=True)
+    
+    #
+    # JETMET
+    #
+    
+    if (isData == False) & (corrLevel != "cent") :
+        
+        event["jet"] = jetmet.transform(event["jet"], corrLevel = corrLevel)
+        
+        #
+        # Do argsort!!!!
+        #
+    
+    
     #
     # Object selections
     #
-    good_muon = select_muon(muon, vtx)
-    good_electron = select_electron(electron, vtx)
-    good_tau = select_tau(tau, vtx)
-    good_jet = select_jet(jet)
+    event["muon"] = select_muon(event["muon"], event["vtx"])
+    event["electron"] = select_electron(event["electron"], event["vtx"])
+    event["tau"] = select_tau(event["tau"], event["vtx"])
+    event["jet"] = select_jet(event["jet"])
     
     #print( list(zip(good_muon.counts, good_electron.counts, good_tau.counts, good_jet.counts)))
     
-    
     # Clean jet
-    good_clean_jet = clean_jet(good_jet, good_tau)
+    event["jet"] = clean_jet(event["jet"], event["tau"])
     
     #
     # Event selections
@@ -239,92 +280,65 @@ def event_selection(file_path = "TTJets/TTJets_FEC891EB-8CC6-E311-9BD5-002590A88
         
         # Trigger selection
         mask_trigger = pass_trigger(evt)
-        good_tau = good_tau[mask_trigger]
-        good_muon = good_muon[mask_trigger]
-        good_electron = good_electron[mask_trigger]
-        good_clean_jet = good_clean_jet[mask_trigger]
-        jet_hlt = jet_hlt[mask_trigger]   
-        tau_hlt = tau_hlt[mask_trigger]  
-        met = met[mask_trigger]   
-        evt = evt[mask_trigger]     
-        event_counts["trigger"] = len(evt)
+        apply_mask(event, mask_trigger)
+        event_counts["trigger"] = len(event["evt"])
         
     # HLT matching
 
-    hlt_mask = hlt_requirement(tau_hlt, jet_hlt)
-    good_tau = good_tau[hlt_mask]
-    good_muon = good_muon[hlt_mask]
-    good_electron = good_electron[hlt_mask]
-    good_clean_jet = good_clean_jet[hlt_mask]
-    jet_hlt = jet_hlt[hlt_mask]   
-    tau_hlt = tau_hlt[hlt_mask]  
-    met = met[hlt_mask]   
-    evt = evt[hlt_mask]  
-    event_counts["hlt"] = len(evt)
+    hlt_mask = hlt_requirement(event["tau_hlt"], event["jet_hlt"])
+    apply_mask(event, hlt_mask)
+    event_counts["hlt"] = len(event["evt"])
 
-    good_clean_jet = hlt_match(good_clean_jet, jet_hlt)
-    good_tau = hlt_match(good_tau, tau_hlt)
+    event["jet"] = hlt_match(event["jet"], event["jet_hlt"])
+    event["tau"] = hlt_match(event["tau"], event["tau_hlt"])
         
     
     # Lepton veto
-    mask_lep_veto = lep_veto(good_muon, good_electron)
-    good_tau = good_tau[mask_lep_veto]
-    good_clean_jet = good_clean_jet[mask_lep_veto]
-    met = met[mask_lep_veto]
-    evt = evt[mask_lep_veto]
-    
-    event_counts["lep_veto"] = len(evt)
+    mask_lep_veto = lep_veto(event["muon"], event["electron"])
+    apply_mask(event, mask_lep_veto)
+    event_counts["lep_veto"] = len(event["evt"])
     
     
     # Four jets
-    mask_four_jet = four_jets(good_clean_jet)
-    good_tau = good_tau[mask_four_jet]
-    good_clean_jet = good_clean_jet[mask_four_jet]
-    met = met[mask_four_jet]
-    evt = evt[mask_four_jet]   
+    mask_four_jet = four_jets(event["jet"])
+    apply_mask(event, mask_four_jet) 
     
     # Jet requirement
-    mask_jet = jet_requirement(good_clean_jet)
-    good_tau = good_tau[mask_jet]
-    good_clean_jet = good_clean_jet[mask_jet]
-    met = met[mask_jet]
-    evt = evt[mask_jet]
-    
-    event_counts["jet_requirement"] = len(evt)
+    mask_jet = jet_requirement(event["jet"])
+    apply_mask(event, mask_jet) 
+    event_counts["jet_requirement"] = len(event["evt"])
     
     # Tau requirement
-    mask_tau = tau_requirement(good_tau)
-    good_tau = good_tau[mask_tau]
-    good_clean_jet = good_clean_jet[mask_tau]
-    met = met[mask_tau]
-    evt = evt[mask_tau]
-    
+    mask_tau = tau_requirement(event["tau"])
+    apply_mask(event, mask_tau)
+    event_counts["tau_requirement"] = len(event["evt"])
+
     # MET
-    met_4vec = uproot_methods.classes.TLorentzVector.TLorentzVectorArray(met["px"], met["py"], met["pz"], met["e"])
-    met["met"] = met_4vec.Et
+    met_4vec = uproot_methods.classes.TLorentzVector.TLorentzVectorArray(event["met"]["px"], event["met"]["py"], 
+                                                                         event["met"]["pz"], event["met"]["e"])
+    event["met"]["met"] = met_4vec.Et
     
-    event_counts["tau_requirement"] = len(evt)
     
     # To pandas
-    jet_out_vars = ['pt', 'px', 'py', 'pz', 'eta', 'phi', 'mass', 'e', 'csvDisc']
+    jet_out_vars = ['pt', 'eta', 'phi', 'mass', 'csvDisc']
     if not isData:
         jet_out_vars.append( 'flavour' )
-    tau_out_vars = ['pt', 'px', 'py', 'pz', 'eta', 'phi', 'mass', 'e', 'charge']
+    tau_out_vars = ['pt', 'eta', 'phi', 'mass', 'charge']
     met_out_vars = ['pt', 'px', 'py', 'pz', 'e', 'met']
     
-    df_jet = awkward.topandas(good_clean_jet[jet_out_vars], flatten=False)
+    df_jet = awkward.topandas(event["jet"][jet_out_vars], flatten=False)
     df_jet = df_jet.add_prefix('Jet_')
-    df_tau = awkward.topandas(good_tau[tau_out_vars], flatten=False)
+    df_tau = awkward.topandas(event["tau"][tau_out_vars], flatten=False)
     df_tau = df_tau.add_prefix('Tau_') 
-    met = met[met_out_vars].add_prefix('MET_') 
-    
+    met = event["met"][met_out_vars].add_prefix('MET_') 
+
     #df = pd.concat([sel2_evt, df_jet, df_tau], axis=1)
-    df = pd.concat([df_jet, df_tau.set_index(df_jet.index), met.set_index(df_jet.index), evt.set_index(df_jet.index)], axis=1)
+    df = pd.concat([df_jet, df_tau.set_index(df_jet.index), met.set_index(df_jet.index), event["evt"].set_index(df_jet.index)], axis=1)
 
     to_np(df, "Jet_")
     to_np(df, "Tau_")
     
-    return df, event_counts
+    return df, event["jet"], event_counts
 
 
 
@@ -420,14 +434,15 @@ def fourjet_tag(jet, jetHLT_4vec, hlt40, deltaR=0.4):
         jet_hlt = jet.pxHLT45 != -9999
     delta = jet["p4"].delta_r(jetHLT_4vec)
     mask = delta < deltaR
-    return jet[jet_hlt & mask]
+    return jet[jet_hlt & mask], delta
 
 
 def match_tau_jets(tau, jets, deltaR = 0.4):
     
     cross = tau['p4'].cross(jets['p4'], nested=False)
-    delta = (cross.i0.delta_r(cross.i1) < deltaR).any()
-    return delta
+    delta = cross.i0.delta_r(cross.i1)
+    mask = (delta < deltaR).any()
+    return mask, delta.min()
 
 
 def best_hlt_match(tau, tau_hlt):
@@ -543,7 +558,8 @@ def tau_trigger_selection(file_path, hlt40=False):
                                                                                            good_jet["pyHLT45"], 
                                                                                            good_jet["pzHLT45"], 
                                                                                            good_jet["eHLT45"])
-    good_matched_jet = fourjet_tag(good_jet, jetHLT_4vec, hlt40, deltaR=0.4)
+    good_matched_jet, delta_jet_hlt = fourjet_tag(good_jet, jetHLT_4vec, hlt40, deltaR=0.4)
+    evt["delta_jet_hlt"] = delta_jet_hlt
     
     # Multiplicities
     mask_four_jets = good_matched_jet.counts > 3
@@ -551,13 +567,22 @@ def tau_trigger_selection(file_path, hlt40=False):
     evt = evt[mask_four_jets] 
     good_matched_jet = good_matched_jet[mask_four_jets] 
     good_clean_tau = good_clean_tau[mask_four_jets] 
-    tau_hlt = tau_hlt[mask_four_jets]     
+    tau_hlt = tau_hlt[mask_four_jets] 
     
-    print( "Four jet matches", len(evt) ) 
+    """
+    # Jet requirement - Test presel 
+    mask_jet = jet_requirement(good_matched_jet, pt_cut=40.)
+    evt = evt[mask_jet] 
+    good_matched_jet = good_matched_jet[mask_jet] 
+    good_clean_tau = good_clean_tau[mask_jet]     
+    tau_hlt = tau_hlt[mask_jet] 
+    """
+    
+    print( "Four jet matches", len(evt) )
     
     
-    tau_match_mask = match_tau_jets(good_clean_tau, good_matched_jet, deltaR = 0.4)
-    
+    tau_match_mask, delta_tau_jet = match_tau_jets(good_clean_tau, good_matched_jet, deltaR = 0.4)
+    evt["delta_tau_jet"] = delta_tau_jet
     evt = evt[tau_match_mask] 
     good_matched_jet = good_matched_jet[tau_match_mask] 
     good_clean_tau = good_clean_tau[tau_match_mask] 
@@ -599,7 +624,14 @@ def tau_trigger_selection(file_path, hlt40=False):
     evt.loc[:, 'tau_hlt_pt'] = evt.tau_hlt_pt.map(lambda x: x[0])
     evt.loc[:, 'tau_hlt_eta'] = evt.tau_hlt_eta.map(lambda x: x[0])
     
-    return evt
+    # Write to pandas
+    jet_out_vars = ['pt', 'eta','pxHLT40', 'pxHLT45']
+    df_jet = awkward.topandas(good_matched_jet[jet_out_vars], flatten=False)
+    df_jet = df_jet.add_prefix('Jet_')
+    df = pd.concat([df_jet, evt.set_index(df_jet.index)], axis=1)
+    to_np(df, "Jet_")
+
+    return df
     #return evt, good_matched_jet, good_clean_tau, tau_hlt_best, min_dR
     
     
