@@ -241,22 +241,27 @@ def event_selection(file_path, isData = False, isTT = False, corrLevel = "cent")
     event["tau"] = nanoObject(events, "Tau_", tau_vars) 
     met_vars = ['pt', 'px', 'py', 'pz', 'e']
     event["met"] = pd.DataFrame(nanoCollection(events, "MET_", met_vars))
+    #event["met"]["met"] = event["met"]["p4"].Et
     #if isData:
     event["tau_hlt"] = nanoObject(events, "TauHLT_", branches = [], from_cartesian=True)
     event["jet_hlt"] = nanoObject(events, "JetHLT_", branches = [], from_cartesian=True)
-    
+        
     #
     # JETMET
     #
     
     if (isData == False) & (corrLevel != "cent") :
         
-        event["jet"] = jetmet.transform(event["jet"], corrLevel = corrLevel)
-        
-        #
-        # Do argsort!!!!
-        #
-    
+        if "tau" in corrLevel:
+            event["tau"],  event["met"] = jetmet.scale_tau(event["tau"], event["met"], corr = corrLevel)
+            event["jet"],  event["met"] = jetmet.transform(event["jet"], event["met"], corrLevel = "centJER")
+
+        else:
+            event["jet"],  event["met"] = jetmet.transform(event["jet"], event["met"], corrLevel = corrLevel)
+    else:
+        met_p4 = uproot_methods.classes.TLorentzVector.TLorentzVectorArray(event["met"]["px"], event["met"]["py"],
+                                                                           event["met"]["pz"], event["met"]["e"])
+        event["met"]["met"] = met_p4.Et
     
     #
     # Object selections
@@ -279,7 +284,7 @@ def event_selection(file_path, isData = False, isTT = False, corrLevel = "cent")
     if isData:
         
         # Trigger selection
-        mask_trigger = pass_trigger(evt)
+        mask_trigger = pass_trigger(event["evt"])
         apply_mask(event, mask_trigger)
         event_counts["trigger"] = len(event["evt"])
         
@@ -312,18 +317,13 @@ def event_selection(file_path, isData = False, isTT = False, corrLevel = "cent")
     mask_tau = tau_requirement(event["tau"])
     apply_mask(event, mask_tau)
     event_counts["tau_requirement"] = len(event["evt"])
-
-    # MET
-    met_4vec = uproot_methods.classes.TLorentzVector.TLorentzVectorArray(event["met"]["px"], event["met"]["py"], 
-                                                                         event["met"]["pz"], event["met"]["e"])
-    event["met"]["met"] = met_4vec.Et
     
     
     # To pandas
-    jet_out_vars = ['pt', 'eta', 'phi', 'mass', 'csvDisc']
+    jet_out_vars = ['pt', 'px', 'py', 'pz', 'e', 'eta', 'phi', 'mass', 'csvDisc']
     if not isData:
         jet_out_vars.append( 'flavour' )
-    tau_out_vars = ['pt', 'eta', 'phi', 'mass', 'charge']
+    tau_out_vars = ['pt', 'px', 'py', 'pz', 'e', 'eta', 'phi', 'mass', 'charge']
     met_out_vars = ['pt', 'px', 'py', 'pz', 'e', 'met']
     
     df_jet = awkward.topandas(event["jet"][jet_out_vars], flatten=False)
@@ -338,7 +338,8 @@ def event_selection(file_path, isData = False, isTT = False, corrLevel = "cent")
     to_np(df, "Jet_")
     to_np(df, "Tau_")
     
-    return df, event["jet"], event_counts
+    #return df, event["tau"], event_counts
+    return df, event_counts
 
 
 

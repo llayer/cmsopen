@@ -21,7 +21,7 @@ def setStyle():
     setTDRStyle()
 
 
-def plot(infile, var, xtitle, sample_names, sfs = None):
+def plot(infile, var, xtitle, sample_names, sfs = None, corr="central"):
 
     #self.setStyle()
 
@@ -63,7 +63,10 @@ def plot(infile, var, xtitle, sample_names, sfs = None):
     for s, c in zip(sample_names, colors):
 
         # Get histogram
-        hist = f.Get(s + '_' + var)#path + '/' + s.label)
+        if s == "QCD":
+            hist = f.Get(s + '_' + var)#path + '/' + s.label)
+        else:
+            hist = f.Get(s + '_' + corr + "_" + var)#path + '/' + s.label)
         hist.SetOption("HIST SAME")
         hist.SetLineColor(ROOT.kBlack)
         hist.SetTitle("")
@@ -227,7 +230,7 @@ def plot(infile, var, xtitle, sample_names, sfs = None):
     ratio.Draw("epx0esame")
     
     ROOT.gStyle.SetHistMinimumZero() 
-    
+     
     c1.cd()
     ROOT.TGaxis.SetMaxDigits(3)
     c1.RedrawAxis()
@@ -236,9 +239,9 @@ def plot(infile, var, xtitle, sample_names, sfs = None):
     #    fout_name = "prova/"+outfile
     #c1.Print(outdir + '/' + "Stack/"+canvasname+".pdf")
     if sfs is not None:
-        c1.Print("stacks/" + var + "postfit.png")
+        c1.Print("stacks_corr/" + var + "_" + corr + "_" + "postfit.png")
     else:
-        c1.Print("stacks/" + var + ".png")
+        c1.Print("stacks_corr/" + var + "_" + corr + ".png")
     #c1.Print("test.png")
 
 if __name__ == "__main__":

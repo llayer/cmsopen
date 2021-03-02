@@ -1,14 +1,16 @@
 import ROOT
 
 
-def fit(path, sample_names, fit_var):
+def fit(path, sample_names, fit_var, corr = "central"):
 
     f = ROOT.TFile(path)
         
     histos = {}
     for s in sample_names:
-
-        hist = f.Get(s + "_" + fit_var)
+        if (s != "Data") & (s != "QCD"):
+            hist = f.Get(s + "_" + corr +"_" + fit_var)
+        else:
+            hist = f.Get(s + "_" + fit_var)
         hist.Sumw2()
         print( s, hist.Integral() )
         histos[s] = hist

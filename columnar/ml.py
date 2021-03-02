@@ -68,18 +68,12 @@ def train_test_split(df, n = 5000):
     df['train_flag'] = np.select(cond, choice)
     
     
-def train(n_sig = 4000, n_bkg = 4000):
+def train(samples, n_sig = 4000, n_bkg = 4000):
     
-    files = glob.glob("candidates/*.h5")
-    samples = {}
-    for sample in files:
-        sample_name = sample.split("/")[-1][:-3]
-        print(sample_name)
-        samples[sample_name] = pd.read_hdf(sample)
     
     print("Prepare training data")
     
-    signal = samples["TTJets_signal"]
+    signal = samples["TTJets_signal_central"]
     bkg = samples["QCD"]
     
     train_test_split(signal, n_sig)
@@ -127,6 +121,5 @@ def train(n_sig = 4000, n_bkg = 4000):
     
     for sample in samples:
         samples[sample]["bdt"] = bdt.predict_proba(samples[sample][features].values)[:,0]    
-        samples[sample].to_hdf("bdt/" + sample + ".h5", "frame", mode='w')
     
 

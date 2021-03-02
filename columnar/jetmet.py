@@ -14,6 +14,53 @@ ext.finalize()
 
 evaluator = ext.make_evaluator()
 
+
+def corr_met(met, initial_p4, new_p4):
+    
+    # MET
+    met_p4 = uproot_methods.classes.TLorentzVector.TLorentzVectorArray(met["px"], met["py"],met["pz"], met["e"])
+    #met["pt"] = met_p4.pt
+    met["met"] = met_p4.Et
+    #met["px"] = met_p4.px
+    #met["py"] = met_p4.py
+    #met["pz"] = met_p4.pz
+    #met["e"] = met_p4.e
+    
+    # set MET values
+    new_x = met_p4.x - (initial_p4.x - new_p4.x).sum()
+    new_y = met_p4.y - (initial_p4.y - new_p4.y).sum()
+    new_met_p4 = uproot_methods.TLorentzVectorArray.from_ptetaphim(
+                                                                np.sqrt(new_x**2 + new_y**2), 0,
+                                                                    np.arctan2(new_y, new_x), 0 )
+    """
+    met_p4.content._contents = uproot_methods.TLorentzVectorArray.from_ptetaphim(
+        np.sqrt(new_x**2 + new_y**2), 0,
+        np.arctan2(new_y, new_x), 0
+    ).content
+    """
+    met["met"] = new_met_p4.Et
+    met["pt"] = new_met_p4.pt
+    met["e"] = new_met_p4.E
+    met["px"] = new_met_p4.x
+    met["py"] = new_met_p4.y
+    met["pz"] = new_met_p4.z
+    
+    return met
+    
+    """
+    jets_sin = np.sin(jet['p4'].phi)
+    jets_cos = np.cos(jet['p4'].phi)
+    for name, _ in juncs:
+        for shift in ['up', 'down']:
+            px = met['p4'].x - (initial_p4.x - jet['pt_{0}_{1}'.format(name, shift)] * jets_cos).sum()
+            py = met['p4'].y - (initial_p4.y - jet['pt_{0}_{1}'.format(name, shift)] * jets_sin).sum()
+            met['pt_{0}_{1}'.format(name, shift)] = np.sqrt(px**2 + py**2)
+            met['phi_{0}_{1}'.format(name, shift)] = np.arctan2(py, px)
+     """
+    
+    return
+
+
 def transform(jets, met=None, corrLevel = "cent", doJER = True, jer=0.1, forceStochastic=False):
     
     # Order of transformations:
@@ -157,6 +204,10 @@ def transform(jets, met=None, corrLevel = "cent", doJER = True, jer=0.1, forceSt
     jet["csvDisc"] = jets.csvDisc
     jet["flavour"] = jets.flavour
     jet["pt"] = jet["p4"].pt
+    jet["px"] = jet["p4"].x
+    jet["py"] = jet["p4"].y
+    jet["pz"] = jet["p4"].z
+    jet["e"] = jet["p4"].E
     jet["eta"] = jet["p4"].eta
     jet["mass"] = jet["p4"].mass
     jet["phi"] = jet["p4"].phi
@@ -172,24 +223,58 @@ def transform(jets, met=None, corrLevel = "cent", doJER = True, jer=0.1, forceSt
     if met is None:
         return jet
         
-    # set MET values
-    new_x = met['p4'].x - (initial_p4.x - jet['p4'].x).sum()
-    new_y = met['p4'].y - (initial_p4.y - jet['p4'].y).sum()
-    met['p4'].content._contents = TLorentzVectorArray.from_ptetaphim(
-        np.sqrt(new_x**2 + new_y**2), 0,
-        np.arctan2(new_y, new_x), 0
-    ).content
-
+    met = corr_met(met, initial_p4, jet['p4'])
+    return jet, met
     
-    jets_sin = np.sin(jet['p4'].phi)
-    jets_cos = np.cos(jet['p4'].phi)
-    for name, _ in juncs:
-        for shift in ['up', 'down']:
-            px = met['p4'].x - (initial_p4.x - jet['pt_{0}_{1}'.format(name, shift)] * jets_cos).sum()
-            py = met['p4'].y - (initial_p4.y - jet['pt_{0}_{1}'.format(name, shift)] * jets_sin).sum()
-            met['pt_{0}_{1}'.format(name, shift)] = np.sqrt(px**2 + py**2)
-            met['phi_{0}_{1}'.format(name, shift)] = np.arctan2(py, px)
-            
+    
+    
+def scale_tau(taus, met = None, corr = "tau_eup", percent=0.03):
+    
+    if corr == "tau_eup":
+        sf = 1. + percent
+    else:
+        sf = 1. - percent
+    
+    tau = JaggedCandidateArray.candidatesfromcounts(
+        taus.counts,
+        pt=taus.pt.flatten(),
+        eta=taus.eta.flatten(),
+        phi=taus.phi.flatten(),
+        mass=taus.mass.flatten()
+    )
+    
+    initial_p4 = tau['p4'].copy()  # keep a copy for fixing met
+    
+    tau._content._contents['__fast_pt'] = sf * tau.pt.content
+    tau._content._contents['__fast_mass'] = sf * tau.mass.content
+    tau._content._contents['p4'] = uproot_methods.TLorentzVectorArray.from_ptetaphim(tau.pt.content,
+                                                              tau.eta.content,
+                                                              tau.phi.content,
+                                                              tau.mass.content)  
+    
+    tau["pt"] = tau["p4"].pt
+    tau["px"] = tau["p4"].x
+    tau["py"] = tau["p4"].y
+    tau["pz"] = tau["p4"].z
+    tau["e"] = tau["p4"].E
+    tau["eta"] = tau["p4"].eta
+    tau["mass"] = tau["p4"].mass
+    tau["phi"] = tau["p4"].phi
+    tau["charge"] = taus["charge"]
+    tau["byMediumCombinedIsolationDeltaBetaCorr"] = taus["byMediumCombinedIsolationDeltaBetaCorr"]
+    tau["leadTrackPt"] = taus["leadTrackPt"]
+    tau["dxy"] = taus["dxy"]
+    tau["z"] = taus["z"]
+    tau["againstMuonTight"] = taus["againstMuonTight"]
+    tau["againstElectronTight"] = taus["againstElectronTight"]
+    
+    if met is None:
+        return tau
+    
+    met = corr_met(met, initial_p4, tau['p4'])
+    
+    return tau, met
+
     
 def make_jer_hists():
     

@@ -11,6 +11,22 @@ def save_var(sample, name, var_name, bins = 20, xlow = 0., xup = 350):
 
     hist = ROOT.TH1D(name + "_" + var_name, name + "_" + var_name, bins, xlow, xup)
     hist.Sumw2()
+    
+    if name == "Data":
+        pass
+    elif name == "QCD":
+        if var_name == "bdt":
+            scale_qcd = 9.
+            sample = sample[sample["train_flag"] == "test"]
+        else:
+            scale_qcd = 4.3
+        sample['weight'] = sample['btag_weight'] * scale_qcd
+    else:
+        #samples[sample]['new_trigger_weight'] = new_samples[sample].apply(lambda ev : weights.trigger_weight(ev), axis=1)
+        sample['weight'] = sample['norm'] * (1/1000) * sample['trigger_weight'] * sample['Jet_btag_weight1']
+        #print(sample, sum(samples[sample]['weight']))
+        #new_samples[sample]['btag_weight2']
+    
     # Flatten if the column is a list
     if "Jet_" in var_name:
         series = sample[var_name].apply(pd.Series).stack().reset_index(drop=True)
@@ -89,4 +105,140 @@ def plot_btag_weights():
     # Weights
     save_var(qcd, "QCD_mistag_weight", var_weight["var_name"], var_weight["bins"], var_weight["xlow"], var_weight["xup"])
 
-    file.Close()    
+    file.Close() 
+    
+    
+def createRatio(h1, h2):
+    
+    h3 = h1.Clone("h3")
+    h3.SetLineColor(ROOT.kBlack)
+    h3.SetMarkerStyle(20)
+    h3.SetMarkerSize(0.5)
+    h3.SetTitle("")
+    h3.SetMinimum(0.5)
+    h3.SetMaximum(1.5)
+    # Set up plot for markers and errors
+    h3.Sumw2()
+    h3.SetStats(0)
+    h3.Divide(h2)
+
+    
+    # Adjust y-axis settings
+    y = h3.GetYaxis()
+    y.SetTitle("Ratio weights")
+    y.SetNdivisions(505)
+    y.SetTitleSize(20)
+    y.SetTitleFont(43)
+    y.SetTitleOffset(1.55)
+    y.SetLabelFont(43)
+    y.SetLabelSize(15)
+ 
+    # Adjust x-axis settings
+    x = h3.GetXaxis()
+    x.SetTitleSize(20)
+    x.SetTitleFont(43)
+    x.SetTitleOffset(4.)
+    x.SetLabelFont(43)
+    x.SetLabelSize(15)
+    
+    return h3
+
+def createCanvasPads():
+
+    c = ROOT.TCanvas("c", "canvas", 800, 800)
+    # Upper histogram plot is pad1
+    pad1 = ROOT.TPad("pad1", "pad1", 0, 0.51, 1, 1.0)
+    pad1.SetBottomMargin(0)  # joins upper and lower plot
+    #pad1.SetGridx()
+    pad1.Draw()
+    # Lower ratio plot is pad2
+    c.cd()  # returns to main canvas before defining pad2
+    pad2 = ROOT.TPad("pad2", "pad2", 0, 0.3, 1, 0.5)
+    pad2.SetTopMargin(0)  # joins upper and lower plot
+    pad2.SetBottomMargin(0.3)
+    #pad2.SetGridx()
+    pad2.Draw()
+
+    return c, pad1, pad2
+    
+def plot_variation(var, xlabel, corr, cent, up, down):
+
+    ROOT.gROOT.SetBatch()
+    ROOT.gStyle.SetOptStat(0)
+    
+    ratio_up = createRatio(up, cent)
+    ratio_down = createRatio(down, cent)
+    
+    c, pad1, pad2 = createCanvasPads()
+
+    # draw everything
+    pad1.cd()
+    cent.Draw()
+    up.Draw("SAME")
+    up.SetLineColor(ROOT.kRed+2)
+    down.Draw("SAME")
+    down.SetLineColor(ROOT.kGreen+2)
+
+    cent.SetTitle(var + " " + corr)
+    print(var, xlabel)
+    leg = ROOT.TLegend(0.6, 0.7, .89, .89);
+    leg.AddEntry(cent, "central", "l");
+    leg.AddEntry(up, "up", "l");
+    leg.AddEntry(down, "down", "l");
+    leg.SetBorderSize(0)
+    leg.Draw("SAME")
+    
+    pad2.cd()
+    ratio_up.Draw("ep")
+    ratio_up.SetLineColor(ROOT.kRed+2)
+    ratio_up.SetMarkerColor(ROOT.kRed+2)
+    ratio_down.Draw("epSAME")    
+    ratio_down.SetMarkerColor(ROOT.kGreen+2)
+    ratio_down.SetLineColor(ROOT.kGreen+2)
+    ratio_down.GetXaxis().SetTitle(xlabel)
+
+    """
+    c = ROOT.TCanvas()
+    ROOT.gStyle.SetOptStat(0)
+    cent.Draw()
+    up.Draw("SAME")
+    up.SetLineColor(ROOT.kRed+2)
+    down.Draw("SAME")
+    down.SetLineColor(ROOT.kGreen+2)
+
+    cent.SetTitle(var + " " + corr)
+    print(var, xlabel)
+    cent.GetXaxis().SetTitle(xlabel)
+
+    leg = ROOT.TLegend(0.6, 0.7, .89, .89);
+    leg.AddEntry(cent, "central", "l");
+    leg.AddEntry(up, "up", "l");
+    leg.AddEntry(down, "down", "l");
+    leg.SetBorderSize(0)
+    leg.Draw("SAME")
+    """
+    c.Print("syst/" + var + "_" + corr + ".png")
+    
+    
+def syst(variables, sample = "TTJets", file_name = "bdt_corr"):
+    
+    path = "histos/" + file_name + ".root"
+    f = ROOT.TFile(path)
+    
+    
+    
+    for var in variables:
+        print(sample + "_centJER_" + var["var_name"])
+        hist_cent = f.Get(sample + "_centJER_" + var["var_name"])
+        print(hist_cent.Integral())
+        hist_jes_up = f.Get(sample + "_jes_up_" + var["var_name"])
+        hist_jes_down = f.Get(sample + "_jes_down_" + var["var_name"])
+        hist_jer_up = f.Get(sample + "_jer_up_" + var["var_name"])
+        hist_jer_down = f.Get(sample + "_jer_down_" + var["var_name"])        
+        hist_tau_eup = f.Get(sample + "_tau_eup_" + var["var_name"])
+        hist_tau_edown = f.Get(sample + "_tau_edown_" + var["var_name"])  
+        
+        # JES
+        plot_variation(var["var_name"], var["xtitle"], "JES", hist_cent, hist_jes_up, hist_jes_down)
+        plot_variation(var["var_name"], var["xtitle"], "JER", hist_cent, hist_jer_up, hist_jes_down)
+        plot_variation(var["var_name"], var["xtitle"], "Tau Scale", hist_cent, hist_tau_eup, hist_tau_edown)
