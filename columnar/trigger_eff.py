@@ -192,7 +192,7 @@ if __name__ == "__main__":
     
     #print( "Jet trigger event selection" )
     #selection_jet()
-    #print( "Tau trigger event selection" )
-    #selection_tau()
+    print( "Tau trigger event selection" )
+    selection_tau()
     #spass
-    eff()
+    #eff()

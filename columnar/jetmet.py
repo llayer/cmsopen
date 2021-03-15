@@ -8,7 +8,8 @@ from copy import deepcopy
 ext = extractor()
 ext.add_weight_sets([
     "* * data/Legacy11_V1_DATA_UncertaintySources_AK5PFchs.junc.txt",
-    "* * jer_sf.root"
+    "* * jer_sf.root",
+    "* * JESUncMC.root"
 ])
 ext.finalize()
 
@@ -81,7 +82,8 @@ def transform(jets, met=None, corrLevel = "cent", doJER = True, jer=0.1, forceSt
     genpt = np.sqrt( jets.genpx**2 + jets.genpy**2)
     
     # JEC SF is already applied in PAT
-    juncs = evaluator['Legacy11_V1_DATA_UncertaintySources_AK5PFchs_Total'](abs(jet.__fast_eta), jet.__fast_pt)
+    #juncs = evaluator['Legacy11_V1_DATA_UncertaintySources_AK5PFchs_Total'](abs(jet.__fast_eta), jet.__fast_pt)
+    juncs = evaluator['Legacy11_V1_DATA_UncertaintySources_AK5PFchs_Total'](jet.__fast_eta, jet.__fast_pt)
 
     # if there's a jer and sf to apply we have to update the momentum too
     # right now only use stochastic smearing
@@ -152,11 +154,23 @@ def transform(jets, met=None, corrLevel = "cent", doJER = True, jer=0.1, forceSt
     
         
     # have to apply central jersf before calculating junc
+    # Check old systs:
+    jes_old = evaluator['JESUncHisto'](jet.__fast_eta, jet.__fast_pt)
+    
     jet.add_attributes(**{
         'pt_jes_up': juncs[:,:,0] * jet.pt,
         'mass_jes_up': juncs[:,:,0] * jet.mass,
         'pt_jes_down': juncs[:,:,1] * jet.pt,
-        'mass_jes_down': juncs[:,:,1] * jet.mass
+        'mass_jes_down': juncs[:,:,1] * jet.mass,
+        'pt_jes_up_old': (1. + jes_old) * jet.pt,
+        'mass_jes_up_old': (1. + jes_old) * jet.mass,
+        'pt_jes_down_old': (1. - jes_old) * jet.pt,
+        'mass_jes_down_old': (1. - jes_old) * jet.mass,
+        'jes_up': juncs[:,:,0],
+        'jes_down': juncs[:,:,1],
+        'jes_up_old': 1. + jes_old,
+        'jes_down_old': 1. - jes_old
+        
     })
 
     # hack to update the jet p4, we have the fully updated pt and mass here
@@ -176,7 +190,20 @@ def transform(jets, met=None, corrLevel = "cent", doJER = True, jer=0.1, forceSt
         jet._content._contents['p4'] = uproot_methods.TLorentzVectorArray.from_ptetaphim(jet.pt_jes_down.content,
                                                                       jet.eta.content,
                                                                       jet.phi.content,
-                                                                      jet.mass_jes_down.content)     
+                                                                      jet.mass_jes_down.content) 
+    elif corrLevel == "jes_up_old":
+        
+        jet._content._contents['p4'] = uproot_methods.TLorentzVectorArray.from_ptetaphim(jet.pt_jes_up_old.content,
+                                                                      jet.eta.content,
+                                                                      jet.phi.content,
+                                                                      jet.mass_jes_up_old.content)         
+    elif corrLevel == "jes_down_old":
+        
+        jet._content._contents['p4'] = uproot_methods.TLorentzVectorArray.from_ptetaphim(jet.pt_jes_down_old.content,
+                                                                      jet.eta.content,
+                                                                      jet.phi.content,
+                                                                      jet.mass_jes_down_old.content) 
+        
         
     elif corrLevel == "jer_up":
         print("JERUP")

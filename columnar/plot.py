@@ -125,7 +125,7 @@ def createRatio(h1, h2):
     
     # Adjust y-axis settings
     y = h3.GetYaxis()
-    y.SetTitle("Ratio weights")
+    y.SetTitle("Ratio")
     y.SetNdivisions(505)
     y.SetTitleSize(20)
     y.SetTitleFont(43)
@@ -181,7 +181,7 @@ def plot_variation(var, xlabel, corr, cent, up, down):
 
     cent.SetTitle(var + " " + corr)
     print(var, xlabel)
-    leg = ROOT.TLegend(0.6, 0.7, .89, .89);
+    leg = ROOT.TLegend(0.6, 0.65, .8, .89);
     leg.AddEntry(cent, "central", "l");
     leg.AddEntry(up, "up", "l");
     leg.AddEntry(down, "down", "l");
@@ -196,6 +196,12 @@ def plot_variation(var, xlabel, corr, cent, up, down):
     ratio_down.SetMarkerColor(ROOT.kGreen+2)
     ratio_down.SetLineColor(ROOT.kGreen+2)
     ratio_down.GetXaxis().SetTitle(xlabel)
+    
+    f1 = ROOT.TLine(0, 1., 1,1.)
+    f1.SetLineColor(ROOT.kBlack)
+    f1.SetLineStyle(ROOT.kDashed)
+    f1.Draw("same")
+
 
     """
     c = ROOT.TCanvas()

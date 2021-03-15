@@ -15,7 +15,7 @@ import root_pandas
 data = ['Run2011A_MultiJet', 'Run2011B_MultiJet']
 mc = ['T_TuneZ2_s', 'TTJets', 'WJetsToLNu', 'DYJetsToLL', 'T_TuneZ2_tW', 'T_TuneZ2_t-channel',
        'Tbar_TuneZ2_s', 'Tbar_TuneZ2_tW', 'Tbar_TuneZ2_t-channel']
-corrections = ["centJER", "jes_up", "jes_down", "jer_up", "jer_down", "tau_eup", "tau_edown"]
+corrections = ["centJER", "jes_up", "jes_down", "jes_up_old", "jes_down_old", "jer_up", "jer_down", "tau_eup", "tau_edown"]
 
 
 def event_selection(outpath = "samples_corr/"):
@@ -207,7 +207,7 @@ def plot_syst(variables, file_name = "bdt_corr"):
 def fit_xsec(var = "MET_met", file_name = "bdt_corr"):
     
     sample_names = ["Data", "TTJets_bkg", "WZJets", "STJets", "QCD", "TTJets_signal"]
-    sf_tt_sig, sf_qcd = fit.fit("histos/" + file_name + ".root", sample_names, var, corr="tau_edown")
+    sf_tt_sig, sf_qcd = fit.fit("histos/" + file_name + ".root", sample_names, var, corr="centJER")
     sfs = {}
     sfs["TTJets_signal"] = sf_tt_sig
     sfs["QCD"] = sf_qcd
@@ -216,11 +216,11 @@ def fit_xsec(var = "MET_met", file_name = "bdt_corr"):
 if __name__ == "__main__":
     
     ev_sel = False
-    proc_cands = False
+    proc_cands = True
     do_plotting = False
     run_bdt = False
     plot_bdt = False
-    do_stack = True
+    do_stack = False
     do_syst = False
     do_fit = False
     
