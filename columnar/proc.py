@@ -11,11 +11,28 @@ import glob
 import ml
 import root_pandas
 
+ev_sel = False
+proc_cands = False
+do_plotting = False
+run_bdt = False
+plot_bdt = False
+do_stack = False
+do_syst = True
+do_fit = False
 
 data = ['Run2011A_MultiJet', 'Run2011B_MultiJet']
-mc = ['T_TuneZ2_s', 'TTJets', 'WJetsToLNu', 'DYJetsToLL', 'T_TuneZ2_tW', 'T_TuneZ2_t-channel',
-       'Tbar_TuneZ2_s', 'Tbar_TuneZ2_tW', 'Tbar_TuneZ2_t-channel']
+mc = ['T_TuneZ2_s', 'WJetsToLNu', 'DYJetsToLL', 'T_TuneZ2_tW', 'T_TuneZ2_t-channel',
+       'Tbar_TuneZ2_s', 'Tbar_TuneZ2_tW', 'Tbar_TuneZ2_t-channel', 'TTJets']
 corrections = ["centJER", "jes_up", "jes_down", "jes_up_old", "jes_down_old", "jer_up", "jer_down", "tau_eup", "tau_edown"]
+
+
+def check_keys():
+    
+    for sample in mc:
+        f = h5py.File( sample + ".h5", 'r')
+        for k in corrections + ["central"]:
+            if not (sample + "_" + k in f.keys()):
+                print(sample + "_" + k)
 
 
 def event_selection(outpath = "samples_corr/"):
@@ -123,12 +140,13 @@ def rearrange_samples(samples):
 def proc_candidates(outpath="candidates_corr/", njets = -1):
     
     samples = {}
-        
+    
+    
     for sample in data:
         path = "preselection_merged/" + sample + ".root"
         samples[sample] = candidates(sample, "central", invert_btag = False, njets=njets)
         samples["QCD_" + sample] = candidates(sample, "central", invert_btag = True, njets=njets)
-        
+    
     for sample in mc:
         
         for key in ["central"] + corrections:
@@ -136,7 +154,7 @@ def proc_candidates(outpath="candidates_corr/", njets = -1):
      
     new_samples = rearrange_samples(samples)
     
-    for name in ["Data", "TTJets_bkg", "WZJets", "STJets", "QCD", "TTJets_signal"]:
+    for name in ["TTJets_signal"]: #["Data", "TTJets_bkg", "WZJets", "STJets", "QCD", "TTJets_signal"]:
         for sample in new_samples:
             if name in sample:
                 # DANGER!! Delete samples
@@ -199,7 +217,7 @@ def bdt(outpath = "bdt_corr/"):
                 samples[sample].to_hdf(outpath + name + ".h5", sample, mode='a')
     
     
-def plot_syst(variables, file_name = "bdt_corr"):
+def plot_syst(variables, file_name = "histos"):
     
     plot.syst(variables, sample = "TTJets_signal", file_name = file_name)
     
@@ -214,15 +232,7 @@ def fit_xsec(var = "MET_met", file_name = "bdt_corr"):
     #stack.plot( "histos/" + file_name + ".root", var, sample_names[1:], sfs )
     
 if __name__ == "__main__":
-    
-    ev_sel = False
-    proc_cands = True
-    do_plotting = False
-    run_bdt = False
-    plot_bdt = False
-    do_stack = False
-    do_syst = False
-    do_fit = False
+   
     
     if ev_sel:
         event_selection()
@@ -247,7 +257,7 @@ if __name__ == "__main__":
             {"var_name" : "sphericity", "bins" : 20, "xlow" : 0., "xup" : 1.0, "xtitle" : "sphericity"}
             
         ]
-        plot_vars(variables)
+        plot_vars(variables, inpath = "candidates_corr/")
         
     if run_bdt:
         bdt()
@@ -293,19 +303,19 @@ if __name__ == "__main__":
         
     if do_syst:
         variables = [
-            #{"var_name" : "MET_met", "bins" : 30, "xlow" : 0., "xup" : 400, "xtitle" : "MET [GeV]"},
-            #{"var_name" : "Tau_pt", "bins" : 30, "xlow" : 0., "xup" : 250, "xtitle" : "p_{T}(#tau) [GeV]"},
-            #{"var_name" : "aplanarity", "bins" : 20, "xlow" : 0., "xup" : 0.5, "xtitle" : "aplanarity"},
-            #{"var_name" : "ht", "bins" : 20, "xlow" : 0., "xup" : 1600., "xtitle" : "H_{T} [GeV]"},
-            #{"var_name" : "chargeEta", "bins" : 20, "xlow" : -3., "xup" : 3., "xtitle" : "q #times #eta(#tau)"},
-            #{"var_name" : "deltaPhiTauMet", "bins" : 20, "xlow" : 0., "xup" : 3.2, "xtitle" : "#Delta#phi(#tau, MET)"},
-            #{"var_name" : "mt", "bins" : 20, "xlow" : 0., "xup" : 300., "xtitle" : "M_{T}(#tau, MET) [GeV]"},
-            #{"var_name" : "mTauJet", "bins" : 20, "xlow" : 0., "xup" : 2500., "xtitle" :"M(#tau, jets) [GeV]"},
-            #{"var_name" : "nJets", "bins" : 10, "xlow" : 0., "xup" : 10., "xtitle" : "N. of jets"},
-            #{"var_name" : "Jet_pt", "bins" : 30, "xlow" : 0., "xup" : 400., "xtitle" : "p_{T}(jet) [GeV]"},
-            #{"var_name" : "Jet_eta", "bins" : 30, "xlow" : -3., "xup" : 3., "xtitle" : "#eta(jet)"},
-            #{"var_name" : "sphericity", "bins" : 20, "xlow" : 0., "xup" : 1.0, "xtitle" : "sphericity"},
-            {"var_name" : "bdt", "bins" : 15, "xlow" : 0., "xup" : 1., "xtitle" : "bdt"}
+            {"var_name" : "MET_met", "bins" : 30, "xlow" : 0., "xup" : 400, "xtitle" : "MET [GeV]"},
+            {"var_name" : "Tau_pt", "bins" : 30, "xlow" : 0., "xup" : 250, "xtitle" : "p_{T}(#tau) [GeV]"},
+            {"var_name" : "aplanarity", "bins" : 20, "xlow" : 0., "xup" : 0.5, "xtitle" : "aplanarity"},
+            {"var_name" : "ht", "bins" : 20, "xlow" : 0., "xup" : 1600., "xtitle" : "H_{T} [GeV]"},
+            {"var_name" : "chargeEta", "bins" : 20, "xlow" : -3., "xup" : 3., "xtitle" : "q #times #eta(#tau)"},
+            {"var_name" : "deltaPhiTauMet", "bins" : 20, "xlow" : 0., "xup" : 3.2, "xtitle" : "#Delta#phi(#tau, MET)"},
+            {"var_name" : "mt", "bins" : 20, "xlow" : 0., "xup" : 300., "xtitle" : "M_{T}(#tau, MET) [GeV]"},
+            {"var_name" : "mTauJet", "bins" : 20, "xlow" : 0., "xup" : 2500., "xtitle" :"M(#tau, jets) [GeV]"},
+            {"var_name" : "nJets", "bins" : 10, "xlow" : 0., "xup" : 10., "xtitle" : "N. of jets"},
+            {"var_name" : "Jet_pt", "bins" : 30, "xlow" : 0., "xup" : 400., "xtitle" : "p_{T}(jet) [GeV]"},
+            {"var_name" : "Jet_eta", "bins" : 30, "xlow" : -3., "xup" : 3., "xtitle" : "#eta(jet)"},
+            {"var_name" : "sphericity", "bins" : 20, "xlow" : 0., "xup" : 1.0, "xtitle" : "sphericity"},
+            #{"var_name" : "bdt", "bins" : 15, "xlow" : 0., "xup" : 1., "xtitle" : "bdt"}
         ]
         plot_syst(variables)
         

@@ -232,7 +232,6 @@ def syst(variables, sample = "TTJets", file_name = "bdt_corr"):
     f = ROOT.TFile(path)
     
     
-    
     for var in variables:
         print(sample + "_centJER_" + var["var_name"])
         hist_cent = f.Get(sample + "_centJER_" + var["var_name"])
@@ -243,8 +242,11 @@ def syst(variables, sample = "TTJets", file_name = "bdt_corr"):
         hist_jer_down = f.Get(sample + "_jer_down_" + var["var_name"])        
         hist_tau_eup = f.Get(sample + "_tau_eup_" + var["var_name"])
         hist_tau_edown = f.Get(sample + "_tau_edown_" + var["var_name"])  
+        hist_jes_up_old = f.Get(sample + "_jes_up_old_" + var["var_name"])
+        hist_jes_down_old = f.Get(sample + "_jes_down_old_" + var["var_name"])
         
         # JES
         plot_variation(var["var_name"], var["xtitle"], "JES", hist_cent, hist_jes_up, hist_jes_down)
         plot_variation(var["var_name"], var["xtitle"], "JER", hist_cent, hist_jer_up, hist_jes_down)
         plot_variation(var["var_name"], var["xtitle"], "Tau Scale", hist_cent, hist_tau_eup, hist_tau_edown)
+        plot_variation(var["var_name"], var["xtitle"], "JES old", hist_cent, hist_jes_up_old, hist_jes_down_old)
