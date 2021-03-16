@@ -14,10 +14,10 @@ import root_pandas
 ev_sel = False
 proc_cands = False
 do_plotting = False
-run_bdt = False
+run_bdt = True
 plot_bdt = False
 do_stack = False
-do_syst = True
+do_syst = False
 do_fit = False
 
 data = ['Run2011A_MultiJet', 'Run2011B_MultiJet']
@@ -62,7 +62,7 @@ def event_selection(outpath = "samples_corr/"):
 
     
     
-def candidates(sample, key, invert_btag = False, njets=-1):
+def candidates(sample, key, invert_btag = False, njets=-1, scale_met=None):
     
     if "Run2011" in sample: isData = True
     else: isData = False
@@ -80,6 +80,8 @@ def candidates(sample, key, invert_btag = False, njets=-1):
         df = btag.at_least_1tag(df)
 
     # MET cut
+    if scale_met != None:
+        df['MET_met'] = df['MET_met'] * scale_met
     df = selection.met_requirement(df)
 
     
@@ -95,9 +97,13 @@ def candidates(sample, key, invert_btag = False, njets=-1):
         trigger_frac = hlt_40 / float(hlt_45)
         df = pd.concat([df, df.apply(lambda ev: pd.Series(btag.eval_sf_eff(ev)), axis=1)], axis=1)
         df["Jet_btag_weight1"] = df.apply(lambda ev : btag.b_weight_method1(ev, njets=njets), axis=1)
-        df["Jet_btag_weight2"] = df.apply(lambda ev : btag.b_weight_method2(ev, njets=njets), axis=1)
+        if (key == "central") | (key == "centJER"):
+            df["Jet_btag_weight1_up"] = df.apply(lambda ev : btag.b_weight_method1(ev, syst='up', njets=njets), axis=1)
+            df["Jet_btag_weight1_down"] = df.apply(lambda ev : btag.b_weight_method1(ev, syst='down', njets=njets), axis=1)
+        #df["Jet_btag_weight2"] = df.apply(lambda ev : btag.b_weight_method2(ev, njets=njets), axis=1)
         # trigger weights
-        df["trigger_weight"] = df.apply(lambda ev : weights.trigger_weight(ev, trigger_frac), axis=1)
+        #df["trigger_weight"] = df.apply(lambda ev : weights.trigger_weight(ev, trigger_frac), axis=1)
+        df = pd.concat([df, df.apply(lambda ev: pd.Series(weights.trigger_weight(ev, trigger_frac)), axis=1)], axis=1)
         # normalization
         counts_path = "/eos/user/l/llayer/opendata_files/preselection_merged/" + sample + "_counts.root"
         total_counts = root_pandas.read_root(counts_path)
@@ -121,7 +127,7 @@ def rearrange_samples(samples):
     
     # Concat and split MC in signal and background
     new_samples = {}
-    for key in ["central"] + corrections:
+    for key in ["central", "met_up", "met_down"] + corrections:
 
         new_samples["TTJets_signal_" + key], new_samples["TTJets_bkg_" + key] = weights.classify_tt(samples["TTJets_" + key])
         new_samples["WZJets_" + key] = pd.concat([samples['WJetsToLNu_' + key], samples['DYJetsToLL_' + key]], axis=0)
@@ -147,19 +153,24 @@ def proc_candidates(outpath="candidates_corr/", njets = -1):
         samples[sample] = candidates(sample, "central", invert_btag = False, njets=njets)
         samples["QCD_" + sample] = candidates(sample, "central", invert_btag = True, njets=njets)
     
+    
     for sample in mc:
         
         for key in ["central"] + corrections:
             samples[sample + "_" + key] = candidates(sample, key, invert_btag = False, njets=njets)   
-     
+        # MET variation
+        samples[sample + "_met_up"] = candidates(sample, "central", invert_btag = False, njets=njets, scale_met=1.1)
+        samples[sample + "_met_down"] = candidates(sample, "central", invert_btag = False, njets=njets, scale_met=0.9)
+
     new_samples = rearrange_samples(samples)
     
-    for name in ["TTJets_signal"]: #["Data", "TTJets_bkg", "WZJets", "STJets", "QCD", "TTJets_signal"]:
+    for name in ["Data", "TTJets_bkg", "WZJets", "STJets", "QCD", "TTJets_signal"]:
         for sample in new_samples:
             if name in sample:
                 # DANGER!! Delete samples
                 new_samples[sample].to_hdf(outpath + name + ".h5", sample, mode='a')
     
+           
     
 def plot_vars( variables, inpath = "bdt_corr/"):
     
@@ -203,7 +214,7 @@ def bdt(outpath = "bdt_corr/"):
         sample_name = sample.split("/")[-1][:-3]
         print(sample_name)
         if (sample_name != "Data") & (sample_name != "QCD"):
-            for key in ["central"] + corrections:
+            for key in ["central", "met_up", "met_down"] + corrections:
                 samples[sample_name + "_" + key] = pd.read_hdf(sample, sample_name + "_" + key)
         else:
             samples[sample_name] = pd.read_hdf(sample)
@@ -222,7 +233,7 @@ def plot_syst(variables, file_name = "histos"):
     plot.syst(variables, sample = "TTJets_signal", file_name = file_name)
     
     
-def fit_xsec(var = "MET_met", file_name = "bdt_corr"):
+def fit_xsec(var = "MET_met", file_name = "bdt_corr", syst=False):
     
     sample_names = ["Data", "TTJets_bkg", "WZJets", "STJets", "QCD", "TTJets_signal"]
     sf_tt_sig, sf_qcd = fit.fit("histos/" + file_name + ".root", sample_names, var, corr="centJER")
@@ -230,6 +241,51 @@ def fit_xsec(var = "MET_met", file_name = "bdt_corr"):
     sfs["TTJets_signal"] = sf_tt_sig
     sfs["QCD"] = sf_qcd
     #stack.plot( "histos/" + file_name + ".root", var, sample_names[1:], sfs )
+    
+    if syst:
+        
+        
+        # JES/JER/TauScale
+        for c in  ["jes_up", "jes_down", "jes_up_old", "jes_down_old", "jer_up", "jer_down", "tau_eup", "tau_edown"]:
+            sf_tt_sig, sf_qcd = fit.fit("histos/" + file_name + ".root", sample_names, var, corr=c)     
+            sfs["TTJets_signal_" + c] = sf_tt_sig
+
+        # MET 10%
+            
+        # B-tagging
+            
+        # PDF
+        
+        # QCD reweighting
+        
+        # PU - not applied
+        
+        # Tau trigger leg  5%
+        
+        # Lumi 2%
+        
+        # Trigger stat
+            
+        # XSEC theory
+        
+        #
+        # TODO rerun with real samples!
+        #
+        # Top mass
+        sfs["TTJets_signal_topmass_down"] = sfs["TTJets_signal"] - 0.028 * sfs["TTJets_signal"]
+        sfs["TTJets_signal_topmass_up"] = sfs["TTJets_signal"] + 0.028 * sfs["TTJets_signal"]
+
+        # Top scale
+        sfs["TTJets_signal_qscale_down"] = sfs["TTJets_signal"] - 0.022 * sfs["TTJets_signal"]
+        sfs["TTJets_signal_qscale_up"] = sfs["TTJets_signal"] + 0.022 * sfs["TTJets_signal"]
+
+        # Top mass
+        sfs["TTJets_signal_partonmatch_down"] = sfs["TTJets_signal"] - 0.03 * sfs["TTJets_signal"]
+        sfs["TTJets_signal_partonmatch_up"] = sfs["TTJets_signal"] + 0.03 * sfs["TTJets_signal"]
+
+    
+    
+    
     
 if __name__ == "__main__":
    

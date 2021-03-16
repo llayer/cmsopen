@@ -42,7 +42,16 @@ def trigger_weight(ev, trigger_frac=0.218):
     jet2_weight = jet_hist.GetBinContent( jet_hist.GetXaxis().FindBin(jet_pt2) )
     tau_weight = tau_hist.GetBinContent( tau_hist.GetXaxis().FindBin(tau_pt) )
 
-    return 1. * jet0_weight * jet1_weight * jet2_weight * tau_weight
+    jet0_err = jet_hist.GetBinError( jet_hist.GetXaxis().FindBin(jet_pt0) )
+    jet1_err = jet_hist.GetBinError( jet_hist.GetXaxis().FindBin(jet_pt1) )
+    jet2_err = jet_hist.GetBinError( jet_hist.GetXaxis().FindBin(jet_pt2) )
+    tau_err = tau_hist.GetBinError( tau_hist.GetXaxis().FindBin(tau_pt) )
+
+    weight = 1. * jet0_weight * jet1_weight * jet2_weight * tau_weight
+    weight_up = 1. * (jet0_weight + jet0_err) * (jet1_weight + jet1_err) * (jet2_weight + jet2_err) * (tau_weight + tau_err)
+    weight_down = 1. * (jet0_weight - jet0_err) * (jet1_weight - jet1_err) * (jet2_weight - jet2_err) * (tau_weight - tau_err)
+    
+    return {"trigger_weight" : weight, "trigger_weight_up" : weight_up, "trigger_weight_down" : weight_down}
 
 
 def lumi():
@@ -67,7 +76,7 @@ def lumi():
 def get_xsec(sample):
     
     xsec = {'WJetsToLNu': [31314, 1558, 1558],
-        'TTJets': [164, 0., 0.], #[177.31, 0., 0.], #DANGER!! CHECK!!
+        'TTJets': [164, 10., 10.], #[177.31, 0., 0.], #DANGER!! CHECK!!
         'DYJetsToLL': [3048, 132, 132],
         'T_TuneZ2_t-channel': [42.6, 2.4, 2.3],
         'Tbar_TuneZ2_t-channel': [22.0, 0.1, 0.8],
@@ -83,7 +92,11 @@ def norm(candidates, counts, xsec, lumi = 3.9):
 
     total_events = counts['nEventsTotal'].sum()
     norm = (xsec[0] * lumi * 1000) / total_events
+    norm_up = ((xsec[0] + xsec[1]) * lumi * 1000) / total_events
+    norm_down = ((xsec[0] - xsec[2]) * lumi * 1000) / total_events
     candidates["norm"] = norm
+    candidates["norm_up"] = norm_up
+    candidates["norm_down"] = norm_down
     
     
 def classify_tt(ttjets):

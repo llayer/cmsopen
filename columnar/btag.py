@@ -45,6 +45,8 @@ def eval_sf_eff(ev):
     
     eff = []
     sf = []
+    sf_up = []
+    sf_down = []
     
     for i in range(len(pt)):
     
@@ -69,10 +71,12 @@ def eval_sf_eff(ev):
         try:
             eff.append( effs[flav][ind_pt, ind_eta] )
             sf.append(btag_sf.eval("central", flav_id, abs(eta[i]), pt_clipped, ignore_missing=True))
+            sf_up.append(btag_sf.eval("up", flav_id, abs(eta[i]), pt_clipped, ignore_missing=True))
+            sf_down.append(btag_sf.eval("down", flav_id, abs(eta[i]), pt_clipped, ignore_missing=True))
         except:
             print( "Error in calculating the b-tagging SF:", pt_clipped, eta[i], flavour[i] )
             
-    return {"Jet_btagSF" : sf, "Jet_beff" : eff}
+    return {"Jet_btagSF" : sf, "Jet_btagSF_up" : sf_up, "Jet_btagSF_down" : sf_down, "Jet_beff" : eff}
 
 """
 def eval_btagSF(ev):
@@ -89,10 +93,17 @@ def eval_btagSF(ev):
 
 
 # Corresponds to https://twiki.cern.ch/twiki/bin/viewauth/CMS/BTagSFMethods 1A
-def b_weight_method1(ev, njets = -1):
+def b_weight_method1(ev, syst='cent', njets = -1):
 
     jet_eff = ev["Jet_beff"]
-    jet_btagSF = ev["Jet_btagSF"]
+    if syst == 'cent':
+        jet_btagSF = ev["Jet_btagSF"]
+    elif syst == 'up':
+        jet_btagSF = ev["Jet_btagSF_up"]
+    elif syst == 'down':
+        jet_btagSF = ev["Jet_btagSF_down"]
+    else:
+        prin("No valid b-tag variation!!")
     jet_csvDisc = ev["Jet_csvDisc"]
     
     pMC=1.0
