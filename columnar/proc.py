@@ -14,11 +14,11 @@ import root_pandas
 ev_sel = False
 proc_cands = False
 do_plotting = False
-run_bdt = True
+run_bdt = False
 plot_bdt = False
 do_stack = False
 do_syst = False
-do_fit = False
+do_fit = True
 
 data = ['Run2011A_MultiJet', 'Run2011B_MultiJet']
 mc = ['T_TuneZ2_s', 'WJetsToLNu', 'DYJetsToLL', 'T_TuneZ2_tW', 'T_TuneZ2_t-channel',
@@ -180,7 +180,7 @@ def plot_vars( variables, inpath = "bdt_corr/"):
         sample_name = sample.split("/")[-1][:-3]
         print(sample_name)
         if (sample_name != "Data") & (sample_name != "QCD"):
-            for key in ["central"] + corrections:
+            for key in ["central", "met_up", "met_down"] + corrections:
                 samples[sample_name + "_" + key] = pd.read_hdf(sample, sample_name + "_" + key)
         else:
             samples[sample_name] = pd.read_hdf(sample)
@@ -233,7 +233,7 @@ def plot_syst(variables, file_name = "histos"):
     plot.syst(variables, sample = "TTJets_signal", file_name = file_name)
     
     
-def fit_xsec(var = "MET_met", file_name = "bdt_corr", syst=False):
+def fit_xsec(var = "MET_met", file_name = "bdt_corr", syst=True):
     
     sample_names = ["Data", "TTJets_bkg", "WZJets", "STJets", "QCD", "TTJets_signal"]
     sf_tt_sig, sf_qcd = fit.fit("histos/" + file_name + ".root", sample_names, var, corr="centJER")
@@ -244,29 +244,30 @@ def fit_xsec(var = "MET_met", file_name = "bdt_corr", syst=False):
     
     if syst:
         
-        
-        # JES/JER/TauScale
-        for c in  ["jes_up", "jes_down", "jes_up_old", "jes_down_old", "jer_up", "jer_down", "tau_eup", "tau_edown"]:
+        # PU - not applied
+        # JES/JER/TauScale/MET
+        for c in  ["jes_up", "jes_down", "jes_up_old", "jes_down_old", "jer_up", "jer_down", "tau_eup", "tau_edown",
+                   "met_up", "met_down"]:
             sf_tt_sig, sf_qcd = fit.fit("histos/" + file_name + ".root", sample_names, var, corr=c)     
             sfs["TTJets_signal_" + c] = sf_tt_sig
-
-        # MET 10%
             
-        # B-tagging
+        # B-tagging, Trigger stat, XSEC theory
+        for c in ["btag_up", "btag_down", "trigger_up", "trigger_down", "xsec_up", "xsec_down"]:
+            sf_tt_sig, sf_qcd = fit.fit("histos/" + file_name + ".root", sample_names, var, corr = "centJER_" + c)     
+            sfs["TTJets_signal_" + c] = sf_tt_sig
             
         # PDF
         
         # QCD reweighting
         
-        # PU - not applied
         
         # Tau trigger leg  5%
         
         # Lumi 2%
         
-        # Trigger stat
+        # 
             
-        # XSEC theory
+        # 
         
         #
         # TODO rerun with real samples!
@@ -283,7 +284,9 @@ def fit_xsec(var = "MET_met", file_name = "bdt_corr", syst=False):
         sfs["TTJets_signal_partonmatch_down"] = sfs["TTJets_signal"] - 0.03 * sfs["TTJets_signal"]
         sfs["TTJets_signal_partonmatch_up"] = sfs["TTJets_signal"] + 0.03 * sfs["TTJets_signal"]
 
-    
+    for name, value in sfs.items():
+        
+        print(name, value)
     
     
     
@@ -371,9 +374,9 @@ if __name__ == "__main__":
             {"var_name" : "Jet_pt", "bins" : 30, "xlow" : 0., "xup" : 400., "xtitle" : "p_{T}(jet) [GeV]"},
             {"var_name" : "Jet_eta", "bins" : 30, "xlow" : -3., "xup" : 3., "xtitle" : "#eta(jet)"},
             {"var_name" : "sphericity", "bins" : 20, "xlow" : 0., "xup" : 1.0, "xtitle" : "sphericity"},
-            #{"var_name" : "bdt", "bins" : 15, "xlow" : 0., "xup" : 1., "xtitle" : "bdt"}
+            {"var_name" : "bdt", "bins" : 15, "xlow" : 0., "xup" : 1., "xtitle" : "bdt"}
         ]
-        plot_syst(variables)
+        plot_syst(variables, file_name = "bdt_corr")
         
     if do_fit:
         fit_xsec(var = "bdt", file_name = "bdt_corr")

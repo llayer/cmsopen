@@ -7,9 +7,14 @@ import btag
 def stack_weight(weight, n):
     return np.full(n ,weight)
 
-def save_var(sample, name, var_name, bins = 20, xlow = 0., xup = 350):
+def save_var(sample, name, var_name, bins = 20, xlow = 0., xup = 350, corr=None):
 
-    hist = ROOT.TH1D(name + "_" + var_name, name + "_" + var_name, bins, xlow, xup)
+    print( name, var_name, corr )
+    
+    if corr is None:
+        hist = ROOT.TH1D(name + "_" + var_name, name + "_" + var_name, bins, xlow, xup)
+    else:
+        hist = ROOT.TH1D(name + "_" + corr + "_" + var_name, name + "_" + var_name + "_" + corr, bins, xlow, xup)
     hist.Sumw2()
     
     if name == "Data":
@@ -23,7 +28,23 @@ def save_var(sample, name, var_name, bins = 20, xlow = 0., xup = 350):
         sample['weight'] = sample['btag_weight'] * scale_qcd
     else:
         #samples[sample]['new_trigger_weight'] = new_samples[sample].apply(lambda ev : weights.trigger_weight(ev), axis=1)
-        sample['weight'] = sample['norm'] * (1/1000) * sample['trigger_weight'] * sample['Jet_btag_weight1']
+        if corr is None:
+            sample['weight'] = sample['norm'] * (1/1000) * sample['trigger_weight'] * sample['Jet_btag_weight1']
+        elif corr == "btag_up":
+            sample['weight'] = sample['norm'] * (1/1000) * sample['trigger_weight'] * sample['Jet_btag_weight1_up']
+        elif corr == "btag_down":
+            sample['weight'] = sample['norm'] * (1/1000) * sample['trigger_weight'] * sample['Jet_btag_weight1_down']
+        elif corr == "trigger_up":
+            sample['weight'] = sample['norm'] * (1/1000) * sample['trigger_weight_up'] * sample['Jet_btag_weight1']
+        elif corr == "trigger_down":
+            sample['weight'] = sample['norm'] * (1/1000) * sample['trigger_weight_down'] * sample['Jet_btag_weight1']
+        elif corr == "xsec_up":
+            sample['weight'] = sample['norm_up'] * (1/1000) * sample['trigger_weight'] * sample['Jet_btag_weight1']
+        elif corr == "xsec_down":
+            sample['weight'] = sample['norm_down'] * (1/1000) * sample['trigger_weight'] * sample['Jet_btag_weight1']
+        else:
+            print( "No valid correction" )
+
         #print(sample, sum(samples[sample]['weight']))
         #new_samples[sample]['btag_weight2']
     
@@ -52,6 +73,9 @@ def vars_to_histos(samples, variables, file_name = "histos"):
     for name, sample in samples.items():
         for var in variables:
             save_var(sample, name, var["var_name"], var["bins"], var["xlow"], var["xup"])
+            if "centJER" in name:
+                for corr in ["btag_up", "btag_down", "trigger_up", "trigger_down", "xsec_up", "xsec_down"]:
+                    save_var(sample, name, var["var_name"], var["bins"], var["xlow"], var["xup"], corr = corr)
 
     file.Close()
     
