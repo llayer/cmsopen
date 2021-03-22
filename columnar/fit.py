@@ -8,7 +8,13 @@ def fit(path, sample_names, fit_var, corr = "central"):
     histos = {}
     for s in sample_names:
         if (s != "Data") & (s != "QCD"):
-            hist = f.Get(s + "_" + corr +"_" + fit_var)
+            if ("pdf" in corr) & ("TTJets" in s):
+                hist = f.Get(s + "_" + corr +"_" + fit_var)
+            elif ("pdf" in corr):
+                hist = f.Get(s + "_" + "centJER" + "_" + fit_var)
+            else:
+                #hist = f.Get(s + "_" + corr +"_" + fit_var)
+                hist = f.Get(s + "_" + fit_var)
         else:
             hist = f.Get(s + "_" + fit_var)
         hist.Sumw2()

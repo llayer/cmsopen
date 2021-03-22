@@ -2,7 +2,7 @@ import pandas as pd
 import numpy as np
 import ROOT
 
-"""
+
 f_jet40 = ROOT.TFile("rootFilesTurnOn/TriggerEffHisto_data_match40_JETLEG.root")
 f_jet45 = ROOT.TFile("rootFilesTurnOn/TriggerEffHisto_data_match45_JETLEG.root")
 f_tau40 = ROOT.TFile("rootFilesTurnOn/TriggerEffHisto_match40_newTauID.root")
@@ -11,16 +11,16 @@ h_eff_jet40 = f_jet40.Get("jet4_eff")
 h_eff_jet45 = f_jet45.Get("jet4_eff")
 h_eff_tau40 = f_tau40.Get("eff_tau")
 h_eff_tau45 = f_tau45.Get("eff_tau")
+
+
+
 """
-
-
-
 f = ROOT.TFile("data/trigger_eff.root")
 h_eff_jet40 = f.Get("jet4_eff_40")
 h_eff_jet45 = f.Get("jet4_eff_45")
 h_eff_tau40 = f.Get("tau_eff_40")
 h_eff_tau45 = f.Get("tau_eff_45")
-
+"""
 
 def trigger_weight(ev, trigger_frac=0.218):
 
@@ -42,6 +42,11 @@ def trigger_weight(ev, trigger_frac=0.218):
     jet2_weight = jet_hist.GetBinContent( jet_hist.GetXaxis().FindBin(jet_pt2) )
     tau_weight = tau_hist.GetBinContent( tau_hist.GetXaxis().FindBin(tau_pt) )
 
+    if jet0_weight == 0.: jet0_weight=1.
+    if jet1_weight == 0.: jet1_weight=1.
+    if jet2_weight == 0.: jet2_weight=1.
+    if tau_weight == 0.: tau_weight=1.
+    
     jet0_err = jet_hist.GetBinError( jet_hist.GetXaxis().FindBin(jet_pt0) )
     jet1_err = jet_hist.GetBinError( jet_hist.GetXaxis().FindBin(jet_pt1) )
     jet2_err = jet_hist.GetBinError( jet_hist.GetXaxis().FindBin(jet_pt2) )
@@ -122,4 +127,29 @@ def met_cut(df):
     return df[df['met']>20.]
 
 
-
+def uncertainty(x):
+    
+    x = x["MCEvt_cteq66_pdf_weights"]
+    ups = []
+    downs = []
+    for i in range(1, len(x)):
+                
+        if i%2 == 0:
+            #print( "Down" , x[i])
+            downs.append((x[i] / x[0]) - 1)
+        else:
+            #print( "Up" , x[i])
+            ups.append((x[i] / x[0]) - 1)
+    
+    weight_up = np.sqrt( np.sum(np.array(ups)**2 ) )
+    weight_down = np.sqrt( np.sum(np.array(downs)**2 ) )
+    
+    return {"pdf": x[0], "pdf_up": weight_up, "pdf_down" : weight_down}
+    
+    
+def pdf_syst():
+    
+    pdf = root_pandas.read_root("TTJets_pdfweights.root")
+    pdf = pd.concat([pdf, pdf.apply(lambda x: pd.Series(uncertainty(x)), axis=1)], axis=1)
+    pdf = pdf.drop(["MCEvt_cteq66_pdf_weights"], axis=1)
+    pdf.to_hdf("TTJets_pdfweights.h5", "frame")

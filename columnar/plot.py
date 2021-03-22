@@ -42,6 +42,10 @@ def save_var(sample, name, var_name, bins = 20, xlow = 0., xup = 350, corr=None)
             sample['weight'] = sample['norm_up'] * (1/1000) * sample['trigger_weight'] * sample['Jet_btag_weight1']
         elif corr == "xsec_down":
             sample['weight'] = sample['norm_down'] * (1/1000) * sample['trigger_weight'] * sample['Jet_btag_weight1']
+        elif corr == "pdf_up":
+            sample['weight'] = sample['norm'] * (1/1000) * sample['trigger_weight'] * sample['Jet_btag_weight1'] *                   (1+sample['pdf_up'])
+        elif corr == "pdf_down":
+            sample['weight'] = sample['norm'] * (1/1000) * sample['trigger_weight'] * sample['Jet_btag_weight1']  * (1-sample['pdf_down'])
         else:
             print( "No valid correction" )
 
@@ -76,6 +80,9 @@ def vars_to_histos(samples, variables, file_name = "histos"):
             if "centJER" in name:
                 for corr in ["btag_up", "btag_down", "trigger_up", "trigger_down", "xsec_up", "xsec_down"]:
                     save_var(sample, name, var["var_name"], var["bins"], var["xlow"], var["xup"], corr = corr)
+                if "TTJets" in name:
+                    save_var(sample, name, var["var_name"], var["bins"], var["xlow"], var["xup"], corr = "pdf_up")
+                    save_var(sample, name, var["var_name"], var["bins"], var["xlow"], var["xup"], corr = "pdf_down")
 
     file.Close()
     

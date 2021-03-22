@@ -289,6 +289,7 @@ def scale_tau(taus, met = None, corr = "tau_eup", percent=0.03):
     tau["phi"] = tau["p4"].phi
     tau["charge"] = taus["charge"]
     tau["byMediumCombinedIsolationDeltaBetaCorr"] = taus["byMediumCombinedIsolationDeltaBetaCorr"]
+    tau["byLooseCombinedIsolationDeltaBetaCorr"] = taus["byLooseCombinedIsolationDeltaBetaCorr"]
     tau["leadTrackPt"] = taus["leadTrackPt"]
     tau["dxy"] = taus["dxy"]
     tau["z"] = taus["z"]

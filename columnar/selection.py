@@ -68,7 +68,8 @@ def select_electron(electron, vtx, eta_cut = 2.5, pt_cut = 10., reliso_cut = 0.1
 
 def select_tau(tau, vtx, eta_cut = 2.3, pt_cut = 45., vtxmatch_cut = 1., dxy_cut=0.04, leadTrackPt_cut=10.):
     
-    iso_cut = tau["byMediumCombinedIsolationDeltaBetaCorr"] == 1
+    iso_cut = tau["byLooseCombinedIsolationDeltaBetaCorr"] == 1
+    #iso_cut = tau["byMediumCombinedIsolationDeltaBetaCorr"] == 1
     nomuon_cut = tau["againstMuonTight"] == 1
     noele_cut = tau["againstElectronTight"] == 1
     # Lead track pt
@@ -237,7 +238,7 @@ def event_selection(file_path, isData = False, isTT = False, corrLevel = "cent")
     muon_vars = ['TrkIso03', 'ECaloIso03', 'isGlobalMuon', 'HCaloIso03', 'pt', 'eta', 'z']
     event["muon"] = nanoObject(events, "Muon_", muon_vars)
     tau_vars = ['pt', 'px', 'py', 'pz', 'eta', 'phi', 'mass', 'e', 'charge', 'byMediumCombinedIsolationDeltaBetaCorr',
-                'z', 'leadTrackPt', 'dxy', 'againstMuonTight', 'againstElectronTight']
+                'byLooseCombinedIsolationDeltaBetaCorr','z', 'leadTrackPt', 'dxy', 'againstMuonTight', 'againstElectronTight']
     event["tau"] = nanoObject(events, "Tau_", tau_vars) 
     met_vars = ['pt', 'px', 'py', 'pz', 'e']
     event["met"] = pd.DataFrame(nanoCollection(events, "MET_", met_vars))

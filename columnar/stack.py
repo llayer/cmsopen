@@ -66,7 +66,8 @@ def plot(infile, var, xtitle, sample_names, sfs = None, corr="central"):
         if s == "QCD":
             hist = f.Get(s + '_' + var)#path + '/' + s.label)
         else:
-            hist = f.Get(s + '_' + corr + "_" + var)#path + '/' + s.label)
+            #hist = f.Get(s + '_' + corr + "_" + var)#path + '/' + s.label)
+            hist = f.Get(s + '_' + var)#path + '/' + s.label)
         hist.SetOption("HIST SAME")
         hist.SetLineColor(ROOT.kBlack)
         hist.SetTitle("")
@@ -246,5 +247,9 @@ def plot(infile, var, xtitle, sample_names, sfs = None, corr="central"):
 
 if __name__ == "__main__":
 
-    for var in ["met", "tau_pt", "aplanarity", "ht", "chargeEta", "deltaPhiTauMet", "mt", "mTauJet"]:
-        plot( "histos/histos.root", var )
+    variables = [
+        {"var_name" : "MET_met", "bins" : 30, "xlow" : 0., "xup" : 400, "xtitle" : "MET [GeV]"}
+    ]
+    sample_names = ["TTJets_bkg", "WZJets", "STJets", "QCD", "TTJets_signal"]
+    for var in variables:
+        plot( "histos_test.root", var["var_name"], var["xtitle"], sample_names, corr = "centJER" )
