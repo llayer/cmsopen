@@ -68,7 +68,7 @@ def train_test_split(df, n = 5000):
     df['train_flag'] = np.select(cond, choice)
     
     
-def train(samples, n_sig = 4000, n_bkg = 4000):
+def train(samples, n_sig = 4000, n_bkg = 4000, ntrees=1000, lr = 0.01, ):
     
     
     print("Prepare training data")
@@ -109,7 +109,7 @@ def train(samples, n_sig = 4000, n_bkg = 4000):
     print("Train model")
     
     # Define model
-    bdt = xgb.XGBClassifier(n_estimators=1000, learning_rate = 0.01, n_jobs = 1)
+    bdt = xgb.XGBClassifier(n_estimators=ntrees, learning_rate = lr, n_jobs = 1)
     # Fit
     bdt.fit(X_train, y_train, sample_weight = weights, eval_metric=["logloss"], verbose=False) # sample_weight
     

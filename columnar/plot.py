@@ -28,6 +28,10 @@ def save_var(sample, name, var_name, bins = 20, xlow = 0., xup = 350, corr=None)
         sample['weight'] = sample['btag_weight'] * scale_qcd
     else:
         #samples[sample]['new_trigger_weight'] = new_samples[sample].apply(lambda ev : weights.trigger_weight(ev), axis=1)
+        
+        #if name == "TTJets_signal":
+        #    sample = sample[sample["train_flag"] == "test"]
+        
         if corr is None:
             sample['weight'] = sample['norm'] * (1/1000) * sample['trigger_weight'] * sample['Jet_btag_weight1']
         elif corr == "btag_up":
@@ -261,12 +265,25 @@ def syst(variables, sample = "TTJets", file_name = "bdt_corr"):
     
     path = "histos/" + file_name + ".root"
     f = ROOT.TFile(path)
-    
+    h = f.Get("TTJets_signal_centJER_btag_down_bdt")
+    print(type(h))
     
     for var in variables:
         print(sample + "_centJER_" + var["var_name"])
         hist_cent = f.Get(sample + "_centJER_" + var["var_name"])
-        print(hist_cent.Integral())
+        
+        for c in ["btag", "trigger", "xsec", "pdf"]:
+            hist_up = f.Get(sample + "_centJER_" + c + "_up_" + var["var_name"])
+            print(type(hist_up))
+            print(sample + "_centJER_" + c + "_up_" + var["var_name"])
+            print(sample + "_centJER_" + c + "_down_" + var["var_name"])
+            hist_down = f.Get(sample + "_centJER_" + c + "_down_" + var["var_name"])
+            print(type(hist_down))
+            plot_variation(var["var_name"], var["xtitle"], c, hist_cent, hist_up, hist_down)
+            
+        
+       
+        #print(hist_cent.Integral())
         hist_jes_up = f.Get(sample + "_jes_up_" + var["var_name"])
         hist_jes_down = f.Get(sample + "_jes_down_" + var["var_name"])
         hist_jer_up = f.Get(sample + "_jer_up_" + var["var_name"])
@@ -275,9 +292,15 @@ def syst(variables, sample = "TTJets", file_name = "bdt_corr"):
         hist_tau_edown = f.Get(sample + "_tau_edown_" + var["var_name"])  
         hist_jes_up_old = f.Get(sample + "_jes_up_old_" + var["var_name"])
         hist_jes_down_old = f.Get(sample + "_jes_down_old_" + var["var_name"])
+        hist_met_up = f.Get(sample + "_met_up_" + var["var_name"])
+        hist_met_down = f.Get(sample + "_met_down_" + var["var_name"])
+        
         
         # JES
         plot_variation(var["var_name"], var["xtitle"], "JES", hist_cent, hist_jes_up, hist_jes_down)
         plot_variation(var["var_name"], var["xtitle"], "JER", hist_cent, hist_jer_up, hist_jes_down)
         plot_variation(var["var_name"], var["xtitle"], "Tau Scale", hist_cent, hist_tau_eup, hist_tau_edown)
         plot_variation(var["var_name"], var["xtitle"], "JES old", hist_cent, hist_jes_up_old, hist_jes_down_old)
+        plot_variation(var["var_name"], var["xtitle"], "JES old", hist_cent, hist_met_up, hist_met_down)
+
+        
