@@ -10,13 +10,17 @@ def fit(path, sample_names, fit_var, corr = "central"):
         if (s != "Data") & (s != "QCD"):
             if ("pdf" in corr) & ("TTJets" in s):
                 hist = f.Get(s + "_" + corr +"_" + fit_var)
+                print(s + "_" + corr +"_" + fit_var)
             elif ("pdf" in corr):
                 hist = f.Get(s + "_" + "centJER" + "_" + fit_var)
+                print(s + "_" + "centJER" + "_" + fit_var)
             else:
-                #hist = f.Get(s + "_" + corr +"_" + fit_var)
-                hist = f.Get(s + "_" + fit_var)
+                hist = f.Get(s + "_" + corr +"_" + fit_var)
+                print(s + "_" + corr +"_" + fit_var)
+                #hist = f.Get(s + "_" + fit_var)
         else:
             hist = f.Get(s + "_" + fit_var)
+            print(s + "_" + fit_var)
         hist.Sumw2()
         print( s, hist.Integral() )
         histos[s] = hist

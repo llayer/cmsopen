@@ -66,8 +66,8 @@ def plot(infile, var, xtitle, sample_names, sfs = None, corr="central"):
         if s == "QCD":
             hist = f.Get(s + '_' + var)#path + '/' + s.label)
         else:
-            #hist = f.Get(s + '_' + corr + "_" + var)#path + '/' + s.label)
-            hist = f.Get(s + '_' + var)#path + '/' + s.label)
+            hist = f.Get(s + '_' + corr + "_" + var)#path + '/' + s.label)
+            #hist = f.Get(s + '_' + var)#path + '/' + s.label)
         hist.SetOption("HIST SAME")
         hist.SetLineColor(ROOT.kBlack)
         hist.SetTitle("")
@@ -224,7 +224,7 @@ def plot(infile, var, xtitle, sample_names, sfs = None, corr="central"):
     ratio.GetYaxis().SetLabelSize(0.15)
     ratio.GetXaxis().SetTitleSize(0.16)
     ratio.GetYaxis().SetTitleSize(0.16)
-    ratio.GetYaxis().SetRangeUser(0.,2.)
+    ratio.GetYaxis().SetRangeUser(0.5,1.5)
     ratio.GetXaxis().SetTitle(xtitle)
     ratio.GetXaxis().SetLabelOffset(0.04)
     ratio.GetYaxis().SetLabelOffset(0.01)
