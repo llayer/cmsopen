@@ -7,6 +7,7 @@ from sklearn.model_selection import train_test_split
 import glob
 import random
 import matplotlib.pyplot as plt
+import pickle
 
 
 
@@ -101,7 +102,7 @@ def train(samples, n_sig = 4000, n_bkg = 4000, ntrees=1000, lr = 0.01, ):
     X_train = train_data[features].values
     y_train = train_data["label"].values.ravel()
     weights = train_data["weights"]
-    print(weights)
+    #print(weights)
     
     X_test = test_data[features].values
     y_test = test_data["label"].values.ravel()   
@@ -113,8 +114,15 @@ def train(samples, n_sig = 4000, n_bkg = 4000, ntrees=1000, lr = 0.01, ):
     # Fit
     bdt.fit(X_train, y_train, sample_weight = weights, eval_metric=["logloss"], verbose=False) # sample_weight
     
+    # Save
+    pickle.dump(bdt, open("bdt/xgb.pkl", "wb"))
+    
     # Plot
     compare_train_test(bdt, X_train, y_train, X_test, y_test, bins=15)
+    importance = bdt.feature_importances_
+    print( "Importance" )
+    for feat, imp in zip(features, importance):
+        print(feat, imp)
         
     # Predict
     print("Predicting...") 

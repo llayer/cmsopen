@@ -62,7 +62,7 @@ def corr_met(met, initial_p4, new_p4):
     return
 
 
-def transform(jets, met=None, corrLevel = "cent", doJER = True, jer=0.1, forceStochastic=False):
+def transform(jets, met=None, corrLevel = "cent", doJER = True, jer=0.1, forceStochastic=False, jes_factor = 0.):
     
     # Order of transformations:
     # 1. JEC SF already applied in PAT
@@ -157,15 +157,19 @@ def transform(jets, met=None, corrLevel = "cent", doJER = True, jer=0.1, forceSt
     # Check old systs:
     jes_old = evaluator['JESUncHisto'](jet.__fast_eta, jet.__fast_pt)
     
+    sf_up = 1. + jes_factor
+    sf_down = 1. - jes_factor
+    print("SF", sf_up, sf_down)
+    
     jet.add_attributes(**{
-        'pt_jes_up': juncs[:,:,0] * jet.pt,
-        'mass_jes_up': juncs[:,:,0] * jet.mass,
-        'pt_jes_down': juncs[:,:,1] * jet.pt,
-        'mass_jes_down': juncs[:,:,1] * jet.mass,
-        'pt_jes_up_old': (1. + jes_old) * jet.pt,
-        'mass_jes_up_old': (1. + jes_old) * jet.mass,
-        'pt_jes_down_old': (1. - jes_old) * jet.pt,
-        'mass_jes_down_old': (1. - jes_old) * jet.mass,
+        'pt_jes_up': juncs[:,:,0] * jet.pt * sf_up,
+        'mass_jes_up': juncs[:,:,0] * jet.mass * sf_up,
+        'pt_jes_down': juncs[:,:,1] * jet.pt * sf_down,
+        'mass_jes_down': juncs[:,:,1] * jet.mass * sf_down,
+        'pt_jes_up_old': (1. + jes_old) * jet.pt * sf_up,
+        'mass_jes_up_old': (1. + jes_old) * jet.mass * sf_up,
+        'pt_jes_down_old': (1. - jes_old) * jet.pt * sf_down,
+        'mass_jes_down_old': (1. - jes_old) * jet.mass * sf_down,
         'jes_up': juncs[:,:,0],
         'jes_down': juncs[:,:,1],
         'jes_up_old': 1. + jes_old,
@@ -186,7 +190,6 @@ def transform(jets, met=None, corrLevel = "cent", doJER = True, jer=0.1, forceSt
                                                                       jet.phi.content,
                                                                       jet.mass_jes_up.content)  
     elif corrLevel == "jes_down":
-        print("JESDOWN")
         jet._content._contents['p4'] = uproot_methods.TLorentzVectorArray.from_ptetaphim(jet.pt_jes_down.content,
                                                                       jet.eta.content,
                                                                       jet.phi.content,

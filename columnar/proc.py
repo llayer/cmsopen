@@ -11,24 +11,28 @@ import glob
 import ml
 import root_pandas
 import h5py
+from pathlib import Path
 
-SAMPLES_DIR = "samples_loose"
-CAND_DIR = "cand_loose"
-BDT_DIR = "bdt_loose"
+BASE_DIR = "/eos/user/l/llayer/cmsopen/columnar/syst_scale/"
+SAMPLES_DIR = BASE_DIR + "samples"
+CAND_DIR = BASE_DIR + "cand"
+BDT_DIR = BASE_DIR + "bdt"
 
 ev_sel = False
 proc_cands = False
-do_plotting = False
-do_stack = True
+do_plotting = True
+do_stack = False
 run_bdt = False
-plot_bdt = True
+plot_bdt = False
 do_syst = False
 do_fit = False
+
+
 
 data = ['Run2011A_MultiJet', 'Run2011B_MultiJet']
 mc = ['T_TuneZ2_s', 'WJetsToLNu', 'DYJetsToLL', 'T_TuneZ2_tW', 'T_TuneZ2_t-channel',
        'Tbar_TuneZ2_s', 'Tbar_TuneZ2_tW', 'Tbar_TuneZ2_t-channel', 'TTJets']
-corrections = ["centJER", "jes_up", "jes_down"]#, "jes_up_old", "jes_down_old", "jer_up", "jer_down", "tau_eup", "tau_edown"]
+corrections = ["centJER", "jes_up", "jes_down", "jes_up_old", "jes_down_old", "jer_up", "jer_down", "tau_eup", "tau_edown"]
 
 
 
@@ -37,16 +41,30 @@ def check_keys():
     
     for sample in mc:
         f = h5py.File(SAMPLES_DIR + "/" + sample + ".h5", 'r')
-        print(sample, f.keys())
+        #print(sample, f.keys())
         
+        missing = False
         for k in corrections + ["central"]:
             if not (k in f.keys()):
+                missing = True
+                print()
+                print("MISSING")
                 print(sample, k)
-        
+            else:
+                try:
+                    pd.read_hdf(SAMPLES_DIR + "/" + sample + ".h5", k)
+                except:
+                    print()
+                    print("Fail to read")
+                    print(sample, k)                    
+        if missing == False:
+            print("No key missing")
 
 def event_selection(outpath = SAMPLES_DIR):
-        
-    for sample in ["T_TuneZ2_tW"]:#mc + data:
+    
+    
+    
+    for sample in ["Tbar_TuneZ2_t-channel"]: #mc + data:
         
         #!!!!!!! Careful with JER application before Tau?!
         
@@ -65,10 +83,11 @@ def event_selection(outpath = SAMPLES_DIR):
         if isData == False:
             
             for c in corrections:
-                df, cut_flow = selection.event_selection(path, isData = isData, isTT = isTT, corrLevel = c)
+                df, cut_flow = selection.event_selection(path, isData = isData, isTT = isTT, corrLevel = c, 
+                                                         tau_factor = 0.1, jes_factor = 0.1)
                 print( cut_flow )
                 df.to_hdf(outpath + "/" + sample + ".h5", c, mode='a')         
-    check_keys()
+    #check_keys()
 
     
     
@@ -164,7 +183,6 @@ def proc_candidates(outpath=CAND_DIR, njets = -1):
     
     
     for sample in data:
-        path = "preselection_merged/" + sample + ".root"
         samples[sample] = candidates(sample, "central", invert_btag = False, njets=njets)
         samples["QCD_" + sample] = candidates(sample, "central", invert_btag = True, njets=njets)
     
@@ -318,9 +336,12 @@ if __name__ == "__main__":
     
     
     if ev_sel:
+        #Path(SAMPLES_DIR).mkdir(parents=True, exist_ok=True)
         event_selection()
+        check_keys()
 
     if proc_cands:
+        Path(CAND_DIR).mkdir(parents=True, exist_ok=True)
         proc_candidates()
         
     if do_plotting:

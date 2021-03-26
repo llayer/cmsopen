@@ -207,7 +207,7 @@ def apply_mask(event, mask):
     event["jet_hlt"] = event["jet_hlt"][mask]
 
     
-def event_selection(file_path, isData = False, isTT = False, corrLevel = "cent"):
+def event_selection(file_path, isData = False, isTT = False, corrLevel = "cent", tau_factor = 0.03, jes_factor = 0.):
         
     in_file = file_path.split("/")[-1]
     print( "Processing:", in_file, "isData:", isData, "isTT:", isTT, "corrLevel", corrLevel)
@@ -254,11 +254,11 @@ def event_selection(file_path, isData = False, isTT = False, corrLevel = "cent")
     if (isData == False) & (corrLevel != "cent") :
         
         if "tau" in corrLevel:
-            event["tau"],  event["met"] = jetmet.scale_tau(event["tau"], event["met"], corr = corrLevel)
+            event["tau"],  event["met"] = jetmet.scale_tau(event["tau"], event["met"], corr = corrLevel, percent = tau_factor)
             event["jet"],  event["met"] = jetmet.transform(event["jet"], event["met"], corrLevel = "centJER")
 
         else:
-            event["jet"],  event["met"] = jetmet.transform(event["jet"], event["met"], corrLevel = corrLevel)
+            event["jet"],  event["met"] = jetmet.transform(event["jet"], event["met"], corrLevel = corrLevel, jes_factor = jes_factor)
     else:
         met_p4 = uproot_methods.classes.TLorentzVector.TLorentzVectorArray(event["met"]["px"], event["met"]["py"],
                                                                            event["met"]["pz"], event["met"]["e"])
