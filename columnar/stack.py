@@ -1,11 +1,10 @@
-import os
-import optparse
 import ROOT
-from tdrstyle import *
+#from tdrstyle import setTDRStyle
 from CMS_lumi import CMS_lumi
 
-ROOT.gROOT.SetBatch()
+#ROOT.gROOT.SetBatch()
 
+"""
 def setStyle():
 
     ROOT.gROOT.Reset()
@@ -19,14 +18,14 @@ def setStyle():
     ROOT.TGaxis.SetMaxDigits(3)
     #    gROOT.ForceStyle()
     setTDRStyle()
+"""
 
+def plot(infile, var, xtitle, sample_names, outpath, sfs = None, corr="central"):
 
-def plot(infile, var, xtitle, sample_names, sfs = None, corr="central"):
+    #setStyle()
 
-    #self.setStyle()
-
-    if not os.path.exists("stacks"):
-        os.system("mkdir -p stacks")
+    #if not os.path.exists("stacks"):
+    #    os.system("mkdir -p stacks")
 
     f = ROOT.TFile(infile, "READ")
 
@@ -153,14 +152,14 @@ def plot(infile, var, xtitle, sample_names, sfs = None, corr="central"):
 
     hdata.Draw("eSAMEpx0")
 
-
+    
     lumi_sqrtS = " 4.2 fb^{-1}  (7 TeV)"
     #    print lumi_sqrtS
     iPos = 0
     # writing the lumi information and the CMS "logo"
     # Ratio Check HERE
     CMS_lumi(pad1, lumi_sqrtS, iPos)
-
+    
 
     hratio=stack.GetStack().Last()
 
@@ -240,9 +239,13 @@ def plot(infile, var, xtitle, sample_names, sfs = None, corr="central"):
     #    fout_name = "prova/"+outfile
     #c1.Print(outdir + '/' + "Stack/"+canvasname+".pdf")
     if sfs is not None:
-        c1.Print("stacks_corr/" + var + "_" + corr + "_" + "postfit.png")
+        c1.Print(outpath + "/" + var + "_" + corr + "_" + "postfit.png")
     else:
-        c1.Print("stacks_corr/" + var + "_" + corr + ".png")
+        c1.Print(outpath + "/" + var + "_" + corr + ".png")
+    
+    f.Close()
+    
+    return True
     #c1.Print("test.png")
 
 if __name__ == "__main__":

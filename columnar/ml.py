@@ -12,7 +12,7 @@ import pickle
 
 
 # Overtraining
-def compare_train_test(clf, X_train, y_train, X_test, y_test, bins=15):
+def compare_train_test(clf, X_train, y_train, X_test, y_test, outpath, bins=15):
 
     decisions = []
     for X,y in ((X_train, y_train), (X_test, y_test)):
@@ -53,7 +53,7 @@ def compare_train_test(clf, X_train, y_train, X_test, y_test, bins=15):
     plt.ylabel("Arbitrary units")
     plt.yscale("log")
     plt.legend(loc='best')
-    plt.savefig("bdt/overtrain.png")
+    plt.savefig(outpath + "/overtrain.png")
     
     
 def train_test_split(df, n = 5000):
@@ -69,7 +69,7 @@ def train_test_split(df, n = 5000):
     df['train_flag'] = np.select(cond, choice)
     
     
-def train(samples, n_sig = 4000, n_bkg = 4000, ntrees=1000, lr = 0.01, ):
+def train(samples, outpath, n_sig = 4000, n_bkg = 4000, ntrees=1000, lr = 0.01, ):
     
     
     print("Prepare training data")
@@ -115,15 +115,32 @@ def train(samples, n_sig = 4000, n_bkg = 4000, ntrees=1000, lr = 0.01, ):
     bdt.fit(X_train, y_train, sample_weight = weights, eval_metric=["logloss"], verbose=False) # sample_weight
     
     # Save
-    pickle.dump(bdt, open("bdt/xgb.pkl", "wb"))
+    pickle.dump(bdt, open(outpath + "/bdt.pkl", "wb"))
     
     # Plot
-    compare_train_test(bdt, X_train, y_train, X_test, y_test, bins=15)
+    compare_train_test(bdt, X_train, y_train, X_test, y_test, outpath, bins=15)
+    #bdt.feature_names = features
+    
+    importance = bdt.get_booster().get_score(importance_type="weight")
+    mapper = {'f{0}'.format(i): v for i, v in enumerate(features)}
+    mapped = {mapper[k]: v for k, v in importance.items()}
+    keys = list(mapped.keys())
+    values = list(mapped.values())
+    data = pd.DataFrame(data=values, index=keys, columns=["f-score"]).sort_values(by = "f-score", ascending=False)
+    data.plot(kind='barh')
+    plt.savefig(outpath + "/importance.png")
+    
+    """
+    fig, ax = plt.subplots(figsize=(8,6))
+    xgb.plot_importance(bdt, height=0.8, ax=ax)
+    fig.savefig(outpath + "/importance.png")
+    
     importance = bdt.feature_importances_
     print( "Importance" )
     for feat, imp in zip(features, importance):
         print(feat, imp)
-        
+    """
+    
     # Predict
     print("Predicting...") 
     

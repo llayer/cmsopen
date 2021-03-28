@@ -16,18 +16,42 @@ from pathlib import Path
 BASE_DIR = "/eos/user/l/llayer/cmsopen/columnar/syst_scale/"
 SAMPLES_DIR = BASE_DIR + "samples"
 CAND_DIR = BASE_DIR + "cand"
+HIST_DIR = BASE_DIR + "histos"
+STACK_DIR = BASE_DIR + "stack"
+SYST_DIR = BASE_DIR + "syst"
 BDT_DIR = BASE_DIR + "bdt"
 
 ev_sel = False
 proc_cands = False
-do_plotting = True
+do_plotting = False
 do_stack = False
+do_syst = False
 run_bdt = False
 plot_bdt = False
-do_syst = False
-do_fit = False
+do_fit = True
 
-
+"""
+variables = [
+    {"var_name" : "MET_met", "bins" : 30, "xlow" : 0., "xup" : 400, "xtitle" : "MET [GeV]"},
+]
+"""
+bdt_var = [
+    {"var_name" : "bdt", "bins" : 15, "xlow" : 0., "xup" : 1., "xtitle" : "bdt"}
+]
+variables = [
+    {"var_name" : "MET_met", "bins" : 30, "xlow" : 0., "xup" : 400, "xtitle" : "MET [GeV]"},
+    {"var_name" : "Tau_pt", "bins" : 30, "xlow" : 0., "xup" : 250, "xtitle" : "p_{T}(#tau) [GeV]"},
+    {"var_name" : "aplanarity", "bins" : 20, "xlow" : 0., "xup" : 0.5, "xtitle" : "aplanarity"},
+    {"var_name" : "ht", "bins" : 20, "xlow" : 0., "xup" : 1600., "xtitle" : "H_{T} [GeV]"},
+    {"var_name" : "chargeEta", "bins" : 20, "xlow" : -3., "xup" : 3., "xtitle" : "q #times #eta(#tau)"},
+    {"var_name" : "deltaPhiTauMet", "bins" : 20, "xlow" : 0., "xup" : 3.2, "xtitle" : "#Delta#phi(#tau, MET)"},
+    {"var_name" : "mt", "bins" : 20, "xlow" : 0., "xup" : 300., "xtitle" : "M_{T}(#tau, MET) [GeV]"},
+    {"var_name" : "mTauJet", "bins" : 20, "xlow" : 0., "xup" : 2500., "xtitle" :"M(#tau, jets) [GeV]"},
+    {"var_name" : "nJets", "bins" : 10, "xlow" : 0., "xup" : 10., "xtitle" : "N. of jets"},
+    {"var_name" : "Jet_pt", "bins" : 30, "xlow" : 0., "xup" : 400., "xtitle" : "p_{T}(jet) [GeV]"},
+    {"var_name" : "Jet_eta", "bins" : 30, "xlow" : -3., "xup" : 3., "xtitle" : "#eta(jet)"},
+    {"var_name" : "sphericity", "bins" : 20, "xlow" : 0., "xup" : 1.0, "xtitle" : "sphericity"}
+]    
 
 data = ['Run2011A_MultiJet', 'Run2011B_MultiJet']
 mc = ['T_TuneZ2_s', 'WJetsToLNu', 'DYJetsToLL', 'T_TuneZ2_tW', 'T_TuneZ2_t-channel',
@@ -181,7 +205,7 @@ def proc_candidates(outpath=CAND_DIR, njets = -1):
     
     samples = {}
     
-    
+   
     for sample in data:
         samples[sample] = candidates(sample, "central", invert_btag = False, njets=njets)
         samples["QCD_" + sample] = candidates(sample, "central", invert_btag = True, njets=njets)
@@ -208,7 +232,7 @@ def proc_candidates(outpath=CAND_DIR, njets = -1):
     
            
     
-def plot_vars( variables, inpath):
+def plot_vars( variables, inpath ):
     
     
     files = glob.glob(inpath + "*.h5")
@@ -225,30 +249,30 @@ def plot_vars( variables, inpath):
         else:
             samples[sample_name] = pd.read_hdf(sample)
         
-        
-        
     print( "Plotting" )
     if "bdt" in inpath:
-        file_name = "bdt_test"
+        file_name = "bdt"
         
         #samples["TTJets_signal"] = samples["TTJets_signal"][samples["TTJets_signal"]["train_flag"] == "test"]
         #print("TTJets_signal", sum(samples["TTJets_signal"]['weight']))
     else:
         file_name = "histos"
-        
-    plot.vars_to_histos(samples, variables, file_name = file_name)
+    
+    file_path = HIST_DIR + "/" + file_name + ".root"
+    plot.vars_to_histos(samples, variables, file_path)
     
     print("Plotting done")
     
     
-def plot_stack(variables, file_name = "bdt_test"):
+def plot_stack(variables, file_name):
     
     sample_names = ["TTJets_bkg", "WZJets", "STJets", "QCD", "TTJets_signal"]
     for var in variables:
-        stack.plot( "histos/" + file_name + ".root", var["var_name"], var["xtitle"], sample_names, corr = "centJER" )
+        stack.plot( HIST_DIR + "/" + file_name + ".root", var["var_name"], var["xtitle"], sample_names, STACK_DIR,
+                   corr = "central" )
     
     
-def bdt(outpath = BDT_DIR ):
+def bdt( outpath = BDT_DIR ):
     
     files = glob.glob( CAND_DIR + "/*.h5")
     samples = {}
@@ -261,28 +285,36 @@ def bdt(outpath = BDT_DIR ):
         else:
             samples[sample_name] = pd.read_hdf(sample)
             
-    ml.train(samples)
+    ml.train(samples, outpath, n_sig=4000, n_bkg=4000, ntrees=1000, lr=0.01)
+    
+    dropvars = ['Jet_pt', 'Jet_px', 'Jet_py', 'Jet_pz', 'Jet_e', 'Jet_eta', 'Jet_phi',
+       'Jet_mass', 'Jet_csvDisc', 'Jet_flavour', 'Tau_pt', 'Tau_px', 'Tau_py',
+       'Tau_pz', 'Tau_e', 'Tau_eta', 'Tau_phi', 'Tau_mass', 'Tau_charge',
+       'MET_pt', 'MET_px', 'MET_py', 'MET_pz', 'MET_e']
     
     for name in ["Data", "TTJets_bkg", "WZJets", "STJets", "QCD", "TTJets_signal"]:
         for sample in samples:
             if name in sample:
                 # DANGER!! Delete samples
-                samples[sample].to_hdf(outpath + "/" + name + ".h5", sample, mode='a')
+                samples[sample].drop(dropvars, axis=1, errors='ignore').to_hdf(outpath + "/" + name + ".h5", sample, mode='a')
     
     
-def plot_syst(variables, file_name = "histos"):
+def plot_syst(variables, file_name):
     
-    plot.syst(variables, sample = "TTJets_signal", file_name = file_name)
+    file_path = HIST_DIR + "/" + file_name + ".root"
+    outpath = SYST_DIR
+    print(file_path)
+    plot.syst(variables, "TTJets_signal", file_path, outpath)
     
     
 def fit_xsec(var = "MET_met", file_name = "bdt_corr", syst=False):
     
     sample_names = ["Data", "TTJets_bkg", "WZJets", "STJets", "QCD", "TTJets_signal"]
-    sf_tt_sig, sf_qcd = fit.fit("histos/" + file_name + ".root", sample_names, var, corr="centJER")
+    sf_tt_sig, sf_qcd = fit.fit(HIST_DIR + "/" + file_name + ".root", sample_names, var, corr="central")
     sfs = {}
     sfs["TTJets_signal"] = sf_tt_sig
     sfs["QCD"] = sf_qcd
-    #stack.plot( "histos/" + file_name + ".root", var, sample_names[1:], sfs )
+    stack.plot( HIST_DIR + "/" + file_name + ".root", var, var, sample_names[1:], STACK_DIR, sfs = sfs, corr = "central" )
     
     if syst:
         
@@ -343,89 +375,32 @@ if __name__ == "__main__":
     if proc_cands:
         Path(CAND_DIR).mkdir(parents=True, exist_ok=True)
         proc_candidates()
-        
+    
     if do_plotting:
-        
-        variables = [
-            {"var_name" : "MET_met", "bins" : 30, "xlow" : 0., "xup" : 400, "xtitle" : "MET [GeV]"},
-            {"var_name" : "Tau_pt", "bins" : 30, "xlow" : 0., "xup" : 250, "xtitle" : "p_{T}(#tau) [GeV]"},
-            {"var_name" : "aplanarity", "bins" : 20, "xlow" : 0., "xup" : 0.5, "xtitle" : "aplanarity"},
-            {"var_name" : "ht", "bins" : 20, "xlow" : 0., "xup" : 1600., "xtitle" : "H_{T} [GeV]"},
-            {"var_name" : "chargeEta", "bins" : 20, "xlow" : -3., "xup" : 3., "xtitle" : "q #times #eta(#tau)"},
-            {"var_name" : "deltaPhiTauMet", "bins" : 20, "xlow" : 0., "xup" : 3.2, "xtitle" : "#Delta#phi(#tau, MET)"},
-            {"var_name" : "mt", "bins" : 20, "xlow" : 0., "xup" : 300., "xtitle" : "M_{T}(#tau, MET) [GeV]"},
-            {"var_name" : "mTauJet", "bins" : 20, "xlow" : 0., "xup" : 2500., "xtitle" :"M(#tau, jets) [GeV]"},
-            {"var_name" : "nJets", "bins" : 10, "xlow" : 0., "xup" : 10., "xtitle" : "N. of jets"},
-            {"var_name" : "Jet_pt", "bins" : 30, "xlow" : 0., "xup" : 400., "xtitle" : "p_{T}(jet) [GeV]"},
-            {"var_name" : "Jet_eta", "bins" : 30, "xlow" : -3., "xup" : 3., "xtitle" : "#eta(jet)"},
-            {"var_name" : "sphericity", "bins" : 20, "xlow" : 0., "xup" : 1.0, "xtitle" : "sphericity"}
-            
-        ]
+        Path(HIST_DIR).mkdir(parents=True, exist_ok=True)
         plot_vars(variables, inpath = CAND_DIR + "/")
-        
-    if run_bdt:
-        bdt()
-        plot_vars([{"var_name" : "bdt", "bins" : 15, "xlow" : 0., "xup" : 1., "xtitle" : 0.}], inpath = "bdt")
-        
-    if plot_bdt:
-        variables = [
-            #{"var_name" : "MET_met", "bins" : 30, "xlow" : 0., "xup" : 400, "xtitle" : "MET [GeV]"},
-            #{"var_name" : "Tau_pt", "bins" : 30, "xlow" : 0., "xup" : 250, "xtitle" : "p_{T}(#tau) [GeV]"},
-            #{"var_name" : "aplanarity", "bins" : 20, "xlow" : 0., "xup" : 0.5, "xtitle" : "aplanarity"},
-            #{"var_name" : "ht", "bins" : 20, "xlow" : 0., "xup" : 1600., "xtitle" : "H_{T} [GeV]"},
-            #{"var_name" : "chargeEta", "bins" : 20, "xlow" : -3., "xup" : 3., "xtitle" : "q #times #eta(#tau)"},
-            #{"var_name" : "deltaPhiTauMet", "bins" : 20, "xlow" : 0., "xup" : 3.2, "xtitle" : "#Delta#phi(#tau, MET)"},
-            #{"var_name" : "mt", "bins" : 20, "xlow" : 0., "xup" : 300., "xtitle" : "M_{T}(#tau, MET) [GeV]"},
-            #{"var_name" : "mTauJet", "bins" : 20, "xlow" : 0., "xup" : 2500., "xtitle" :"M(#tau, jets) [GeV]"},
-            #{"var_name" : "nJets", "bins" : 10, "xlow" : 0., "xup" : 10., "xtitle" : "N. of jets"},
-            #{"var_name" : "Jet_pt", "bins" : 30, "xlow" : 0., "xup" : 400., "xtitle" : "p_{T}(jet) [GeV]"},
-            #{"var_name" : "Jet_eta", "bins" : 30, "xlow" : -3., "xup" : 3., "xtitle" : "#eta(jet)"},
-            #{"var_name" : "sphericity", "bins" : 20, "xlow" : 0., "xup" : 1.0, "xtitle" : "sphericity"},
-            {"var_name" : "bdt", "bins" : 15, "xlow" : 0., "xup" : 1., "xtitle" : "bdt"}
-        ]
-        plot_vars(variables, inpath = BDT_DIR + "/")
-        #plot_vars([{"var_name" : "bdt", "bins" : 15, "xlow" : 0., "xup" : 1., "xtitle" : 0.}], inpath = "bdt")
-        
+    
     if do_stack:
-        
-        variables = [
-            #{"var_name" : "MET_met", "bins" : 30, "xlow" : 0., "xup" : 400, "xtitle" : "MET [GeV]"},
-            #{"var_name" : "Tau_pt", "bins" : 30, "xlow" : 0., "xup" : 250, "xtitle" : "p_{T}(#tau) [GeV]"},
-            #{"var_name" : "aplanarity", "bins" : 20, "xlow" : 0., "xup" : 0.5, "xtitle" : "aplanarity"},
-            #{"var_name" : "ht", "bins" : 20, "xlow" : 0., "xup" : 1600., "xtitle" : "H_{T} [GeV]"},
-            #{"var_name" : "chargeEta", "bins" : 20, "xlow" : -3., "xup" : 3., "xtitle" : "q #times #eta(#tau)"},
-            #{"var_name" : "deltaPhiTauMet", "bins" : 20, "xlow" : 0., "xup" : 3.2, "xtitle" : "#Delta#phi(#tau, MET)"},
-            #{"var_name" : "mt", "bins" : 20, "xlow" : 0., "xup" : 300., "xtitle" : "M_{T}(#tau, MET) [GeV]"},
-            #{"var_name" : "mTauJet", "bins" : 20, "xlow" : 0., "xup" : 2500., "xtitle" :"M(#tau, jets) [GeV]"},
-            #{"var_name" : "nJets", "bins" : 10, "xlow" : 0., "xup" : 10., "xtitle" : "N. of jets"},
-            #{"var_name" : "Jet_pt", "bins" : 30, "xlow" : 0., "xup" : 400., "xtitle" : "p_{T}(jet) [GeV]"},
-            #{"var_name" : "Jet_eta", "bins" : 30, "xlow" : -3., "xup" : 3., "xtitle" : "#eta(jet)"},
-            #{"var_name" : "sphericity", "bins" : 20, "xlow" : 0., "xup" : 1.0, "xtitle" : "sphericity"},
-            {"var_name" : "bdt", "bins" : 15, "xlow" : 0., "xup" : 1., "xtitle" : "bdt"}
-        ]
-        plot_stack(variables)
+        Path(STACK_DIR).mkdir(parents=True, exist_ok=True)
+        plot_stack(variables, "histos")
         
     if do_syst:
-        variables = [
-            {"var_name" : "MET_met", "bins" : 30, "xlow" : 0., "xup" : 400, "xtitle" : "MET [GeV]"},
-            {"var_name" : "Tau_pt", "bins" : 30, "xlow" : 0., "xup" : 250, "xtitle" : "p_{T}(#tau) [GeV]"},
-            {"var_name" : "aplanarity", "bins" : 20, "xlow" : 0., "xup" : 0.5, "xtitle" : "aplanarity"},
-            {"var_name" : "ht", "bins" : 20, "xlow" : 0., "xup" : 1600., "xtitle" : "H_{T} [GeV]"},
-            {"var_name" : "chargeEta", "bins" : 20, "xlow" : -3., "xup" : 3., "xtitle" : "q #times #eta(#tau)"},
-            {"var_name" : "deltaPhiTauMet", "bins" : 20, "xlow" : 0., "xup" : 3.2, "xtitle" : "#Delta#phi(#tau, MET)"},
-            {"var_name" : "mt", "bins" : 20, "xlow" : 0., "xup" : 300., "xtitle" : "M_{T}(#tau, MET) [GeV]"},
-            {"var_name" : "mTauJet", "bins" : 20, "xlow" : 0., "xup" : 2500., "xtitle" :"M(#tau, jets) [GeV]"},
-            {"var_name" : "nJets", "bins" : 10, "xlow" : 0., "xup" : 10., "xtitle" : "N. of jets"},
-            {"var_name" : "Jet_pt", "bins" : 30, "xlow" : 0., "xup" : 400., "xtitle" : "p_{T}(jet) [GeV]"},
-            {"var_name" : "Jet_eta", "bins" : 30, "xlow" : -3., "xup" : 3., "xtitle" : "#eta(jet)"},
-            {"var_name" : "sphericity", "bins" : 20, "xlow" : 0., "xup" : 1.0, "xtitle" : "sphericity"},
-            {"var_name" : "bdt", "bins" : 15, "xlow" : 0., "xup" : 1., "xtitle" : "bdt"}
-        ]
-        plot_syst(variables, file_name = "bdt_corr")
+        Path(SYST_DIR).mkdir(parents=True, exist_ok=True)
+        plot_syst(variables, "histos")
+    
+    if run_bdt:
+        Path(BDT_DIR).mkdir(parents=True, exist_ok=True)
+        bdt()
+        #plot_vars([{"var_name" : "bdt", "bins" : 15, "xlow" : 0., "xup" : 1., "xtitle" : 0.}], inpath = "bdt")
+        
+    if plot_bdt:
+        plot_vars(bdt_var, inpath = BDT_DIR + "/")
+        plot_stack(bdt_var, "bdt")
+        plot_syst(bdt_var, "bdt")
         
     if do_fit:
         #fit_xsec(var = "MET_met", file_name = "histos")
-        fit_xsec(var = "bdt", file_name = "bdt_test")
+        fit_xsec(var = "bdt", file_name = "bdt")
         #fit_xsec(var = "MET_met")
         
 

@@ -3,6 +3,7 @@ import numpy as np
 import ROOT
 from root_numpy import fill_hist
 import btag
+import awkward
 
 def stack_weight(weight, n):
     return np.full(n ,weight)
@@ -21,10 +22,10 @@ def save_var(sample, name, var_name, bins = 20, xlow = 0., xup = 350, corr=None)
         pass
     elif name == "QCD":
         if var_name == "bdt":
-            scale_qcd = 9.
+            scale_qcd = 9. * 0.73
             sample = sample[sample["train_flag"] == "test"]
         else:
-            scale_qcd = 4.3
+            scale_qcd = 4.3 
         sample['weight'] = sample['btag_weight'] * scale_qcd
     else:
         #samples[sample]['new_trigger_weight'] = new_samples[sample].apply(lambda ev : weights.trigger_weight(ev), axis=1)
@@ -47,8 +48,10 @@ def save_var(sample, name, var_name, bins = 20, xlow = 0., xup = 350, corr=None)
         elif corr == "xsec_down":
             sample['weight'] = sample['norm_down'] * (1/1000) * sample['trigger_weight'] * sample['Jet_btag_weight1']
         elif corr == "pdf_up":
+            sample["pdf_up"] = sample["pdf_up"].fillna(0.)
             sample['weight'] = sample['norm'] * (1/1000) * sample['trigger_weight'] * sample['Jet_btag_weight1'] *                   (1+sample['pdf_up'])
         elif corr == "pdf_down":
+            sample["pdf_down"] = sample["pdf_down"].fillna(0.)
             sample['weight'] = sample['norm'] * (1/1000) * sample['trigger_weight'] * sample['Jet_btag_weight1']  * (1-sample['pdf_down'])
         else:
             print( "No valid correction" )
@@ -58,10 +61,13 @@ def save_var(sample, name, var_name, bins = 20, xlow = 0., xup = 350, corr=None)
     
     # Flatten if the column is a list
     if "Jet_" in var_name:
-        series = sample[var_name].apply(pd.Series).stack().reset_index(drop=True)
+        #series = sample[var_name].apply(pd.Series).stack().reset_index(drop=True)
+        series = awkward.fromiter(sample[var_name].values).flatten()
         if name != "Data":
             sample['weight_stacked'] = sample.apply(lambda x : stack_weight(x["weight"] ,x["nJets"]), axis=1)
-            weights = sample['weight_stacked'].apply(pd.Series).stack().reset_index(drop=True)
+            weights = awkward.fromiter(sample["weight_stacked"].values).flatten()
+            #weights = sample['weight_stacked'].apply(pd.Series).stack().reset_index(drop=True)
+            print( var_name, len(series), len(weights))
     else:
         series = sample[var_name]
         if name != "Data":
@@ -76,8 +82,8 @@ def save_var(sample, name, var_name, bins = 20, xlow = 0., xup = 350, corr=None)
     #print s, hist.Integral()
     hist.Write()
 
-def vars_to_histos(samples, variables, file_name = "histos"):
-    file = ROOT.TFile("histos/" + file_name + ".root", 'recreate')
+def vars_to_histos(samples, variables, file_path):
+    file = ROOT.TFile(file_path, 'recreate')
     for name, sample in samples.items():
         for var in variables:
             save_var(sample, name, var["var_name"], var["bins"], var["xlow"], var["xup"])
@@ -87,7 +93,7 @@ def vars_to_histos(samples, variables, file_name = "histos"):
                 if "TTJets" in name:
                     save_var(sample, name, var["var_name"], var["bins"], var["xlow"], var["xup"], corr = "pdf_up")
                     save_var(sample, name, var["var_name"], var["bins"], var["xlow"], var["xup"], corr = "pdf_down")
-
+                
     file.Close()
     
     
@@ -196,7 +202,7 @@ def createCanvasPads():
 
     return c, pad1, pad2
     
-def plot_variation(var, xlabel, corr, cent, up, down):
+def plot_variation(outpath, var, xlabel, corr, cent, up, down):
 
     ROOT.gROOT.SetBatch()
     ROOT.gStyle.SetOptStat(0)
@@ -258,13 +264,14 @@ def plot_variation(var, xlabel, corr, cent, up, down):
     leg.SetBorderSize(0)
     leg.Draw("SAME")
     """
-    c.Print("syst/" + var + "_" + corr + ".png")
+    c.Print( outpath + "/" + var + "_" + corr + ".png")
     
     
-def syst(variables, sample = "TTJets", file_name = "bdt_corr"):
+def syst(variables, sample, file_path, outpath):
     
-    path = "histos/" + file_name + ".root"
-    f = ROOT.TFile(path)
+    
+    f = ROOT.TFile(file_path, "READ")
+       
     h = f.Get("TTJets_signal_centJER_btag_down_bdt")
     print(type(h))
     
@@ -279,7 +286,7 @@ def syst(variables, sample = "TTJets", file_name = "bdt_corr"):
             print(sample + "_centJER_" + c + "_down_" + var["var_name"])
             hist_down = f.Get(sample + "_centJER_" + c + "_down_" + var["var_name"])
             print(type(hist_down))
-            plot_variation(var["var_name"], var["xtitle"], c, hist_cent, hist_up, hist_down)
+            plot_variation(outpath, var["var_name"], var["xtitle"], c, hist_cent, hist_up, hist_down)
             
         
        
@@ -297,10 +304,10 @@ def syst(variables, sample = "TTJets", file_name = "bdt_corr"):
         
         
         # JES
-        plot_variation(var["var_name"], var["xtitle"], "JES", hist_cent, hist_jes_up, hist_jes_down)
-        plot_variation(var["var_name"], var["xtitle"], "JER", hist_cent, hist_jer_up, hist_jes_down)
-        plot_variation(var["var_name"], var["xtitle"], "Tau Scale", hist_cent, hist_tau_eup, hist_tau_edown)
-        plot_variation(var["var_name"], var["xtitle"], "JES old", hist_cent, hist_jes_up_old, hist_jes_down_old)
-        plot_variation(var["var_name"], var["xtitle"], "JES old", hist_cent, hist_met_up, hist_met_down)
+        plot_variation(outpath, var["var_name"], var["xtitle"], "JES", hist_cent, hist_jes_up, hist_jes_down)
+        plot_variation(outpath, var["var_name"], var["xtitle"], "JER", hist_cent, hist_jer_up, hist_jer_down)
+        plot_variation(outpath, var["var_name"], var["xtitle"], "Tau_scale", hist_cent, hist_tau_eup, hist_tau_edown)
+        plot_variation(outpath, var["var_name"], var["xtitle"], "JES_old", hist_cent, hist_jes_up_old, hist_jes_down_old)
+        plot_variation(outpath, var["var_name"], var["xtitle"], "MET", hist_cent, hist_met_up, hist_met_down)
 
         
