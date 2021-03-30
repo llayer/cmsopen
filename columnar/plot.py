@@ -26,7 +26,15 @@ def save_var(sample, name, var_name, bins = 20, xlow = 0., xup = 350, corr=None)
             sample = sample[sample["train_flag"] == "test"]
         else:
             scale_qcd = 4.3 
-        sample['weight'] = sample['btag_weight'] * scale_qcd
+        if corr is None:
+            sample['weight'] = sample['btag_weight'] * scale_qcd
+        elif corr == "mistag_up":
+            sample['weight'] = sample['btag_weight_up'] * scale_qcd
+        elif corr == "mistag_down":
+            sample['weight'] = sample['btag_weight_down'] * scale_qcd
+        else:
+            print( "No valid correction" )
+
     else:
         #samples[sample]['new_trigger_weight'] = new_samples[sample].apply(lambda ev : weights.trigger_weight(ev), axis=1)
         
@@ -93,6 +101,9 @@ def vars_to_histos(samples, variables, file_path):
                 if "TTJets" in name:
                     save_var(sample, name, var["var_name"], var["bins"], var["xlow"], var["xup"], corr = "pdf_up")
                     save_var(sample, name, var["var_name"], var["bins"], var["xlow"], var["xup"], corr = "pdf_down")
+            if "QCD" in name:
+                save_var(sample, name, var["var_name"], var["bins"], var["xlow"], var["xup"], corr = "mistag_up")
+                save_var(sample, name, var["var_name"], var["bins"], var["xlow"], var["xup"], corr = "mistag_down")                
                 
     file.Close()
     

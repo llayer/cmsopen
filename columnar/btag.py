@@ -103,7 +103,7 @@ def b_weight_method1(ev, syst='cent', njets = -1):
     elif syst == 'down':
         jet_btagSF = ev["Jet_btagSF_down"]
     else:
-        prin("No valid b-tag variation!!")
+        print("No valid b-tag variation!!")
     jet_csvDisc = ev["Jet_csvDisc"]
     
     pMC=1.0
@@ -133,11 +133,18 @@ def b_weight_method1(ev, syst='cent', njets = -1):
 
 
 # Corresponds to https://twiki.cern.ch/twiki/bin/viewauth/CMS/BTagSFMethods 1B
-def b_weight_method2(ev, njets = -1):
+def b_weight_method2(ev, syst='cent', njets = -1):
 
     
     jet_eff = ev["Jet_beff"]
-    jet_btagSF = ev["Jet_btagSF"]
+    if syst == 'cent':
+        jet_btagSF = ev["Jet_btagSF"]
+    elif syst == 'up':
+        jet_btagSF = ev["Jet_btagSF_up"]
+    elif syst == 'down':
+        jet_btagSF = ev["Jet_btagSF_down"]
+    else:
+        print("No valid b-tag variation!!")
     jet_csvDisc = ev["Jet_csvDisc"]
     
     weight_0tags = 1.0

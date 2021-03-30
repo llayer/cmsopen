@@ -13,7 +13,7 @@ import root_pandas
 import h5py
 from pathlib import Path
 
-BASE_DIR = "/eos/user/l/llayer/cmsopen/columnar/syst_scale/"
+BASE_DIR = "/eos/user/l/llayer/cmsopen/columnar/syst_variation/"
 SAMPLES_DIR = BASE_DIR + "samples"
 CAND_DIR = BASE_DIR + "cand"
 HIST_DIR = BASE_DIR + "histos"
@@ -24,11 +24,11 @@ BDT_DIR = BASE_DIR + "bdt"
 ev_sel = False
 proc_cands = False
 do_plotting = False
-do_stack = False
+do_stack = True
 do_syst = False
 run_bdt = False
 plot_bdt = False
-do_fit = True
+do_fit = False
 
 """
 variables = [
@@ -86,9 +86,7 @@ def check_keys():
 
 def event_selection(outpath = SAMPLES_DIR):
     
-    
-    
-    for sample in ["Tbar_TuneZ2_t-channel"]: #mc + data:
+    for sample in mc + data:
         
         #!!!!!!! Careful with JER application before Tau?!
         
@@ -102,27 +100,42 @@ def event_selection(outpath = SAMPLES_DIR):
         
         df, cut_flow = selection.event_selection(path, isData = isData, isTT = isTT)
         print( cut_flow )
-        df.to_hdf(outpath + "/" + sample + ".h5", "central", mode='w')
+        df.to_hdf(outpath + "/" + sample + ".h5", "frame")
                 
         if isData == False:
             
             for c in corrections:
-                df, cut_flow = selection.event_selection(path, isData = isData, isTT = isTT, corrLevel = c, 
-                                                         tau_factor = 0.1, jes_factor = 0.1)
+                df, cut_flow = selection.event_selection(path, isData = isData, isTT = isTT, corrLevel = c)
                 print( cut_flow )
-                df.to_hdf(outpath + "/" + sample + ".h5", c, mode='a')         
+                df.to_hdf(outpath + "/" + sample + "_" + c + ".h5", "frame")    
+                
+                # Vary the size of jes / tau scale
+                if (c == "jes_up") | (c == "jes_down"):
+                    for scale in [0.03, 0.06, 0.09]:
+                        df, cut_flow = selection.event_selection(path, isData = isData, isTT = isTT, corrLevel = c, 
+                                                                 jes_factor = scale)
+                        print( cut_flow )
+                        df.to_hdf(outpath + "/" + sample + "_" + c + "_" + str(scale)[2:] +".h5", "frame") 
+                        
+                if (c == "tau_eup") | (c == "tau_edown"):
+                    for scale in [0.05, 0.07, 0.09]:
+                        df, cut_flow = selection.event_selection(path, isData = isData, isTT = isTT, corrLevel = c, 
+                                                                 tau_factor = scale)
+                        print( cut_flow )
+                        df.to_hdf(outpath + "/" + sample + "_" + c + "_" + str(scale)[2:] +".h5", "frame")                    
     #check_keys()
 
     
     
-def candidates(sample, key, invert_btag = False, njets=-1, scale_met=None):
+def candidates(sample, file, invert_btag = False, njets=-1, scale_met=None):
     
     if "Run2011" in sample: isData = True
     else: isData = False
 
-    print( "Processing:", sample, "Variation", key ,"isData:", isData, "invert_btag:", invert_btag)
+    print( "Processing:", sample, "File", file ,"isData:", isData, "invert_btag:", invert_btag)
 
-    df = pd.read_hdf( SAMPLES_DIR + "/" + sample + ".h5", key=key)
+    #df = pd.read_hdf( SAMPLES_DIR + "/" + sample + ".h5", key=key)
+    df = pd.read_hdf(file)
     df['nJets'] = df["Jet_pt"].str.len()
     
     # b-tagging
@@ -150,7 +163,7 @@ def candidates(sample, key, invert_btag = False, njets=-1, scale_met=None):
         trigger_frac = hlt_40 / float(hlt_45)
         df = pd.concat([df, df.apply(lambda ev: pd.Series(btag.eval_sf_eff(ev)), axis=1)], axis=1)
         df["Jet_btag_weight1"] = df.apply(lambda ev : btag.b_weight_method1(ev, njets=njets), axis=1)
-        if (key == "central") | (key == "centJER"):
+        if ( "centJER" in file):
             df["Jet_btag_weight1_up"] = df.apply(lambda ev : btag.b_weight_method1(ev, syst='up', njets=njets), axis=1)
             df["Jet_btag_weight1_down"] = df.apply(lambda ev : btag.b_weight_method1(ev, syst='down', njets=njets), axis=1)
         #df["Jet_btag_weight2"] = df.apply(lambda ev : btag.b_weight_method2(ev, njets=njets), axis=1)
@@ -164,7 +177,7 @@ def candidates(sample, key, invert_btag = False, njets=-1, scale_met=None):
         weights.norm(df, total_counts, xsec, lumi = total_lumi)
         
         # PDF
-        if ("TTJets" in sample) & (key == "centJER"):
+        if ("TTJets" in sample) & ( "centJER" in file):
             pdf = pd.read_hdf("TTJets_pdfweights.h5")
             df = pd.merge(df, pdf, how="left", on=["event", "luminosityBlock", "run"])
 
@@ -177,7 +190,9 @@ def candidates(sample, key, invert_btag = False, njets=-1, scale_met=None):
         df["Jet_flavour"] = df["nJets"].apply(lf)
         df = pd.concat([df, df.apply(lambda ev: pd.Series(btag.eval_sf_eff(ev)), axis=1)], axis=1)
         df["btag_weight"] = df.apply(lambda ev : btag.b_weight_method2(ev, njets=njets), axis=1)
-        
+        df["btag_weight_up"] = df.apply(lambda ev : btag.b_weight_method2(ev, syst='up', njets=njets), axis=1)
+        df["btag_weight_down"] = df.apply(lambda ev : btag.b_weight_method2(ev, syst='down', njets=njets), axis=1)
+
     return df
     
     
@@ -185,9 +200,10 @@ def rearrange_samples(samples):
     
     # Concat and split MC in signal and background
     new_samples = {}
+    
     for key in ["central", "met_up", "met_down"] + corrections:
 
-        new_samples["TTJets_signal_" + key], new_samples["TTJets_bkg_" + key] = weights.classify_tt(samples["TTJets_" + key])
+        #new_samples["TTJets_signal_" + key], new_samples["TTJets_bkg_" + key] = weights.classify_tt(samples["TTJets_" + key])
         new_samples["WZJets_" + key] = pd.concat([samples['WJetsToLNu_' + key], samples['DYJetsToLL_' + key]], axis=0)
         new_samples["STJets_" + key] = pd.concat([samples['T_TuneZ2_s_' + key], samples['T_TuneZ2_tW_' + key], 
                                                   samples['T_TuneZ2_t-channel_' + key], samples['Tbar_TuneZ2_s_' + key],
@@ -195,41 +211,105 @@ def rearrange_samples(samples):
                                                   samples['Tbar_TuneZ2_t-channel_' + key]], axis=0)
 
     # Concat the data
+    """
     new_samples["Data"] = pd.concat([samples["Run2011A_MultiJet"], samples["Run2011B_MultiJet"]], axis=0)
     new_samples["QCD"] = pd.concat([samples["QCD_Run2011A_MultiJet"], samples["QCD_Run2011B_MultiJet"]], axis=0)
-    
+    """
     return new_samples
     
     
 def proc_candidates(outpath=CAND_DIR, njets = -1):
     
-    samples = {}
-    
-   
+    #
+    # Data
+    #
+    """
+    data_samples = {}
     for sample in data:
-        samples[sample] = candidates(sample, "central", invert_btag = False, njets=njets)
-        samples["QCD_" + sample] = candidates(sample, "central", invert_btag = True, njets=njets)
+        file_path = SAMPLES_DIR + "/" + sample + ".h5"
+        data_samples[sample] = candidates(sample, file_path, invert_btag = False, njets=njets)
+        data_samples["QCD_" + sample] = candidates(sample, file_path, invert_btag = True, njets=njets) 
+    # Write to disc
+    df_data = pd.concat([data_samples["Run2011A_MultiJet"], data_samples["Run2011B_MultiJet"]], axis=0)
+    df_qcd = pd.concat([data_samples["QCD_Run2011A_MultiJet"], data_samples["QCD_Run2011B_MultiJet"]], axis=0)
+    df_data.to_hdf(outpath + "/Data.h5", "frame")
+    df_qcd.to_hdf(outpath + "/QCD.h5", "frame")
+    """
     
+    #
+    # MC
+    #
     
+    sample_files = {}
     for sample in mc:
-        
-        for key in ["central"] + corrections:
-            samples[sample + "_" + key] = candidates(sample, key, invert_btag = False, njets=njets)   
-        # MET variation
-        #
-        # Change key for met to centJER
-        #
-        samples[sample + "_met_up"] = candidates(sample, "central", invert_btag = False, njets=njets, scale_met=1.1)
-        samples[sample + "_met_down"] = candidates(sample, "central", invert_btag = False, njets=njets, scale_met=0.9)
-
-    new_samples = rearrange_samples(samples)
+        sample_files[sample] = glob.glob(SAMPLES_DIR + "/" + sample + "*.h5")
     
+    #
+    # TTJets
+    #
+    """
+    for file in sample_files["TTJets"]:
+        name = file.split("/")[-1][:-3]
+        if name == "TTJets":
+            continue
+        df = candidates("TTJets", file, invert_btag = False, njets=njets) 
+        tt_sig, tt_bkg = weights.classify_tt(df)    
+        tt_sig.to_hdf(outpath + "/" + name + "_signal" +".h5", "frame")
+        tt_bkg.to_hdf(outpath + "/" + name + "_bkg" +".h5", "frame")
+    # MET
+    for var in ["up", "down"]:
+        file_path = SAMPLES_DIR + "/TTJets_centJER.h5"
+        if var == "up":
+            df = candidates("TTJets", file_path, invert_btag = False, njets=njets, scale_met=1.1)
+        else:
+            df = candidates("TTJets", file_path, invert_btag = False, njets=njets, scale_met=0.9)
+        tt_sig, tt_bkg = weights.classify_tt(df)    
+        tt_sig.to_hdf(outpath + "/" + "TTJets_met_" + var + "_signal" +".h5", "frame")
+        tt_bkg.to_hdf(outpath + "/" + "TTJets_met_" + var + "_bkg" +".h5", "frame")
+    """ 
+    
+    mc_samples = {}
+    for sample in ['T_TuneZ2_s', 'WJetsToLNu', 'DYJetsToLL', 'T_TuneZ2_tW', 'T_TuneZ2_t-channel',
+                   'Tbar_TuneZ2_s', 'Tbar_TuneZ2_tW', 'Tbar_TuneZ2_t-channel']:
+        for file in sample_files[sample]:
+            name = file.split("/")[-1][:-3]
+            mc_samples[name] = candidates(sample, file, invert_btag = False, njets=njets) 
+        for var in ["up", "down"]:
+            file_path = SAMPLES_DIR + "/" + sample + "_centJER.h5"
+            if var == "up":
+                mc_samples[sample + "_met_" + var] = candidates(sample, file_path, 
+                                                                invert_btag = False, njets=njets, scale_met=1.1)
+            else:
+                mc_samples[sample + "_met_" + var] = candidates(sample, file_path, 
+                                                                invert_btag = False, njets=njets, scale_met=0.9) 
+               
+    tau_var = ["_tau_eup_" + str(scale)[2:] for scale in [0.05, 0.07, 0.09]] + \
+              ["_tau_edown_" + str(scale)[2:] for scale in [0.05, 0.07, 0.09]]
+    jes_var = ["_jes_up_" + str(scale)[2:] for scale in [0.03, 0.06, 0.09]] + \
+              ["_jes_down_" + str(scale)[2:] for scale in [0.03, 0.06, 0.09]]
+    corr = ["_" + c for c in corrections]
+    
+    new_samples = {}
+    for key in ["", "_met_up", "_met_down"] + corr + jes_var + tau_var:
+
+        #new_samples["TTJets_signal_" + key], new_samples["TTJets_bkg_" + key] = weights.classify_tt(samples["TTJets_" + key])
+        new_samples["WZJets" + key] = pd.concat([mc_samples['WJetsToLNu' + key], mc_samples['DYJetsToLL' + key]], axis=0)
+        new_samples["STJets" + key] = pd.concat([mc_samples['T_TuneZ2_s' + key], mc_samples['T_TuneZ2_tW' + key], 
+                                                  mc_samples['T_TuneZ2_t-channel' + key], mc_samples['Tbar_TuneZ2_s' + key],
+                                                  mc_samples['Tbar_TuneZ2_tW' + key], 
+                                                  mc_samples['Tbar_TuneZ2_t-channel' + key]], axis=0)
+        
+    #new_samples = rearrange_samples(samples)
+    for sample in new_samples:
+        new_samples[sample].to_hdf(outpath + "/" + sample + ".h5", "frame")
+        
+    """
     for name in ["Data", "TTJets_bkg", "WZJets", "STJets", "QCD", "TTJets_signal"]:
         for sample in new_samples:
             if name in sample:
                 # DANGER!! Delete samples
                 new_samples[sample].to_hdf(outpath + "/" + name + ".h5", sample, mode='a')
-    
+    """
            
     
 def plot_vars( variables, inpath ):
@@ -238,9 +318,12 @@ def plot_vars( variables, inpath ):
     files = glob.glob(inpath + "*.h5")
     samples = {}
     for sample in files:
+       
         sample_name = sample.split("/")[-1][:-3]
         print(sample_name)
+        samples[sample_name] = pd.read_hdf(sample)
         
+        """
         if (sample_name != "Data") & (sample_name != "QCD"):
             #samples[sample_name] = pd.read_hdf(sample, sample_name + "_central")
             #samples[sample_name] = pd.read_hdf(sample, sample_name + "_centJER")
@@ -248,6 +331,7 @@ def plot_vars( variables, inpath ):
                 samples[sample_name + "_" + key] = pd.read_hdf(sample, sample_name + "_" + key)
         else:
             samples[sample_name] = pd.read_hdf(sample)
+        """
         
     print( "Plotting" )
     if "bdt" in inpath:
@@ -310,11 +394,11 @@ def plot_syst(variables, file_name):
 def fit_xsec(var = "MET_met", file_name = "bdt_corr", syst=False):
     
     sample_names = ["Data", "TTJets_bkg", "WZJets", "STJets", "QCD", "TTJets_signal"]
-    sf_tt_sig, sf_qcd = fit.fit(HIST_DIR + "/" + file_name + ".root", sample_names, var, corr="central")
+    sf_tt_sig, sf_qcd = fit.fit(HIST_DIR + "/" + file_name + ".root", sample_names, var, corr="jes_down")
     sfs = {}
     sfs["TTJets_signal"] = sf_tt_sig
     sfs["QCD"] = sf_qcd
-    stack.plot( HIST_DIR + "/" + file_name + ".root", var, var, sample_names[1:], STACK_DIR, sfs = sfs, corr = "central" )
+    #stack.plot( HIST_DIR + "/" + file_name + ".root", var, var, sample_names[1:], STACK_DIR, sfs = sfs, corr = "central" )
     
     if syst:
         
@@ -368,12 +452,13 @@ if __name__ == "__main__":
     
     
     if ev_sel:
-        #Path(SAMPLES_DIR).mkdir(parents=True, exist_ok=True)
+        Path(SAMPLES_DIR).mkdir(parents=True, exist_ok=True)
         event_selection()
-        check_keys()
+        #check_keys()
 
     if proc_cands:
         Path(CAND_DIR).mkdir(parents=True, exist_ok=True)
+        print("Process candidates")
         proc_candidates()
     
     if do_plotting:
