@@ -34,6 +34,13 @@ def save_var(sample, name, var_name, bins = 20, xlow = 0., xup = 350, corr=None)
             sample['weight'] = sample['btag_weight_down'] * scale_qcd
         else:
             print( "No valid correction" )
+              
+    # Renorm the test sample for TTJets signal
+    elif ("TTJets_signal" in name) & (corr is None) & (var_name == "bdt"):
+        sample['weight'] = sample['norm'] * (1/1000) * sample['trigger_weight'] * sample['Jet_btag_weight1']
+        dummy = ROOT.TH1D("dummy", "dummy", bins, xlow, xup)
+        fill_hist(dummy, sample[var_name], weights = sample['weight'])
+        sample = sample[sample["train_flag"] == "test"]
 
     else:
         #samples[sample]['new_trigger_weight'] = new_samples[sample].apply(lambda ev : weights.trigger_weight(ev), axis=1)
@@ -66,6 +73,7 @@ def save_var(sample, name, var_name, bins = 20, xlow = 0., xup = 350, corr=None)
 
         #print(sample, sum(samples[sample]['weight']))
         #new_samples[sample]['btag_weight2']
+            
     
     # Flatten if the column is a list
     if "Jet_" in var_name:
@@ -87,21 +95,39 @@ def save_var(sample, name, var_name, bins = 20, xlow = 0., xup = 350, corr=None)
         #print (len(series))
         #print (len(sample["weight"]))
         fill_hist(hist, series, weights = weights)
+        
+        # Renorm the test templates used in the ml
+        if ("TTJets_signal" in name) & (corr is None) & (var_name == "bdt"):
+            renorm_factor = float(dummy.Integral()) / float(hist.Integral())
+            hist.Scale(renorm_factor)
+            print(renorm_factor, hist.Integral(), dummy.Integral())
     #print s, hist.Integral()
     hist.Write()
 
-def vars_to_histos(samples, variables, file_path):
+def vars_to_histos(samples, variables, file_path, syst=True):
     file = ROOT.TFile(file_path, 'recreate')
     for name, sample in samples.items():
+        
+        # Change name of TTJets samples to be consistent
+        if ("TTJets" in name) & (name is not "TTJets_bkg") & (name is not "TTJets_signal"):
+            print("Change name")
+            tmp = name.split("_")
+            pre = tmp[0]
+            post = tmp[-1]
+            middle = '_'.join(tmp[1:-1])
+            #print( name[0] + "_" + name[-1] + "_" + name[1] + "_" + name[2] )
+            name = pre + "_"+ post + "_" + middle
+            print(name)
+        
         for var in variables:
             save_var(sample, name, var["var_name"], var["bins"], var["xlow"], var["xup"])
-            if "centJER" in name:
+            if ("centJER" in name) & (syst is True):
                 for corr in ["btag_up", "btag_down", "trigger_up", "trigger_down", "xsec_up", "xsec_down"]:
                     save_var(sample, name, var["var_name"], var["bins"], var["xlow"], var["xup"], corr = corr)
                 if "TTJets" in name:
                     save_var(sample, name, var["var_name"], var["bins"], var["xlow"], var["xup"], corr = "pdf_up")
                     save_var(sample, name, var["var_name"], var["bins"], var["xlow"], var["xup"], corr = "pdf_down")
-            if "QCD" in name:
+            if ("QCD" in name) & (syst is True):
                 save_var(sample, name, var["var_name"], var["bins"], var["xlow"], var["xup"], corr = "mistag_up")
                 save_var(sample, name, var["var_name"], var["bins"], var["xlow"], var["xup"], corr = "mistag_down")                
                 
@@ -302,6 +328,33 @@ def syst(variables, sample, file_path, outpath):
         
        
         #print(hist_cent.Integral())
+        for c in ["jes", "jer","met", "tau_e"]:
+            
+            #  Stupid naming - FIX!
+            if c == "tau_e":
+                prefix = ""
+            else:
+                prefix = "_"
+            hist_up = f.Get(sample + "_" + c + prefix + "up_" + var["var_name"])
+            hist_down = f.Get(sample + "_" + c + prefix + "down_" + var["var_name"])
+            plot_variation(outpath, var["var_name"], var["xtitle"], c, hist_cent, hist_up, hist_down)
+            
+            if c == "jes":
+                for c_var in ["03", "06", "09", "old"]:
+                    
+                    hist_up = f.Get(sample + "_" + c + "_up_" + c_var + "_" + var["var_name"])
+                    hist_down = f.Get(sample + "_" + c + "_down_" + c_var + "_" + var["var_name"])
+                    plot_variation(outpath, var["var_name"], var["xtitle"], c + "_" + c_var, hist_cent, hist_up, hist_down)
+        
+            if c == "tau_e":
+                for c_var in ["05", "07", "09"]:
+                    
+                    hist_up = f.Get(sample + "_" + c + "up_" + c_var + "_" + var["var_name"])
+                    hist_down = f.Get(sample + "_" + c + "down_" + c_var + "_" + var["var_name"])
+                    plot_variation(outpath, var["var_name"], var["xtitle"], c + "_" + c_var, hist_cent, hist_up, hist_down)
+
+                    
+        """
         hist_jes_up = f.Get(sample + "_jes_up_" + var["var_name"])
         hist_jes_down = f.Get(sample + "_jes_down_" + var["var_name"])
         hist_jer_up = f.Get(sample + "_jer_up_" + var["var_name"])
@@ -320,5 +373,5 @@ def syst(variables, sample, file_path, outpath):
         plot_variation(outpath, var["var_name"], var["xtitle"], "Tau_scale", hist_cent, hist_tau_eup, hist_tau_edown)
         plot_variation(outpath, var["var_name"], var["xtitle"], "JES_old", hist_cent, hist_jes_up_old, hist_jes_down_old)
         plot_variation(outpath, var["var_name"], var["xtitle"], "MET", hist_cent, hist_met_up, hist_met_down)
-
+        """
         

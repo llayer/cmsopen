@@ -69,12 +69,14 @@ def train_test_split(df, n = 5000):
     df['train_flag'] = np.select(cond, choice)
     
     
-def train(samples, outpath, n_sig = 4000, n_bkg = 4000, ntrees=1000, lr = 0.01, ):
+def train(samples, outpath, n_sig = 4000, n_bkg = 4000, ntrees=1000, lr = 0.01, random_state = 0):
     
+    print("Set random state")
+    random.seed(random_state)
     
     print("Prepare training data")
     
-    signal = samples["TTJets_signal_central"]
+    signal = samples["TTJets_centJER_signal"] #samples["TTJets_signal_central"]
     bkg = samples["QCD"]
     
     train_test_split(signal, n_sig)
@@ -110,7 +112,7 @@ def train(samples, outpath, n_sig = 4000, n_bkg = 4000, ntrees=1000, lr = 0.01, 
     print("Train model")
     
     # Define model
-    bdt = xgb.XGBClassifier(n_estimators=ntrees, learning_rate = lr, n_jobs = 1)
+    bdt = xgb.XGBClassifier(n_estimators=ntrees, learning_rate = lr, n_jobs = 1, random_state=random_state)
     # Fit
     bdt.fit(X_train, y_train, sample_weight = weights, eval_metric=["logloss"], verbose=False) # sample_weight
     

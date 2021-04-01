@@ -65,8 +65,9 @@ def plot(infile, var, xtitle, sample_names, outpath, sfs = None, corr="central")
         if s == "QCD":
             hist = f.Get(s + '_' + var)#path + '/' + s.label)
         else:
-            #hist = f.Get(s + '_' + corr + "_" + var)#path + '/' + s.label)
-            hist = f.Get(s + '_' + var)#path + '/' + s.label)
+            hist = f.Get(s + '_' + corr + "_" + var)#path + '/' + s.label)
+            #hist = f.Get(s + '_' + var)#path + '/' + s.label)
+        print( s, type(hist) )
         hist.SetOption("HIST SAME")
         hist.SetLineColor(ROOT.kBlack)
         hist.SetTitle("")

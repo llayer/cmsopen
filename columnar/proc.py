@@ -24,10 +24,10 @@ BDT_DIR = BASE_DIR + "bdt"
 ev_sel = False
 proc_cands = False
 do_plotting = False
-do_stack = True
+do_stack = False
 do_syst = False
 run_bdt = False
-plot_bdt = False
+plot_bdt = True
 do_fit = False
 
 """
@@ -353,7 +353,7 @@ def plot_stack(variables, file_name):
     sample_names = ["TTJets_bkg", "WZJets", "STJets", "QCD", "TTJets_signal"]
     for var in variables:
         stack.plot( HIST_DIR + "/" + file_name + ".root", var["var_name"], var["xtitle"], sample_names, STACK_DIR,
-                   corr = "central" )
+                   corr = "centJER" )
     
     
 def bdt( outpath = BDT_DIR ):
@@ -363,12 +363,15 @@ def bdt( outpath = BDT_DIR ):
     for sample in files:
         sample_name = sample.split("/")[-1][:-3]
         print(sample_name)
+        samples[sample_name] = pd.read_hdf(sample)
+        """
         if (sample_name != "Data") & (sample_name != "QCD"):
             for key in ["central", "met_up", "met_down"] + corrections:
                 samples[sample_name + "_" + key] = pd.read_hdf(sample, sample_name + "_" + key)
         else:
             samples[sample_name] = pd.read_hdf(sample)
-            
+        """
+        
     ml.train(samples, outpath, n_sig=4000, n_bkg=4000, ntrees=1000, lr=0.01)
     
     dropvars = ['Jet_pt', 'Jet_px', 'Jet_py', 'Jet_pz', 'Jet_e', 'Jet_eta', 'Jet_phi',
@@ -376,11 +379,9 @@ def bdt( outpath = BDT_DIR ):
        'Tau_pz', 'Tau_e', 'Tau_eta', 'Tau_phi', 'Tau_mass', 'Tau_charge',
        'MET_pt', 'MET_px', 'MET_py', 'MET_pz', 'MET_e']
     
-    for name in ["Data", "TTJets_bkg", "WZJets", "STJets", "QCD", "TTJets_signal"]:
-        for sample in samples:
-            if name in sample:
-                # DANGER!! Delete samples
-                samples[sample].drop(dropvars, axis=1, errors='ignore').to_hdf(outpath + "/" + name + ".h5", sample, mode='a')
+    #for name in ["Data", "TTJets_bkg", "WZJets", "STJets", "QCD", "TTJets_signal"]:
+    for sample in samples:
+        samples[sample].drop(dropvars, axis=1, errors='ignore').to_hdf(outpath + "/" + sample + ".h5", "frame")
     
     
 def plot_syst(variables, file_name):
@@ -394,7 +395,7 @@ def plot_syst(variables, file_name):
 def fit_xsec(var = "MET_met", file_name = "bdt_corr", syst=False):
     
     sample_names = ["Data", "TTJets_bkg", "WZJets", "STJets", "QCD", "TTJets_signal"]
-    sf_tt_sig, sf_qcd = fit.fit(HIST_DIR + "/" + file_name + ".root", sample_names, var, corr="jes_down")
+    sf_tt_sig, sf_qcd = fit.fit(HIST_DIR + "/" + file_name + ".root", sample_names, var, corr="centJER")
     sfs = {}
     sfs["TTJets_signal"] = sf_tt_sig
     sfs["QCD"] = sf_qcd
@@ -479,8 +480,8 @@ if __name__ == "__main__":
         #plot_vars([{"var_name" : "bdt", "bins" : 15, "xlow" : 0., "xup" : 1., "xtitle" : 0.}], inpath = "bdt")
         
     if plot_bdt:
-        plot_vars(bdt_var, inpath = BDT_DIR + "/")
-        plot_stack(bdt_var, "bdt")
+        #plot_vars(bdt_var, inpath = BDT_DIR + "/")
+        #plot_stack(bdt_var, "bdt")
         plot_syst(bdt_var, "bdt")
         
     if do_fit:
