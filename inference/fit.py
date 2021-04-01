@@ -1,14 +1,14 @@
 import os, commands
 
 # Used datacard
-datacard = "/afs/cern.ch/work/l/llayer/CMSSW_10_2_18/src/cmsopen/inference/DataCard_Syst/bdt/tt/taujets_bdt_signal_region_7TeV.txt"
+datacard = "/afs/cern.ch/work/l/llayer/CMSSW_10_2_18/src/cmsopen/inference/DataCard_SystVar/bdt/tt/taujets_bdt_signal_region_7TeV"
 #datacard = "/afs/cern.ch/work/l/llayer/CMSSW_10_2_18/src/cmsopen/inference/DataCard/bdt/tt/taujets_bdt_signal_region_7TeV.txt"
 
-stat_only = True
+stat_only = False
 
 gof = False
 closure = False
-impact = False
+impact = True
 maxL = True
 multi = True
 
@@ -34,13 +34,13 @@ if(impact):
     os.system("combineTool.py -M Impacts -d  " + datacard + ".root -m 125 --autoBoundsPOIs r  --robustFit 1 --autoRange 1 --doFits")
     os.system("combineTool.py -M Impacts -d  " + datacard + ".root -m 125 --autoBoundsPOIs r  --autoRange 1 -o prova.json")
     os.system("plotImpacts.py -i prova.json  -o impacts")
-    os.system("mv impacts.pdf "+directory)
+    os.system("mv impacts.pdf "+ outdir)
 
 if(maxL):
     #--cminDefaultMinimizerStrategy 0 TEST
     #os.system("combine -M FitDiagnostics " + datacard + ".root --out " + outdir ) #  --saveShapes --saveWithUncertainties --plots --saveNormalizations --robustFit 1 --customStartingPoint --stepSize 0.004 --out " + directory + " --profilingMode all --keepFailures  --autoBoundsPOIs r")
 
-    command = "combine -M FitDiagnostics " + datacard + " --out " + outdir
+    command = "combine -M FitDiagnostics " + datacard + ".txt --out " + outdir + " --saveNormalizations --saveShapes"
     if stat_only:
         command += " --freezeParameters allConstrainedNuisances"
     os.system( command )
@@ -61,7 +61,7 @@ if(multi):
     # DANGER add robust fit??
     paramRange = "--setParameterRanges r=0.5,1.5"
     #os.system("combine " + datacard + " -M MultiDimFit --algo=grid  --points 200 " + paramRange )# --robustFit 1 --stepSize 0.004 )
-    command = "combine " + datacard + " -M MultiDimFit --algo=grid  --points 200 " + paramRange
+    command = "combine " + datacard + ".txt -M MultiDimFit --algo=grid  --points 200 " + paramRange
     if stat_only:
         command += " --freezeParameters allConstrainedNuisances"
     os.system( command )
