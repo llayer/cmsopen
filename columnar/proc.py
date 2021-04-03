@@ -2,13 +2,13 @@ import pandas as pd
 import numpy as np
 import selection
 import weights
-import btag
 import hl
 import plot
 import stack
 import fit 
 import glob
 import ml
+import utils
 import root_pandas
 import h5py
 from pathlib import Path
@@ -19,7 +19,8 @@ CAND_DIR = BASE_DIR + "cand"
 HIST_DIR = BASE_DIR + "histos"
 STACK_DIR = BASE_DIR + "stack"
 SYST_DIR = BASE_DIR + "syst"
-BDT_DIR = BASE_DIR + "bdt"
+BDT_DIR = BASE_DIR + "bdt_rs5"
+COMBINE_DIR = BASE_DIR + "combine"
 
 ev_sel = False
 proc_cands = False
@@ -27,8 +28,9 @@ do_plotting = False
 do_stack = False
 do_syst = False
 run_bdt = False
-plot_bdt = True
+plot_bdt = False
 do_fit = False
+to_hv = True
 
 """
 variables = [
@@ -36,7 +38,7 @@ variables = [
 ]
 """
 bdt_var = [
-    {"var_name" : "bdt", "bins" : 15, "xlow" : 0., "xup" : 1., "xtitle" : "bdt"}
+    {"var_name" : "bdt", "bins" : 20, "xlow" : 0., "xup" : 1., "xtitle" : "bdt"}
 ]
 variables = [
     {"var_name" : "MET_met", "bins" : 30, "xlow" : 0., "xup" : 400, "xtitle" : "MET [GeV]"},
@@ -220,6 +222,8 @@ def rearrange_samples(samples):
     
 def proc_candidates(outpath=CAND_DIR, njets = -1):
     
+    import btag
+    
     #
     # Data
     #
@@ -372,7 +376,8 @@ def bdt( outpath = BDT_DIR ):
             samples[sample_name] = pd.read_hdf(sample)
         """
         
-    ml.train(samples, outpath, n_sig=4000, n_bkg=4000, ntrees=1000, lr=0.01)
+    #ml.train(samples, outpath, n_sig=4000, n_bkg=4000, ntrees=1000, lr=0.01)
+    ml.train(samples, ".", n_sig=5000, n_bkg=5000, ntrees=500, lr=0.01, random_state=5)
     
     dropvars = ['Jet_pt', 'Jet_px', 'Jet_py', 'Jet_pz', 'Jet_e', 'Jet_eta', 'Jet_phi',
        'Jet_mass', 'Jet_csvDisc', 'Jet_flavour', 'Tau_pt', 'Tau_px', 'Tau_py',
@@ -480,15 +485,18 @@ if __name__ == "__main__":
         #plot_vars([{"var_name" : "bdt", "bins" : 15, "xlow" : 0., "xup" : 1., "xtitle" : 0.}], inpath = "bdt")
         
     if plot_bdt:
-        #plot_vars(bdt_var, inpath = BDT_DIR + "/")
-        #plot_stack(bdt_var, "bdt")
-        plot_syst(bdt_var, "bdt")
+        plot_vars(bdt_var, inpath = BDT_DIR + "/")
+        plot_stack(bdt_var, "bdt")
+        #plot_syst(bdt_var, "bdt")
         
     if do_fit:
         #fit_xsec(var = "MET_met", file_name = "histos")
         fit_xsec(var = "bdt", file_name = "bdt")
         #fit_xsec(var = "MET_met")
         
-
-
+    if to_hv:
+        Path(COMBINE_DIR).mkdir(parents=True, exist_ok=True)
+        outpath = COMBINE_DIR + "/harvester_input.root"
+        inpath = HIST_DIR + "/bdt.root"
+        utils.to_harvester(inpath, outpath)
 

@@ -2,7 +2,7 @@ import pandas as pd
 import numpy as np
 import ROOT
 from root_numpy import fill_hist
-import btag
+#import btag
 import awkward
 
 def stack_weight(weight, n):
@@ -22,7 +22,7 @@ def save_var(sample, name, var_name, bins = 20, xlow = 0., xup = 350, corr=None)
         pass
     elif name == "QCD":
         if var_name == "bdt":
-            scale_qcd = 9. * 0.73
+            scale_qcd = 9. * 0.73 * 1.1
             sample = sample[sample["train_flag"] == "test"]
         else:
             scale_qcd = 4.3 
@@ -34,13 +34,6 @@ def save_var(sample, name, var_name, bins = 20, xlow = 0., xup = 350, corr=None)
             sample['weight'] = sample['btag_weight_down'] * scale_qcd
         else:
             print( "No valid correction" )
-              
-    # Renorm the test sample for TTJets signal
-    elif ("TTJets_signal" in name) & (corr is None) & (var_name == "bdt"):
-        sample['weight'] = sample['norm'] * (1/1000) * sample['trigger_weight'] * sample['Jet_btag_weight1']
-        dummy = ROOT.TH1D("dummy", "dummy", bins, xlow, xup)
-        fill_hist(dummy, sample[var_name], weights = sample['weight'])
-        sample = sample[sample["train_flag"] == "test"]
 
     else:
         #samples[sample]['new_trigger_weight'] = new_samples[sample].apply(lambda ev : weights.trigger_weight(ev), axis=1)
@@ -74,7 +67,12 @@ def save_var(sample, name, var_name, bins = 20, xlow = 0., xup = 350, corr=None)
         #print(sample, sum(samples[sample]['weight']))
         #new_samples[sample]['btag_weight2']
             
-    
+    # Renorm the test sample for TTJets signal
+    if ("TTJets_signal_centJER" in name) & (var_name == "bdt"):
+        dummy = ROOT.TH1D("dummy", "dummy", bins, xlow, xup)
+        fill_hist(dummy, sample[var_name], weights = sample['weight'])
+        sample = sample[sample["train_flag"] == "test"]
+        
     # Flatten if the column is a list
     if "Jet_" in var_name:
         #series = sample[var_name].apply(pd.Series).stack().reset_index(drop=True)
@@ -97,7 +95,7 @@ def save_var(sample, name, var_name, bins = 20, xlow = 0., xup = 350, corr=None)
         fill_hist(hist, series, weights = weights)
         
         # Renorm the test templates used in the ml
-        if ("TTJets_signal" in name) & (corr is None) & (var_name == "bdt"):
+        if ("TTJets_signal_centJER" in name) & (var_name == "bdt"):
             renorm_factor = float(dummy.Integral()) / float(hist.Integral())
             hist.Scale(renorm_factor)
             print(renorm_factor, hist.Integral(), dummy.Integral())

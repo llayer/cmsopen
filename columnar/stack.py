@@ -20,7 +20,7 @@ def setStyle():
     setTDRStyle()
 """
 
-def plot(infile, var, xtitle, sample_names, outpath, sfs = None, corr="central"):
+def plot(infile, var, xtitle, sample_names, outpath, sfs = None, corr="central", post_fit = False):
 
     #setStyle()
 
@@ -45,10 +45,33 @@ def plot(infile, var, xtitle, sample_names, outpath, sfs = None, corr="central")
     signal=True
     infile =[]
     #Adding data file
-    hdata = f.Get( "Data_" + var )
-    hdata.SetLineColor(ROOT.kBlack)
-    hdata.SetMarkerStyle(20)
-    hdata.SetMarkerSize(0.9)
+    
+    if post_fit == False:
+        hdata = f.Get( "Data_" + var )
+        hdata.SetLineColor(ROOT.kBlack)
+        hdata.SetMarkerStyle(20)
+        hdata.SetMarkerSize(0.9)
+    else:
+        #file_path = "/eos/user/l/llayer/cmsopen/columnar/syst_variation/histos/harvester_input.root"
+        #f_dummy = ROOT.TFile(file_path, "READ")
+        data_gr = f.Get("shapes_fit_s/signal_region/data")
+        h_sig = f.Get('shapes_fit_s/signal_region/total_signal')
+        hdata = h_sig.Clone("Data")
+        n_points = data_gr.GetN()
+        for i in range(n_points):
+            y = data_gr.GetPointY(i)
+            err_y = (data_gr.GetErrorYhigh(i) + data_gr.GetErrorYlow(i))/2.
+            hdata.SetBinContent(i+1, y)
+            hdata.SetBinError(i+1, err_y)
+        
+        hdata.SetLineColor(ROOT.kBlack)
+        hdata.SetMarkerStyle(20)
+        hdata.SetMarkerSize(0.9) 
+        """
+        hdata.GetXaxis().SetRangeUser(0,15)
+        gr_data = f.Get("shapes_fit_s/signal_region/data")
+        """
+        
 
     #setTDRStyle()
     leg_stack.AddEntry(hdata, "Data", "lp")
@@ -62,11 +85,14 @@ def plot(infile, var, xtitle, sample_names, outpath, sfs = None, corr="central")
     for s, c in zip(sample_names, colors):
 
         # Get histogram
-        if s == "QCD":
-            hist = f.Get(s + '_' + var)#path + '/' + s.label)
+        if post_fit == False:
+            if s == "QCD":
+                hist = f.Get(s + '_' + var)#path + '/' + s.label)
+            else:
+                hist = f.Get(s + '_' + corr + "_" + var)#path + '/' + s.label)
+                #hist = f.Get(s + '_' + var)#path + '/' + s.label)
         else:
-            hist = f.Get(s + '_' + corr + "_" + var)#path + '/' + s.label)
-            #hist = f.Get(s + '_' + var)#path + '/' + s.label)
+            hist = f.Get("shapes_fit_s/signal_region/" + s)
         print( s, type(hist) )
         hist.SetOption("HIST SAME")
         hist.SetLineColor(ROOT.kBlack)
@@ -149,9 +175,14 @@ def plot(infile, var, xtitle, sample_names, outpath, sfs = None, corr="central")
     h_err.SetFillStyle(3154)
     h_err.SetMarkerSize(0)
     h_err.SetFillColor(ROOT.kGray+2)
-    h_err.Draw("e2same0")
+    
+    if post_fit == False:
+        h_err.Draw("e2same0")
 
+    #if post_fit == False:
     hdata.Draw("eSAMEpx0")
+    #else:
+    #    gr_data.Draw('PSAME')
 
     
     lumi_sqrtS = " 4.2 fb^{-1}  (7 TeV)"
@@ -202,9 +233,12 @@ def plot(infile, var, xtitle, sample_names, outpath, sfs = None, corr="central")
 #    h_bkg_err.SetFillStyle(3001)
     h_bkg_err.SetMarkerSize(0)
     h_bkg_err.SetFillColor(ROOT.kGray+1)
-    h_bkg_err.Draw("e20same")
+    if post_fit == False:
+        h_bkg_err.Draw("e20same")
 
-    f1 = ROOT.TLine(0, 1., 1,1.)
+    #f1 = ROOT.TLine(0, 1., 1,1.)
+    print("DDDD", ratio.GetXaxis().GetXmax())
+    f1 = ROOT.TLine(ratio.GetXaxis().GetXmin(), 1., ratio.GetXaxis().GetXmax(),1.)
     f1.SetLineColor(ROOT.kBlack)
     f1.SetLineStyle(ROOT.kDashed)
     f1.Draw("same")
@@ -239,21 +273,26 @@ def plot(infile, var, xtitle, sample_names, outpath, sfs = None, corr="central")
     c1.Update()
     #    fout_name = "prova/"+outfile
     #c1.Print(outdir + '/' + "Stack/"+canvasname+".pdf")
-    if sfs is not None:
+    if (sfs is not None) | (post_fit == True):
         c1.Print(outpath + "/" + var + "_" + corr + "_" + "postfit.png")
     else:
         c1.Print(outpath + "/" + var + "_" + corr + ".png")
-    
+            
     f.Close()
-    
-    return True
-    #c1.Print("test.png")
 
 if __name__ == "__main__":
 
+    """
     variables = [
         {"var_name" : "MET_met", "bins" : 30, "xlow" : 0., "xup" : 400, "xtitle" : "MET [GeV]"}
     ]
     sample_names = ["TTJets_bkg", "WZJets", "STJets", "QCD", "TTJets_signal"]
     for var in variables:
         plot( "histos_test.root", var["var_name"], var["xtitle"], sample_names, corr = "centJER" )
+    """
+    infile = "fitDiagnosticsTest.root"
+    sample_names = ["TTJets_bkg", "WZJets", "STJets", "QCD", "TTJets_signal"]
+    plot( infile, "bdt", "bdt", sample_names, ".", post_fit = True )
+
+    
+    
