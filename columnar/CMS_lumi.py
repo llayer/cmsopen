@@ -17,11 +17,11 @@ extraText   = "Preliminary"
 extraTextFont = 52
 
 #lumiTextSize     = 0.6
-lumiTextSize     = 0.7
+#lumiTextSize     = 0.7
 lumiTextOffset   = 0.2
 
 #cmsTextSize      = 0.75
-cmsTextSize      = 0.85
+#cmsTextSize      = 0.85
 cmsTextOffset    = 0.1
 
 relPosX    = 0.045
@@ -37,7 +37,7 @@ lumi_sqrtS = ""
 
 drawLogo      = False
 
-def CMS_lumi(pad,  lumi_sqrtS,  iPosX ):
+def CMS_lumi(pad,  lumi_sqrtS,  iPosX, cmsTextSize = 0.85, lumiTextSize = 0.7, left_m=None ):
     outOfFrame    = False
     if(iPosX/10==0 ): outOfFrame = True
 
@@ -113,8 +113,10 @@ def CMS_lumi(pad,  lumi_sqrtS,  iPosX ):
         latex.SetTextFont(cmsTextFont)
         latex.SetTextAlign(11)
         latex.SetTextSize(cmsTextSize*t)
-        latex.DrawLatex(l,1-t+lumiTextOffset*t,cmsText)
-
+        if left_m is None:
+            latex.DrawLatex(l,1-t+lumiTextOffset*t,cmsText)
+        else:
+            latex.DrawLatex(left_m,1-t+lumiTextOffset*t,cmsText)
     pad.cd()
 
     posX_ = 0
@@ -149,6 +151,9 @@ def CMS_lumi(pad,  lumi_sqrtS,  iPosX ):
             latex.SetTextSize(cmsTextSize*t)
             latex.SetTextAlign(align_)
             latex.DrawLatex(posX_, posY_, cmsText)
+            
+            
+            
             if( writeExtraText ) :
                 latex.SetTextFont(extraTextFont)
                 latex.SetTextAlign(align_)

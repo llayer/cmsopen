@@ -290,9 +290,10 @@ if __name__ == "__main__":
     for var in variables:
         plot( "histos_test.root", var["var_name"], var["xtitle"], sample_names, corr = "centJER" )
     """
-    infile = "fitDiagnosticsTest.root"
+    infile = "/eos/user/l/llayer/cmsopen/columnar/syst_variation/combine/fit_nominal/fit/syst/fitDiagnosticsTest.root"
+    outpath = "/eos/user/l/llayer/cmsopen/columnar/syst_variation/combine/fit_nominal/fit/syst"
     sample_names = ["TTJets_bkg", "WZJets", "STJets", "QCD", "TTJets_signal"]
-    plot( infile, "bdt", "bdt", sample_names, ".", post_fit = True )
+    plot( infile, "bdt", "bdt", sample_names, outpath, post_fit = True )
 
     
     

@@ -339,8 +339,8 @@ def event_selection(file_path, isData = False, isTT = False, corrLevel = "cent",
     to_np(df, "Jet_")
     to_np(df, "Tau_")
     
-    #return df, event["jet"], event_counts
-    return df, event_counts
+    return df, event["jet"], event_counts
+    #return df, event_counts
 
 
 
