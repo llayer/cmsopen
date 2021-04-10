@@ -48,7 +48,7 @@ def select_muon(muon, vtx, eta_cut = 2.5, pt_cut = 10., reliso_cut = 0.15, vtxma
     eta_cut = abs(muon['eta']) < eta_cut
     pt_cut = muon['pt'] > pt_cut
     reliso_cut = muon['rel_iso'] < reliso_cut
-    vtx_cut = (muon["z"] - vtx["z"]) < vtxmatch_cut
+    vtx_cut = abs(muon["z"] - vtx["z"]) < vtxmatch_cut
     
     return muon[ eta_cut & muon_global_cut & pt_cut & reliso_cut & vtx_cut ]
 
@@ -60,7 +60,7 @@ def select_electron(electron, vtx, eta_cut = 2.5, pt_cut = 10., reliso_cut = 0.1
     eta_cut = abs(electron['eta']) < eta_cut
     pt_cut = electron['pt'] > pt_cut
     reliso_cut = electron['rel_iso'] < reliso_cut
-    vtx_cut = (electron["z"] - vtx["z"]) < vtxmatch_cut
+    vtx_cut = abs(electron["z"] - vtx["z"]) < vtxmatch_cut
     
     return electron[ id_cut & eta_cut & pt_cut & reliso_cut & vtx_cut ]
 
@@ -80,8 +80,8 @@ def select_tau(tau, vtx, eta_cut = 2.3, pt_cut = 45., vtxmatch_cut = 1., dxy_cut
     # Pt cut
     pt_cut = tau['pt'] > pt_cut
     # Vtx cut
-    vtx_cut = (tau["z"] - vtx["z"]) < vtxmatch_cut
-    dxy_cut = tau["dxy"] <= dxy_cut
+    vtx_cut = abs(tau["z"] - vtx["z"]) < vtxmatch_cut
+    dxy_cut = abs(tau["dxy"]) <= dxy_cut
     
     return tau[ iso_cut & nomuon_cut & noele_cut& leadTrackPt_cut & eta_cut & pt_cut & vtx_cut & dxy_cut]
 
@@ -178,7 +178,7 @@ def hlt_requirement(tau_hlt, jet_hlt):
     return jet_mask & tau_mask
 
 
-def hlt_match(obj, obj_hlt, deltaR = 0.5):
+def hlt_match(obj, obj_hlt, deltaR = 0.4):
     
     cross = obj['p4'].cross(obj_hlt['p4'], nested=True)
     mask = (cross.i0.delta_r(cross.i1) < deltaR).any()
@@ -222,7 +222,7 @@ def event_selection(file_path, isData = False, isTT = False, corrLevel = "cent",
     event = {}
     
     # Load event vars
-    event_vars = ["event", "run", "luminosityBlock", "HLT_QuadJet40_IsoPFTau40", "HLT_QuadJet45_IsoPFTau45"]
+    event_vars = ["event", "run", "luminosityBlock", "HLT_QuadJet40_IsoPFTau40", "HLT_QuadJet45_IsoPFTau45", "PV_npvs" ]
     if isTT:
         event_vars.append("genEvent_tmeme")
     event["evt"] = pd.DataFrame(eventCollection(events, event_vars))
@@ -339,7 +339,8 @@ def event_selection(file_path, isData = False, isTT = False, corrLevel = "cent",
     to_np(df, "Jet_")
     to_np(df, "Tau_")
     
-    return df, event["jet"], event_counts
+    return df, event["jet"], event["tau"], event_counts
+    #return df, event["jet"], event_counts
     #return df, event_counts
 
 
