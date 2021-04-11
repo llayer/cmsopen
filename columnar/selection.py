@@ -8,7 +8,8 @@ import pandas as pd
 import numpy as np
 import glob
 import jetmet
-from coffea.btag_tools import BTagScaleFactor
+import test_weights
+#from coffea.btag_tools import BTagScaleFactor
 
 
 def nanoObject(tree, prefix, branches, from_cartesian = False):
@@ -259,10 +260,26 @@ def event_selection(file_path, isData = False, isTT = False, corrLevel = "cent",
 
         else:
             event["jet"],  event["met"] = jetmet.transform(event["jet"], event["met"], corrLevel = corrLevel, jes_factor = jes_factor)
+        
+            
+        #Add btag weights
+        event["jet"] = test_weights.btag_weights(event["jet"])
+
+        # Btag:
+        """
+        print("Test btag")
+        flavour = abs(event["jet"].flavour.content)
+        light_mask = (flavour != 4) & (flavour != 5)
+        light_id = np.zeros_like(flavour)
+        flavour_sf = np.where(light_mask, light_id, flavour)
+        flavour_eff = np.where(light_mask, light_id, flavour - 3)
+        event["jet"].add_attributes(flavour_sf = flavour_sf, flavour_eff=flavour_eff)
+        """
     else:
         met_p4 = uproot_methods.classes.TLorentzVector.TLorentzVectorArray(event["met"]["px"], event["met"]["py"],
                                                                            event["met"]["pz"], event["met"]["e"])
         event["met"]["met"] = met_p4.Et
+        
     
     #
     # Object selections
@@ -270,7 +287,7 @@ def event_selection(file_path, isData = False, isTT = False, corrLevel = "cent",
     event["muon"] = select_muon(event["muon"], event["vtx"])
     event["electron"] = select_electron(event["electron"], event["vtx"])
     event["tau"] = select_tau(event["tau"], event["vtx"])
-    event["jet"] = select_jet(event["jet"])
+    event["jet"] = select_jet(event["jet"])    
     
     #print( list(zip(good_muon.counts, good_electron.counts, good_tau.counts, good_jet.counts)))
     
@@ -319,6 +336,27 @@ def event_selection(file_path, isData = False, isTT = False, corrLevel = "cent",
     apply_mask(event, mask_tau)
     event_counts["tau_requirement"] = len(event["evt"])
     
+    # Trigger weights
+    trigger_w = test_weights.trigger_weight(event["jet"], event["tau"])
+    #print(trigger_w.head())
+    print(event["evt"].shape, trigger_w.shape)
+    event["evt"] = pd.concat([event["evt"], trigger_w.set_index(event["evt"].index)], axis=1)
+    #print(event["evt"]["trigger_weight"])
+    
+    # HL features
+    event["evt"]["h"] = event["jet"]["p4"].sum().E + event["tau"]["p4"][:,0].E
+    event["evt"]["ht"] = event["jet"]["p4"].sum().Et + event["tau"]["p4"][:,0].Et
+    event["evt"]["h_jet"] = event["jet"]["p4"].sum().E
+    event["evt"]["ht_jet"] = event["jet"]["p4"].sum().Et
+    event["evt"]["chargeEta"] = event["tau"]["charge"][:,0] * abs(event["tau"]["eta"])[:,0]
+    event["evt"]['met'] = event["met"]["met"]
+    event["evt"]['mTauJet'] = (event["jet"]["p4"].sum() + event["tau"]["p4"][:,0]).M
+    met_p4 = uproot_methods.classes.TLorentzVector.TLorentzVectorArray(event["met"]["px"], event["met"]["py"],
+                                                                       event["met"]["pz"], event["met"]["e"])
+    event["evt"] = np.sqrt(((event["tau"]["p4"][:,0].Et + met_p4.Et)**2) - 
+                           ((event["tau"]["p4"][:,0].px + met_p4.px)**2) -
+                           ((event["tau"]["p4"][:,0].py + met_p4.py)**2))
+
     
     # To pandas
     jet_out_vars = ['pt', 'px', 'py', 'pz', 'e', 'eta', 'phi', 'mass', 'csvDisc']

@@ -78,6 +78,17 @@ def transform(jets, met=None, corrLevel = "cent", doJER = True, jer=0.1, forceSt
         mass=jets.mass.flatten()
     )
 
+    # test:
+    """
+    print("Test btag")
+    flavour = abs(jets.flavour.content)
+    light_mask = (flavour != 4) & (flavour != 5)
+    light_id = np.zeros_like(flavour)
+    flavour_sf = np.where(light_mask, light_id, flavour)
+    flavour_eff = np.where(light_mask, light_id, flavour - 3)
+    jet.add_attributes(flavour_sf = flavour_sf, flavour_eff=flavour_eff)
+    """
+    
     initial_p4 = jet['p4'].copy()  # keep a copy for fixing met
     genpt = np.sqrt( jets.genpx**2 + jets.genpy**2)
     
@@ -141,6 +152,7 @@ def transform(jets, met=None, corrLevel = "cent", doJER = True, jer=0.1, forceSt
         
         """
         # need to apply up and down jer-smear before applying central correction
+                
         jet.add_attributes(pt_jer_up=jsmear_up * jet.pt.content,
                            mass_jer_up=jsmear_up * jet.mass.content,
                            pt_jer_down=jsmear_down * jet.pt.content,
