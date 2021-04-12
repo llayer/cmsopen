@@ -166,9 +166,9 @@ def jet_requirement(jet, pt_cut=45.):
     """
 
 
-def met_requirement(df, met_cut = 20.):
+def met_requirement(met, met_cut = 20.):
     
-    return df[df['MET_met']>met_cut]
+    return met > met_cut
 
 
 def hlt_requirement(tau_hlt, jet_hlt):
@@ -193,7 +193,44 @@ def to_np(df, prefix):
         df[col] = np.array(df[col])
 
         
-        
+def hl_features(event):
+    
+    # HL features
+    jet_tau_p4 = event["jet"]["p4"].sum() + event["tau"]["p4"][:,0]
+    event["evt"]["h"] = jet_tau_p4.E
+    event["evt"]["ht"] = jet_tau_p4.Et
+    event["evt"]["h_jet"] = event["jet"]["p4"].sum().E
+    event["evt"]["ht_jet"] = event["jet"]["p4"].sum().Et
+    event["evt"]["chargeEta"] = event["tau"]["charge"][:,0] * abs(event["tau"]["eta"])[:,0]
+    event["evt"]['met'] = event["met"]["met"]
+    event["evt"]['mTauJet'] = jet_tau_p4.mass
+    met_p4 = uproot_methods.classes.TLorentzVector.TLorentzVectorArray(event["met"]["px"], event["met"]["py"],
+                                                                       event["met"]["pz"], event["met"]["e"])
+    event["evt"]['mt'] = np.sqrt(((event["tau"]["p4"][:,0].Et + met_p4.Et)**2) - 
+                                   ((event["tau"]["p4"][:,0].x + met_p4.x)**2) -
+                                   ((event["tau"]["p4"][:,0].y + met_p4.y)**2))
+    
+    
+    # Variables based on momentum tensor
+    vec3 = uproot_methods.TVector3Array.from_cartesian(event["jet"]["p4"].x, event["jet"]["p4"].y, event["jet"]["p4"].z)
+    momentumTensor = np.zeros((len(vec3),3,3))
+    momentumTensor[:,0,0] = (vec3.x * vec3.x).sum()
+    momentumTensor[:,0,1] = (vec3.x * vec3.y).sum()
+    momentumTensor[:,0,2] = (vec3.x * vec3.z).sum()
+    momentumTensor[:,1,0] = (vec3.y * vec3.x).sum()
+    momentumTensor[:,1,1] = (vec3.y * vec3.y).sum()
+    momentumTensor[:,1,2] = (vec3.y * vec3.z).sum()
+    momentumTensor[:,2,0] = (vec3.z * vec3.x).sum()
+    momentumTensor[:,2,1] = (vec3.z * vec3.y).sum()
+    momentumTensor[:,2,2] = (vec3.z * vec3.z).sum()
+    norm = 1 + vec3.dot(vec3).sum()
+    norm_reshaped = np.tile(norm,(9,1)).T.reshape((len(vec3),3,3))
+    momentumTensor = momentumTensor / norm_reshaped
+    eigenValues, eigenVectors = np.linalg.eig(momentumTensor)
+    ev_sorted = np.sort(eigenValues, axis=1)
+    event["evt"]['aplanarity'] = 1.5 * ev_sorted[:,0]
+    event["evt"]['sphericity'] = 1.5 * (ev_sorted[:,0] + ev_sorted[:,1])        
+    
        
 def apply_mask(event, mask):
      
@@ -208,10 +245,11 @@ def apply_mask(event, mask):
     event["jet_hlt"] = event["jet_hlt"][mask]
 
     
-def event_selection(file_path, isData = False, isTT = False, corrLevel = "cent", tau_factor = 0.03, jes_factor = 0.):
+def event_selection(file_path, isData = False, isTT = False, invert_btag = False, corrLevel = "cent", 
+                    tau_factor = 0.03, jes_factor = 0.):
         
-    in_file = file_path.split("/")[-1]
-    print( "Processing:", in_file, "isData:", isData, "isTT:", isTT, "corrLevel", corrLevel)
+    sample = file_path.split("/")[-1][:-5]
+    print( "Processing:", sample, "isData:", isData, "isTT:", isTT, "corrLevel", corrLevel)
         
     # Load file
     f = uproot.open(file_path)
@@ -263,7 +301,7 @@ def event_selection(file_path, isData = False, isTT = False, corrLevel = "cent",
         
             
         #Add btag weights
-        event["jet"] = test_weights.btag_weights(event["jet"])
+        #event["jet"] = test_weights.btag_weights(event["jet"])
 
         # Btag:
         """
@@ -307,20 +345,12 @@ def event_selection(file_path, isData = False, isTT = False, corrLevel = "cent",
         event_counts["trigger"] = len(event["evt"])
         
     # HLT matching
-
     hlt_mask = hlt_requirement(event["tau_hlt"], event["jet_hlt"])
     apply_mask(event, hlt_mask)
     event_counts["hlt"] = len(event["evt"])
 
     event["jet"] = hlt_match(event["jet"], event["jet_hlt"])
     event["tau"] = hlt_match(event["tau"], event["tau_hlt"])
-        
-    
-    # Lepton veto
-    mask_lep_veto = lep_veto(event["muon"], event["electron"])
-    apply_mask(event, mask_lep_veto)
-    event_counts["lep_veto"] = len(event["evt"])
-    
     
     # Four jets
     mask_four_jet = four_jets(event["jet"])
@@ -336,34 +366,71 @@ def event_selection(file_path, isData = False, isTT = False, corrLevel = "cent",
     apply_mask(event, mask_tau)
     event_counts["tau_requirement"] = len(event["evt"])
     
-    # Trigger weights
-    trigger_w = test_weights.trigger_weight(event["jet"], event["tau"])
-    #print(trigger_w.head())
-    print(event["evt"].shape, trigger_w.shape)
-    event["evt"] = pd.concat([event["evt"], trigger_w.set_index(event["evt"].index)], axis=1)
-    #print(event["evt"]["trigger_weight"])
+    # Lepton veto
+    mask_lep_veto = lep_veto(event["muon"], event["electron"])
+    apply_mask(event, mask_lep_veto)
+    event_counts["lep_veto"] = len(event["evt"])
     
-    # HL features
-    event["evt"]["h"] = event["jet"]["p4"].sum().E + event["tau"]["p4"][:,0].E
-    event["evt"]["ht"] = event["jet"]["p4"].sum().Et + event["tau"]["p4"][:,0].Et
-    event["evt"]["h_jet"] = event["jet"]["p4"].sum().E
-    event["evt"]["ht_jet"] = event["jet"]["p4"].sum().Et
-    event["evt"]["chargeEta"] = event["tau"]["charge"][:,0] * abs(event["tau"]["eta"])[:,0]
-    event["evt"]['met'] = event["met"]["met"]
-    event["evt"]['mTauJet'] = (event["jet"]["p4"].sum() + event["tau"]["p4"][:,0]).M
-    met_p4 = uproot_methods.classes.TLorentzVector.TLorentzVectorArray(event["met"]["px"], event["met"]["py"],
-                                                                       event["met"]["pz"], event["met"]["e"])
-    event["evt"] = np.sqrt(((event["tau"]["p4"][:,0].Et + met_p4.Et)**2) - 
-                           ((event["tau"]["p4"][:,0].px + met_p4.px)**2) -
-                           ((event["tau"]["p4"][:,0].py + met_p4.py)**2))
+    # MET
+    mask_met = met_requirement(event["met"]["met"])
+    apply_mask(event, mask_met)
+    event_counts["met"] = len(event["evt"])
+    
+    # B-tagging
+    if isData and invert_btag:
+        mask_btag = test_weights.no_btag(event["jet"])
+        apply_mask(event, mask_btag)
+        btag_weight = test_weights.btag_weights(event["jet"], isQCD=True)
+        event["evt"] = pd.concat([event["evt"], btag_weight.set_index(event["evt"].index)], axis=1)
+    else:
+        mask_btag = test_weights.at_least_one_btag(event["jet"])
+        apply_mask(event, mask_btag)
+        # B-tagging weights
+        if not isData:
+            btag_weight = test_weights.btag_weights(event["jet"])
+            #btag_1 = test_weights.btag_weight_1(event["jet"])
+            #btag_2 = test_weights.btag_weight_2(event["jet"])
+            event["evt"] = pd.concat([event["evt"], btag_weight.set_index(event["evt"].index)], axis=1)
+                 
+    event_counts["btag"] = len(event["evt"])
+    
+    if not isData:
+        # Normalization
+        hlt_40, hlt_45 = test_weights.lumi()
+        total_lumi = hlt_40 + hlt_45
+        trigger_frac = hlt_40 / float(hlt_45)
+        counts_path = "/eos/user/l/llayer/opendata_files/preselection_merged/" + sample + "_counts.root"
+        total_counts = root_pandas.read_root(counts_path)
+        xsec = test_weights.get_xsec(sample)
+        test_weights.norm(event["evt"], total_counts, xsec, total_lumi)
 
+        
+        # Trigger weights
+        trigger_w = test_weights.trigger_weight(event["jet"], event["tau"])
+        print(event["evt"].shape, trigger_w.shape)
+        event["evt"] = pd.concat([event["evt"], trigger_w.set_index(event["evt"].index)], axis=1)
+        #print(event["evt"]["trigger_weight"])
+        
+        if isTT:
+            
+            # PDF weights
+            pdf = pd.read_hdf("TTJets_pdfweights.h5")
+            df = pd.merge(event["evt"], pdf, how="left", on=["event", "luminosityBlock", "run"])
+            
+            # Classify signal and bkg
+            #test_weights.classify_tt(event["evt"])         
+        
+    # HL features
+    hl_features(event)
     
     # To pandas
-    jet_out_vars = ['pt', 'px', 'py', 'pz', 'e', 'eta', 'phi', 'mass', 'csvDisc']
-    if not isData:
-        jet_out_vars.append( 'flavour' )
-    tau_out_vars = ['pt', 'px', 'py', 'pz', 'e', 'eta', 'phi', 'mass', 'charge']
-    met_out_vars = ['pt', 'px', 'py', 'pz', 'e', 'met']
+    #jet_out_vars = ['pt', 'px', 'py', 'pz', 'e', 'eta', 'phi', 'mass', 'csvDisc']
+    #if not isData:
+    #    jet_out_vars.append( 'flavour' )
+    
+    jet_out_vars = ['pt', 'e', 'eta', 'phi', 'mass']
+    tau_out_vars = ['pt', 'e', 'eta', 'phi', 'mass']
+    met_out_vars = ['met']
     
     df_jet = awkward.topandas(event["jet"][jet_out_vars], flatten=False)
     df_jet = df_jet.add_prefix('Jet_')
