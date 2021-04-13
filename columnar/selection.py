@@ -85,10 +85,10 @@ def hl_features(event):
     
     # HL features
     jet_tau_p4 = event["jet"]["p4"].sum() + event["tau"]["p4"][:,0]
-    event["evt"]["h"] = jet_tau_p4.E
-    event["evt"]["ht"] = jet_tau_p4.Et
-    event["evt"]["h_jet"] = event["jet"]["p4"].sum().E
-    event["evt"]["ht_jet"] = event["jet"]["p4"].sum().Et
+    event["evt"]["h"] = event["jet"]["p4"].E.sum() + event["tau"]["p4"][:,0].E
+    event["evt"]["ht"] = event["jet"]["p4"].Et.sum() + event["tau"]["p4"][:,0].Et
+    event["evt"]["h_jet"] = event["jet"]["p4"].E.sum()
+    event["evt"]["ht_jet"] = event["jet"]["p4"].Et.sum()
     event["evt"]["chargeEta"] = event["tau"]["charge"][:,0] * abs(event["tau"]["eta"])[:,0]
     event["evt"]['met'] = event["met"]["met"]
     event["evt"]['mTauJet'] = jet_tau_p4.mass
@@ -97,13 +97,17 @@ def hl_features(event):
     event["evt"]['mt'] = np.sqrt(((event["tau"]["p4"][:,0].Et + met_p4.Et)**2) - 
                                    ((event["tau"]["p4"][:,0].x + met_p4.x)**2) -
                                    ((event["tau"]["p4"][:,0].y + met_p4.y)**2))
+    event["evt"]["deltaPhiTauMet"] = abs(event["tau"]["p4"][:,0].delta_phi(met_p4))
     
     
     # Variables based on momentum tensor
-    vec3 = uproot_methods.TVector3Array.from_cartesian(event["jet"]["p4"].x, event["jet"]["p4"].y, event["jet"]["p4"].z)
+    vec3_jet = uproot_methods.TVector3Array.from_cartesian(event["jet"]["p4"].x, event["jet"]["p4"].y, event["jet"]["p4"].z)
+    vec3_tau = uproot_methods.TVector3Array.from_cartesian(event["tau"]["p4"].x, event["tau"]["p4"].y, event["tau"]["p4"].z)
+    vec3 = awkward.concatenate([vec3_jet , vec3_tau], axis=1)
+
     momentumTensor = np.zeros((len(vec3),3,3))
-    momentumTensor[:,0,0] = (vec3.x * vec3.x).sum()
-    momentumTensor[:,0,1] = (vec3.x * vec3.y).sum()
+    momentumTensor[:,0,0] = (vec3.x * vec3.x).sum() 
+    momentumTensor[:,0,1] = (vec3.x * vec3.y).sum() 
     momentumTensor[:,0,2] = (vec3.x * vec3.z).sum()
     momentumTensor[:,1,0] = (vec3.y * vec3.x).sum()
     momentumTensor[:,1,1] = (vec3.y * vec3.y).sum()
@@ -112,6 +116,7 @@ def hl_features(event):
     momentumTensor[:,2,1] = (vec3.z * vec3.y).sum()
     momentumTensor[:,2,2] = (vec3.z * vec3.z).sum()
     norm = 1 + vec3.dot(vec3).sum()
+    
     norm_reshaped = np.tile(norm,(9,1)).T.reshape((len(vec3),3,3))
     momentumTensor = momentumTensor / norm_reshaped
     eigenValues, eigenVectors = np.linalg.eig(momentumTensor)
@@ -313,13 +318,13 @@ def event_selection(file_path, isData = False, isTT = False, invert_btag = False
     hl_features(event)
     
     # To pandas
-    #jet_out_vars = ['pt', 'px', 'py', 'pz', 'e', 'eta', 'phi', 'mass', 'csvDisc']
-    #if not isData:
-    #    jet_out_vars.append( 'flavour' )
+    jet_out_vars = ['pt', 'px', 'py', 'pz', 'e', 'eta', 'phi', 'mass', 'csvDisc']
+    if not isData:
+        jet_out_vars.append( 'flavour' )
     
-    jet_out_vars = ['pt', 'e', 'eta', 'phi', 'mass']
-    tau_out_vars = ['pt', 'e', 'eta', 'phi', 'mass']
-    met_out_vars = ['met']
+    #jet_out_vars = ['pt', 'e', 'eta', 'phi', 'mass']
+    tau_out_vars = ['pt', 'px', 'py', 'pz', 'charge', 'e', 'eta', 'phi', 'mass']
+    met_out_vars = ['pt', 'px', 'py', 'pz', 'e', 'met']
     
     df_jet = awkward.topandas(event["jet"][jet_out_vars], flatten=False)
     df_jet = df_jet.add_prefix('Jet_')

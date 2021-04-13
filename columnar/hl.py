@@ -15,9 +15,10 @@ def eigenvalues_momtensor(input_vectors, r=2):
     # fill momentumTensor from inputVectors
     norm = 1.
     for vec in input_vectors:
+                
         #print vec, np.dot(vec, vec)
         p2 = np.dot(vec, vec)
-
+   
         # DANGER CHECK ifs
         if r == 2:
             pR = p2
@@ -29,6 +30,7 @@ def eigenvalues_momtensor(input_vectors, r=2):
         #print pR, pRminus2
 
         norm += pR
+        
         momentumTensor[0][0] += pRminus2*vec[0]*vec[0]
         momentumTensor[0][1] += pRminus2*vec[0]*vec[1]
         momentumTensor[0][2] += pRminus2*vec[0]*vec[2]
@@ -40,6 +42,7 @@ def eigenvalues_momtensor(input_vectors, r=2):
         momentumTensor[2][2] += pRminus2*vec[2]*vec[2]
 
     # return momentumTensor normalized to determinant 1
+    # print("norm", norm)
     momentumTensor = (1./norm)*momentumTensor
 
     #print momentumTensor
@@ -133,7 +136,9 @@ def hlFeatures(ev, njets=-1):
             break
             
         jet_4vec = ROOT.TLorentzVector(ev["Jet_px"][i], ev["Jet_py"][i], ev["Jet_pz"][i], ev["Jet_e"][i])
+        #print(jet_4vec)
         input_vectors.append(np.array([ev["Jet_px"][i], ev["Jet_py"][i], ev["Jet_pz"][i]]))
+        #print(input_vectors)
         H += jet_4vec.E()
         HT += jet_4vec.Et()
         p4 += jet_4vec
@@ -148,6 +153,7 @@ def hlFeatures(ev, njets=-1):
     hl["ht"] = HT
 
     eigenValues = eigenvalues_momtensor(input_vectors)
+    #print(eigenValues)
 
     hl['aplanarity'] = eval_aplanarity(eigenValues)
     hl['sphericity']  = eval_sphericity(eigenValues)

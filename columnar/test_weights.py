@@ -67,6 +67,8 @@ def btag_weights(jets, isQCD = False):
                         b_sf_up = b_sf_up, b_sf_down = b_sf_down, btag_pmc = p_mc, btag_pdata = p_data, 
                         btag_pdata_up = p_data_up, btag_pdata_down = p_data_down)
     
+    print("eff", bjet.b_eff)
+    
     if isQCD:
         weight2 = btag_weight_2(bjet)
         return weight2
@@ -113,10 +115,28 @@ def eval_weight(obj, key):
 
 def calc_weight(jet, tau, prefix):
     
-    jet0 = eval_weight(jet.pt[:,0], "jet" + prefix + "_jet4_eff" )
-    jet1 = eval_weight(jet.pt[:,1], "jet" + prefix + "_jet4_eff" )
-    jet2 = eval_weight(jet.pt[:,2], "jet" + prefix + "_jet4_eff" )
-    tau0 = eval_weight(tau.pt[:,0], "tau" + prefix + "_eff_tau" )
+    # DANGER how to treat overflow bin
+    """
+    jet0 = np.where(jet.pt[:,0] < 200., eval_weight(jet.pt[:,0], "jet" + prefix + "_jet4_eff" ), np.ones_like(len(jet.pt[:,0])))
+    jet1 = np.where(jet.pt[:,1] < 200., eval_weight(jet.pt[:,1], "jet" + prefix + "_jet4_eff" ), np.ones_like(len(jet.pt[:,1])))
+    jet2 = np.where(jet.pt[:,2] < 200., eval_weight(jet.pt[:,2], "jet" + prefix + "_jet4_eff" ), np.ones_like(len(jet.pt[:,2])))
+    tau0 = np.where(tau.pt[:,0] < 100., eval_weight(tau.pt[:,0], "tau" + prefix + "_eff_tau" ), 
+                    eval_weight(95., "tau" + prefix + "_eff_tau" ))
+    """
+    
+    #last_bin = eval_weight(195., "jet" + prefix + "_jet4_eff" )
+    if prefix == "45":
+        last_bin = np.full(len(jet), 0.9523809552192688)
+    else:
+        last_bin = eval_weight(195., "jet" + prefix + "_jet4_eff" )
+    jet0 = np.where(jet.pt[:,0] < 200., eval_weight(jet.pt[:,0], "jet" + prefix + "_jet4_eff" ), last_bin)
+    jet1 = np.where(jet.pt[:,1] < 200., eval_weight(jet.pt[:,1], "jet" + prefix + "_jet4_eff" ), last_bin)
+    jet2 = np.where(jet.pt[:,2] < 200., eval_weight(jet.pt[:,2], "jet" + prefix + "_jet4_eff" ), last_bin)
+    tau0 = np.where(tau.pt[:,0] < 100., eval_weight(tau.pt[:,0], "tau" + prefix + "_eff_tau" ),
+                    eval_weight(95., "tau" + prefix + "_eff_tau" ))
+
+    #print(jet.pt[:,0] < 200.)
+    #print(jet0)
     
     jet0_err = eval_weight(jet.pt[:,0], "jet" + prefix + "_jet4_eff_error" )
     jet1_err = eval_weight(jet.pt[:,1], "jet" + prefix + "_jet4_eff_error" )
@@ -126,6 +146,8 @@ def calc_weight(jet, tau, prefix):
     weight = 1. * jet0 * jet1 * jet2 * tau0
     weight_up = 1. * (jet0 + jet0_err) * (jet1 + jet1_err) * (jet2 + jet2_err) * (tau0 + tau0_err)
     weight_down = 1. * (jet0 - jet0_err) * (jet1 - jet1_err) * (jet2 - jet2_err) * (tau0 - tau0_err)
+    
+    #print(list(zip(jet.pt[:,0], jet0, jet1, jet2, tau0)))
     
     return weight, weight_up, weight_down
     
@@ -143,7 +165,7 @@ def trigger_weight(jet, tau, frac=0.218):
     weight_up = np.where(mask_is40, weight_up_40, weight_up_45)
     weight_down = np.where(mask_is40, weight_down_45, weight_down_45)
     
-    print(weight)
+    #print(weight)
     
     #return np.array([weight, weight_up, weight_down])
     return pd.DataFrame({"trigger_weight": weight, "trigger_weight_up": weight_up, "trigger_weight_down": weight_down,

@@ -16,7 +16,14 @@ def ratio(h2_denom, h2_nom):
 
     return eff, xedges, yedges
 
+f_beff = ROOT.TFile("data/beff_precalc.root")
+effs = {}
+effs['b'] = f_beff.Get("b")
+effs['c'] = f_beff.Get("c")
+effs['usdg'] = f_beff.Get("usdg")
 
+
+"""
 def load_eff_maps(filename):
 
     f = ROOT.TFile(filename)
@@ -35,6 +42,9 @@ def load_eff_maps(filename):
     return effs, xedges, yedges
 
 effs, xedges, yedges = load_eff_maps('data/beff.root')
+"""
+
+
 btag_sf = BTagScaleFactor("data/CSV.csv", "medium", methods='comb,comb,comb')
 
 def eval_sf_eff(ev):
@@ -64,17 +74,21 @@ def eval_sf_eff(ev):
         else:
             flav='usdg'
             flav_id = 0
-
+        
+        """
         ind_pt = np.digitize(pt_clipped, xedges)
         ind_eta = np.digitize(eta[i], yedges)
-
+        """
+        
         try:
-            eff.append( effs[flav][ind_pt, ind_eta] )
+            #eff.append( effs[flav][ind_pt, ind_eta] )
+            eff.append( effs[flav].GetBinContent( effs[flav].GetXaxis().FindBin(pt_clipped),
+                                                  effs[flav].GetYaxis().FindBin(eta[i])) )
             sf.append(btag_sf.eval("central", flav_id, abs(eta[i]), pt_clipped, ignore_missing=True))
             sf_up.append(btag_sf.eval("up", flav_id, abs(eta[i]), pt_clipped, ignore_missing=True))
             sf_down.append(btag_sf.eval("down", flav_id, abs(eta[i]), pt_clipped, ignore_missing=True))
         except:
-            print( "Error in calculating the b-tagging SF:", pt_clipped, eta[i], flavour[i] )
+            print( "Error in calculating the b-tagging SF:", pt_clipped, eta[i], flavour[i], effs[flav].GetXaxis().FindBin(pt_clipped) )
             
     return {"Jet_btagSF" : sf, "Jet_btagSF_up" : sf_up, "Jet_btagSF_down" : sf_down, "Jet_beff" : eff}
 
