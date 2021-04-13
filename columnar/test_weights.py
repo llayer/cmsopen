@@ -82,8 +82,10 @@ def btag_weight_1(jet):
     pdata_up = jet.btag_pdata_up.prod()
     pdata_down = jet.btag_pdata_down.prod()
     
-    return pd.DataFrame({"btag_weight1" : pdata/pmc, "btag_weight1_up" : pdata_up/pmc, 
-                         "btag_weight1_down" : pdata_down/pmc})
+    weights = pd.DataFrame({"btag_weight1" : pdata/pmc, "btag_weight1_up" : pdata_up/pmc, 
+                            "btag_weight1_down" : pdata_down/pmc})
+    weights = weights.fillna(1.)
+    return weights
 
 
 def btag_weight_2(jet):
@@ -195,23 +197,27 @@ def norm(evt, counts, xsec, lumi):
 def classify_tt(evt):
     
     tt_tau = evt["genEvent_tmeme"] == 10000
+    
     tt_ee = (evt["genEvent_tmeme"] == 2) | (evt["genEvent_tmeme"] == 10101) | (evt["genEvent_tmeme"] == 20200)
     tt_mm = (evt["genEvent_tmeme"] == 20) | (evt["genEvent_tmeme"] == 11010) | (evt["genEvent_tmeme"] == 22000)
     tt_em = (evt["genEvent_tmeme"] == 11) | (evt["genEvent_tmeme"] == 11001) | \
             (evt["genEvent_tmeme"] == 10110) | (evt["genEvent_tmeme"] == 21100)
+    
     tt_etauh = (evt["genEvent_tmeme"] == 10010) | (evt["genEvent_tmeme"] == 21000)
     tt_mtauh = (evt["genEvent_tmeme"] == 10001) | (evt["genEvent_tmeme"] == 20100)
     tt_lqq = (evt["genEvent_tmeme"] == 1) | (evt["genEvent_tmeme"] == 10) | \
              (evt["genEvent_tmeme"] == 10100) | (evt["genEvent_tmeme"] == 11000)
+    
     tt_tauhtauh = (evt["genEvent_tmeme"] == 20000)
-    tt_qqqq = evt[(evt["genEvent_tmeme"] == 0)]
+    tt_qqqq = (evt["genEvent_tmeme"] == 0)
     tt_ll = (evt["genEvent_tmeme"] == 2) | (evt["genEvent_tmeme"] == 10101) | \
             (evt["genEvent_tmeme"] == 20200) | (evt["genEvent_tmeme"] == 20) |\
             (evt["genEvent_tmeme"] == 11010) | (evt["genEvent_tmeme"] == 22000) | \
             (evt["genEvent_tmeme"] == 11) | (evt["genEvent_tmeme"] == 11001) | \
             (evt["genEvent_tmeme"] == 10110) | (evt["genEvent_tmeme"] == 21100)
-    tt_bkg = tt_mm & tt_em & tt_etauh & tt_mtauh & tt_lqq & tt_tauhtauh & tt_qqqq & tt_ll
     
-    evt["isSignal"] = np.where( tt_tau, np.ones(len(evt), dtype=int), np.zeros(len(evt), dtype=int) )
-    evt["isBkg"] = np.where( tt_bkg, np.ones(len(evt), dtype=int), np.zeros(len(evt), dtype=int) )
+    tt_bkg = tt_ee | tt_mm | tt_em | tt_etauh | tt_mtauh | tt_lqq | tt_tauhtauh | tt_qqqq | tt_ll
+    
+    evt["isSignal"] = tt_tau
+    evt["isBkg"] = tt_bkg
 

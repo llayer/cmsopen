@@ -3,7 +3,289 @@ import pandas as pd
 import numpy as np
 import root_pandas
 from root_numpy import fill_hist
-import selection
+import object_selection
+import uproot_methods
+#import selection
+
+
+def runs_40(evt):
+
+    pass_run_selection = ( evt["run"] < 165970 ) | ((evt["run"] > 166782) & (evt["run"]<171050))
+    return pass_run_selection
+
+def runs_45(evt):
+
+    pass_run_selection = (( evt["run"] >= 165970) & ( evt["run"] <= 166782)) | (( evt["run"] >= 171050) & ( evt["run"] <178421))
+    return pass_run_selection
+
+def jet_trigger_requirement(jet, hlt40, pt_cut=70.):
+    
+    pt_jet0 = jet["pt"][:,0] > pt_cut
+    pt_jet1 = jet["pt"][:,1] > pt_cut
+    pt_jet2 = jet["pt"][:,2] > pt_cut
+    if hlt40:
+        col = "pxHLT40"
+    else:
+        col = "pxHLT45"
+    hlt_jet0 = jet[col][:,0] != -9999
+    hlt_jet1 = jet[col][:,1] != -9999
+    hlt_jet2 = jet[col][:,2] != -9999  
+    
+    return pt_jet0 & pt_jet1 & pt_jet2 & hlt_jet0 & hlt_jet1 & hlt_jet2
+
+
+def jet_trigger_selection(file_path, hlt40=False):
+    
+    print("sample", file_path, "isHLT40", hlt40) 
+    
+    # Load file
+    f = uproot.open(file_path)
+    events = f['Events']
+        
+    interestingTriggers = [
+        "HLT_QuadJet40_IsoPFTau40", "HLT_QuadJet45_IsoPFTau45", "HLT_Mu15_v", "HLT_Mu20_v", "HLT_Mu24_v", "HLT_Mu30_v",
+        "HLT_Mu15_v1", "HLT_Mu15_v2", "HLT_Mu15_v3", "HLT_Mu15_v4", "HLT_Mu15_v5",
+        "HLT_Mu20_v1", "HLT_Mu20_v2", "HLT_Mu20_v3", "HLT_Mu20_v4", "HLT_Mu20_v5",
+        "HLT_Mu24_v1", "HLT_Mu24_v2", "HLT_Mu24_v3", "HLT_Mu24_v4", "HLT_Mu24_v5",
+        "HLT_Mu30_v1", "HLT_Mu30_v2", "HLT_Mu30_v3", "HLT_Mu30_v4", "HLT_Mu30_v5"
+      ]
+    event_vars = ["event", "run", "luminosityBlock"]
+    event_vars += interestingTriggers
+    evt = pd.DataFrame(object_selection.eventCollection(events, event_vars))
+    jet_vars = ['pt', 'px', 'py', 'pz', 'eta', 'phi', 'mass', 'e', 'pxHLT40', 'pxHLT45']
+    jet = object_selection.nanoObject(events, "Jet_", jet_vars)
+    
+    if hlt40:
+        mask_trigger = runs_40(evt)
+    else:
+        mask_trigger = runs_45(evt)
+
+    # Trigger selection
+    jet = jet[mask_trigger]
+    evt = evt[mask_trigger]  
+    
+    # Jet selection
+    good_jet = object_selection.select_jet(jet, pt_cut = 10.)
+    
+    # Four jets
+    mask_four_jet = four_jets(good_jet)
+    good_jet = good_jet[mask_four_jet]
+    evt = evt[mask_four_jet] 
+    
+    # Jet trigger requirement
+    mask_jet = jet_trigger_requirement(good_jet, hlt40)
+    good_jet = good_jet[mask_jet]
+    evt = evt[mask_jet]  
+
+    # Write to pandas
+    evt["pt_tag"] = good_jet["pt"][:,3]
+    if hlt40:
+        col = "pxHLT40"
+    else:
+        col = "pxHLT45"
+    evt["pxHLT_tag"] = good_jet[col][:,3]
+    jet_out_vars = ['pt', col]
+    df_jet = awkward.topandas(good_jet[jet_out_vars], flatten=False)
+    df_jet = df_jet.add_prefix('Jet_')
+    df = pd.concat([df_jet, evt.set_index(df_jet.index)], axis=1)
+    to_np(df, "Jet_")
+
+    return df
+
+
+def fourjet_tag(jet, jetHLT_4vec, hlt40, deltaR=0.4):
+    
+    if hlt40:
+        jet_hlt = jet.pxHLT40 != -9999
+    else:
+        jet_hlt = jet.pxHLT45 != -9999
+    delta = jet["p4"].delta_r(jetHLT_4vec)
+    mask = delta < deltaR
+    return jet[jet_hlt & mask], delta
+
+
+def match_tau_jets(tau, jets, deltaR = 0.4):
+    
+    cross = tau['p4'].cross(jets['p4'], nested=False)
+    delta = cross.i0.delta_r(cross.i1)
+    mask = (delta < deltaR).any()
+    return mask, delta.min()
+
+
+def best_hlt_match(tau, tau_hlt):
+    
+    cross = tau['p4'].cross(tau_hlt['p4'], nested=False)
+    delta = cross.i0.delta_r(cross.i1)
+    
+    min_delta = delta.min() == delta
+    return tau_hlt[ min_delta ], delta.min()
+
+
+def tau_trigger_selection(file_path, hlt40=False):
+    
+    print("sample", file_path, "isHLT40", hlt40) 
+    
+    # Load file
+    f = uproot.open(file_path)
+    events = f['Events']
+    
+    event = {}
+    
+    # Load objects
+    event_vars = ["event", "run", "luminosityBlock",
+                  "HLTFilter_hltQuadJet45IsoPFTau45", "HLTFilter_hltFilterPFTauTrack5TightIsoL1QuadJet20CentralPFTau45",
+                  "HLTFilter_hltFilterPFTauTrack5TightIsoL1QuadJet28CentralPFTau45",
+                  "HLTFilter_hltQuadJet40IsoPFTau40", "HLTFilter_hltFilterPFTauTrack5TightIsoL1QuadJet20CentralPFTau40"]
+    event["evt"] = pd.DataFrame(object_selection.eventCollection(events, event_vars))
+ 
+    # Load objects
+    event["vtx"] = pd.DataFrame(object_selection.nanoCollection(events, "PV_", ["z"]))
+    jet_vars = ['pt', 'px', 'py', 'pz', 'eta', 'phi', 'mass', 'e', 'csvDisc']
+    jet_vars += [ 'pxHLT40', 'pyHLT40', 'pzHLT40', 'eHLT40', 'pxHLT45', 'pyHLT45', 'pzHLT45', 'eHLT45' ]
+        
+    event["jet"] = object_selection.nanoObject(events, "Jet_", jet_vars)
+    electron_vars = ['TrkIso03', 'ECaloIso03', 'cutbasedid', 'HCaloIso03', 'pt', 'eta', 'z']
+    event["electron"] = object_selection.nanoObject(events, "Electron_", electron_vars)
+    muon_vars = ['TrkIso03', 'ECaloIso03', 'isGlobalMuon', 'HCaloIso03', 'pt', 'eta', 'z']
+    event["muon"] = object_selection.nanoObject(events, "Muon_", muon_vars)
+    tau_vars = ['pt', 'px', 'py', 'pz', 'eta', 'phi', 'mass', 'e', 'charge', 'byMediumCombinedIsolationDeltaBetaCorr',
+                'z', 'leadTrackPt', 'dxy', 'againstMuonTight', 'againstElectronTight']
+    event["tau"] = object_selection.nanoObject(events, "Tau_", tau_vars) 
+    met_vars = ['pt', 'px', 'py', 'pz', 'e']
+    event["met"] = pd.DataFrame(nanoCollection(events, "MET_", met_vars))
+    event["tau_hlt"] = object_selection.nanoObject(events, "TauHLT_", branches = [], from_cartesian=True)
+    event["jet_hlt"] = object_selection.nanoObject(events, "JetHLT_", branches = [], from_cartesian=True)  
+        
+    print( "Total events", len(event["evt"]) )
+    
+    #
+    # Object selections
+    #
+    event["muon"] = object_selection.select_muon(event["muon"], event["vtx"])
+    event["electron"] = object_selection.select_electron(event["electron"], event["vtx"])
+    event["tau"] = object_selection.select_tau(event["tau"], event["vtx"], pt_cut=10., leadTrackPt_cut=5.)
+    event["jet"] = object_selection.select_jet(event["jet"], pt_cut=10.)
+    
+    #
+    # Trigger selection
+    #
+    if hlt40:
+        mask_trigger = runs_40(event["evt"])
+    else:
+        mask_trigger = runs_45(event["evt"])
+    apply_mask(event, mask_trigger)
+    
+    print( "Trigger selection", len(event["evt"]) )
+    
+    #
+    # Clean taus
+    #
+    event["tau"] = object_selection.clean_tau(event["tau"], event["muon"], event["electron"])
+    
+    #print(list(zip(good_jet.counts, good_clean_tau.counts, tau_hlt.counts)))
+    
+    #
+    # At least four jets
+    #
+    mask_four_jet = four_jets(event["jet"])
+    apply_mask(event, mask_four_jet)
+    
+    print( "Four jets", len(event["evt"]) ) 
+    
+    #
+    # Exactly one tau
+    #
+    mask_one_tau = event["tau"].counts == 1
+    apply_mask(event, mask_one_tau)
+    print( "One tau", len(event["evt"]) ) 
+    
+    #
+    # Conditions for trigger
+    #
+    if hlt40:
+        filter1_mask = event["evt"]["HLTFilter_hltQuadJet40IsoPFTau40"] > 0
+    else:
+        filter1_mask = event["evt"]["HLTFilter_hltQuadJet45IsoPFTau45"] > 0
+    apply_mask(event, filter1_mask)
+    print( "Filter", len(event["evt"]) )
+    
+    
+    #
+    # Match four HLT jets
+    #s
+    if hlt40:
+        jetHLT_4vec = uproot_methods.classes.TLorentzVector.TLorentzVectorArray.from_cartesian(event["jet"]["pxHLT40"], 
+                                                                                           event["jet"]["pyHLT40"], 
+                                                                                           event["jet"]["pzHLT40"], 
+                                                                                           event["jet"]["eHLT40"])
+    else:
+        jetHLT_4vec = uproot_methods.classes.TLorentzVector.TLorentzVectorArray.from_cartesian(event["jet"]["pxHLT45"], 
+                                                                                           event["jet"]["pyHLT45"], 
+                                                                                           event["jet"]["pzHLT45"], 
+                                                                                           event["jet"]["eHLT45"])
+        
+    good_matched_jet, delta_jet_hlt = fourjet_tag(event["jet"], jetHLT_4vec, hlt40, deltaR=0.4)
+    event["evt"]["delta_jet_hlt"] = delta_jet_hlt
+    
+    # Multiplicities
+    mask_four_jets = event["jet"].counts > 3
+    apply_mask(event, mask_four_jets)
+        
+    print( "Four jet matches", len(event["evt"]) )
+    
+    #
+    # Tau - Jet match
+    #
+    tau_match_mask, delta_tau_jet = match_tau_jets(event["tau"], event["jet"], deltaR = 0.4)
+    event["evt"]["delta_tau_jet"] = delta_tau_jet
+    apply_mask(event, tau_match_mask)
+            
+    print( "HLT match", len(event["evt"]) )
+    
+    """
+    mask_hlt_taus = tau_hlt.counts > 0
+    mult_mask = mask_hlt_taus
+        
+    evt = evt[mult_mask] 
+    good_matched_jet = good_matched_jet[mult_mask] 
+    good_clean_tau = good_clean_tau[mult_mask] 
+    tau_hlt = tau_hlt[mult_mask] 
+    
+    print( "Multiplicity selection", len(evt) )
+    """
+    
+    # Match best HLT tau
+    tau_hlt_best, min_dR = best_hlt_match(event["tau"], event["tau_hlt"])
+    
+    # Write to pandas
+    tau_hlt_best_pt = tau_hlt_best["p4"].pt
+    tau_hlt_best_pt = tau_hlt_best_pt.pad(1)
+    tau_hlt_best_pt = awkward.topandas(tau_hlt_best_pt, flatten=False)
+    tau_hlt_best_pt = np.array(tau_hlt_best_pt)
+    tau_hlt_best_eta = tau_hlt_best["p4"].eta
+    tau_hlt_best_eta = tau_hlt_best_eta.pad(1)
+    tau_hlt_best_eta = awkward.topandas(tau_hlt_best_eta, flatten=False)
+    tau_hlt_best_eta = np.array(tau_hlt_best_eta)
+    
+    event["evt"]["tau_pt"] = event["tau"]["pt"][:,0]
+    event["evt"]["tau_eta"] = event["tau"]["eta"][:,0]
+    event["evt"]["hlt_dR"] = min_dR
+    event["evt"]["tau_hlt_pt"] = tau_hlt_best_pt
+    event["evt"]["tau_hlt_eta"] = tau_hlt_best_eta
+ 
+    event["evt"].loc[:, 'tau_hlt_pt'] = event["evt"].tau_hlt_pt.map(lambda x: x[0])
+    event["evt"].loc[:, 'tau_hlt_eta'] = event["evt"].tau_hlt_eta.map(lambda x: x[0])
+    
+    # Write to pandas
+    jet_out_vars = ['pt', 'eta','pxHLT40', 'pxHLT45']
+    df_jet = awkward.topandas(event["jet"][jet_out_vars], flatten=False)
+    df_jet = df_jet.add_prefix('Jet_')
+    df = pd.concat([df_jet, event["evt"].set_index(df_jet.index)], axis=1)
+    to_np(df, "Jet_")
+
+    return df
+    #return evt, good_matched_jet, good_clean_tau, tau_hlt_best, min_dR
+
 
 
 def selection_jet():
