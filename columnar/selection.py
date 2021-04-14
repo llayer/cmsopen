@@ -138,18 +138,48 @@ def apply_mask(event, mask):
     event["jet_hlt"] = event["jet_hlt"][mask]
 
     
+    
+def get_sample_weight(weights):
+    
+    counts = np.ones(len(weights))
+    w = np.histogram(counts, bins=1, weights=weights)[0][0]
+    w_err = np.sqrt(np.histogram(counts, bins=1, weights=weights**2)[0])[0]
+    return w, w_err
+    
+    
+    
+def fill_sample_weight(ev_counts, key, df, btag=False, isTT=False):
+    
+    if btag:
+        w = df['norm'] * df['trigger_weight'] * df['btag_weight1'] 
+    else:
+        w = df['norm'] * df['trigger_weight']
+    
+    if isTT:
+        
+        w_sig = w[df["isSignal"] == True]
+        w_bkg = w[df["isBkg"] == True]
+        ev_counts[key + "_sig"], ev_counts[key + "_err" + "_sig"] = get_sample_weight(w_sig)
+        ev_counts[key + "_bkg"], ev_counts[key + + "_bkg"] = get_sample_weight(w_bkg)
+        
+    else:
+        ev_counts[key], ev_counts[key + "_err"] = get_sample_weight(w)
+    
+    
 def event_selection(file_path, isData = False, isTT = False, invert_btag = False, corrLevel = "cent", 
                     tau_factor = 0.03, jes_factor = 0.):
         
     sample = file_path.split("/")[-1][:-5]
-    print( "Processing:", sample, "isData:", isData, "isTT:", isTT, "corrLevel", corrLevel)
-        
+    print( "Processing:", sample, "isData:", isData, "isTT:", isTT, "corrLevel", corrLevel, "invert_btag", invert_btag)
+    
     # Load file
     f = uproot.open(file_path)
     events = f['Events']
-
+    
+    # Counts
     event_counts = {}
     event_counts["preselected"] = len(events)
+    w_hist = TH1F(sample, sample, 10,  0, 10)
     
     event = {}
     
@@ -285,16 +315,31 @@ def event_selection(file_path, isData = False, isTT = False, invert_btag = False
             
             # Classify signal and bkg
             test_weights.classify_tt(event["evt"])  
+            # Store event count
+            fill_sample_weight(event_counts, "tau_requirement_w", event["evt"], btag=False, isTT=True)  
+        else:
+            fill_sample_weight(event_counts, "tau_requirement_w", event["evt"], btag=False, isTT=False)   
+
     
     # Lepton veto
     mask_lep_veto = lep_veto(event["muon"], event["electron"])
     apply_mask(event, mask_lep_veto)
     event_counts["lep_veto"] = len(event["evt"])
-    
+    if not isData: 
+        if isTT:
+            fill_sample_weight(event_counts, "lep_veto_w", event["evt"], btag=False, isTT=True)
+        else:
+            fill_sample_weight(event_counts, "lep_veto_w", event["evt"], btag=False, isTT=False)
+
     # MET
     mask_met = met_requirement(event["met"]["met"])
     apply_mask(event, mask_met)
     event_counts["met"] = len(event["evt"])
+    if not isData: 
+        if isTT:
+            fill_sample_weight(event_counts, "met_w", event["evt"], btag=False, isTT=True)
+        else:
+            fill_sample_weight(event_counts, "met_w", event["evt"], btag=False, isTT=False)
     
     # B-tagging
     if isData and invert_btag:
@@ -311,7 +356,12 @@ def event_selection(file_path, isData = False, isTT = False, invert_btag = False
             #btag_1 = test_weights.btag_weight_1(event["jet"])
             #btag_2 = test_weights.btag_weight_2(event["jet"])
             event["evt"] = pd.concat([event["evt"], btag_weight.set_index(event["evt"].index)], axis=1)
-                 
+ 
+            if isTT:
+                fill_sample_weight(event_counts, "btag_w", event["evt"], btag=True, isTT=True)
+            else:
+                fill_sample_weight(event_counts, "btag_w", event["evt"], btag=True, isTT=False)
+
     event_counts["btag"] = len(event["evt"])       
         
     # HL features
@@ -338,7 +388,7 @@ def event_selection(file_path, isData = False, isTT = False, invert_btag = False
     to_np(df, "Jet_")
     to_np(df, "Tau_")
     
-    return df, event["jet"], event["tau"], event_counts
+    return df, event["jet"], event["tau"], event_counts, w_hist
     #return df, event["jet"], event_counts
     #return df, event_counts
     

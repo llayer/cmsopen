@@ -39,18 +39,22 @@ def btag_weights(jets, isQCD = False):
     
     bjet["csvDisc"] = jets.csvDisc
     
+    pt_clipped = np.where(bjet.pt.content > 980., np.full((len(bjet.pt.content)), 980.), bjet.pt.content)
+    
     if not isQCD:
         bjet["flavour"] = jets.flavour
         flavour = abs(bjet.flavour.content)
+        light_mask = (flavour != 4) & (flavour != 5)
+        light_id = np.zeros_like(flavour)
+        flavour_sf = np.where(light_mask, light_id, flavour)
+        flavour_eff = np.where(light_mask, light_id, flavour - 3)
+        #flavour = abs(jets.flavour.content)
     else:
-        flavour = np.zeros(len(jets.csvDisc.content))
+        flavour_eff = np.zeros_like(pt_clipped)
+        flavour_sf = np.zeros_like(pt_clipped)
     
-    light_mask = (flavour != 4) & (flavour != 5)
-    light_id = np.zeros_like(flavour)
-    flavour_sf = np.where(light_mask, light_id, flavour)
-    flavour_eff = np.where(light_mask, light_id, flavour - 3)
+    print (pt_clipped.shape, flavour_eff.shape)
     
-    pt_clipped = np.where(bjet.pt.content > 980., np.full((len(bjet.pt.content)), 980.), bjet.pt.content)
         
     b_eff = evaluator_b["eff"](pt_clipped, bjet.eta.content, flavour_eff)
     b_sf = btag_sf.eval("central", flavour_sf, abs(bjet.eta.content), pt_clipped, ignore_missing=True)
@@ -67,7 +71,7 @@ def btag_weights(jets, isQCD = False):
                         b_sf_up = b_sf_up, b_sf_down = b_sf_down, btag_pmc = p_mc, btag_pdata = p_data, 
                         btag_pdata_up = p_data_up, btag_pdata_down = p_data_down)
     
-    print("eff", bjet.b_eff)
+    #print("eff", bjet.b_eff)
     
     if isQCD:
         weight2 = btag_weight_2(bjet)

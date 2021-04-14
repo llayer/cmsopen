@@ -16,7 +16,7 @@ def ratio(h2_denom, h2_nom):
 
     return eff, xedges, yedges
 
-f_beff = ROOT.TFile("data/beff_precalc.root")
+f_beff = ROOT.TFile("data/beff_test.root")
 effs = {}
 effs['b'] = f_beff.Get("b")
 effs['c'] = f_beff.Get("c")
@@ -88,7 +88,7 @@ def eval_sf_eff(ev):
             sf_up.append(btag_sf.eval("up", flav_id, abs(eta[i]), pt_clipped, ignore_missing=True))
             sf_down.append(btag_sf.eval("down", flav_id, abs(eta[i]), pt_clipped, ignore_missing=True))
         except:
-            print( "Error in calculating the b-tagging SF:", pt_clipped, eta[i], flavour[i], effs[flav].GetXaxis().FindBin(pt_clipped) )
+            print( "Error in calculating the b-tagging SF:", pt_clipped, eta[i], flavour[i] )
             
     return {"Jet_btagSF" : sf, "Jet_btagSF_up" : sf_up, "Jet_btagSF_down" : sf_down, "Jet_beff" : eff}
 
