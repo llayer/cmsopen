@@ -1,6 +1,7 @@
 import ROOT
 from coffea.lookup_tools import extractor
 from root_numpy import array2hist, hist2array
+import pandas as pd
 
 data_trigger = ['Run2011A_MultiJet', 'Run2011B_MultiJet', 'Run2011A_SingleMu', 'Run2011B_SingleMu']
 data = ['Run2011A_MultiJet', 'Run2011B_MultiJet']
@@ -174,6 +175,56 @@ def beff():
     outtest = ROOT.TFile("data/beff_test.root", "RECREATE")
     hist.Write("eff")
     outtest.Close()
+
+    
+    
+def print_yields(cut_flow):
+    
+    df = pd.DataFrame.from_dict(cut_flow)
+    
+    df_data = df[df["tau_requirement_w"].isna() == True]
+    df_mc = df[df["tau_requirement_w"].isna() == False]
+    df_tt_sig = df[df["btag_w_sig"].isna() == False]
+    df_tt_bkg = df[df["btag_w_bkg"].isna() == False]
+    
+    df_data = df_data.astype(str)
+    def format_yield(col, col_err):
+        return '{0:.1f}'.format(col) + " $\pm$ " + '{0:.1f}'.format(col_err)
+    out_cols = []
+    for cut in ["tau_requirement_w", "lep_veto_w", "met_w", "btag_w"]:
+        df_mc[cut[:-2]] = df_mc.apply(lambda row : format_yield(row[cut], row[cut + "_err"]), axis=1) 
+        df_tt_sig[cut[:-2]] = df_tt_sig.apply(lambda row : format_yield(row[cut + "_sig"], row[cut + "_err_sig"]), axis=1)
+        df_tt_bkg[cut[:-2]] = df_tt_sig.apply(lambda row : format_yield(row[cut + "_bkg"], row[cut + "_err_bkg"]), axis=1)  
+    df_tt_sig["sample"]  = "TTJets_sig"
+    df_tt_bkg["sample"]  = "TTJets_bkg"        
+    df_out = pd.concat([df_mc, df_data, df_tt_sig, df_tt_bkg])
+    
+    sample_names = df_out["sample"]
+    df_out = df_out[["tau_requirement", "lep_veto", "met", "btag"]].transpose()
+    sample_names.name = "Cut"
+    df_out.columns = sample_names
+    
+    row = {"tau_requirement":r"4 jets $+\tau_{h}$", "lep_veto":r"$\mathrm{e}, \mu$ veto" , 
+           "met":r"$E_{\mathrm{T}}^{\mathrm{miss}}$", "btag":r"$\geq 1 \mathrm{btag}$"}
+    df_out = df_out.rename(row)
+    
+    cols1 = [
+     'Run2011A_MultiJet', 'Run2011B_MultiJet', 'TTJets_sig', 'TTJets_bkg']
+    header1 = [ 'Run A', 'Run B', r"$\mathrm{t} \overline{\mathrm{t}}\rightarrow \tau_{h}+$jets",
+     r"$\mathrm{t} \overline{\mathrm{t}}\rightarrow \mathrm{X}$"]    
+    cols2 = ['WJetsToLNu', 'DYJetsToLL', 'T_TuneZ2_tW', 'Tbar_TuneZ2_tW']
+    header2 = ['W + jets', 'Z + jets', "s-t (tW)", r"s-$\overline{\mathrm{t}}$ (tW)"]
+    cols3 = ['T_TuneZ2_t-channel', 'Tbar_TuneZ2_t-channel', 'T_TuneZ2_s', 'Tbar_TuneZ2_s']
+    header3 = [ "s-t (t)", r"s-$\overline{\mathrm{t}}$ (t)", "s-t (s)", r"s-$\overline{\mathrm{t}}$ (s)"]    
+
+    
+    print(df_out[cols1].to_latex(escape=False, header=header1))  
+    print(df_out[cols2].to_latex(escape=False, header=header2))
+    print(df_out[cols3].to_latex(escape=False, header=header3))
+
+    
+    
+    
     
 if __name__ == "__main__":
     

@@ -15,12 +15,18 @@ ext_b.add_weight_sets([
 ext_b.finalize()
 
 ext_trig = extractor()
+"""
 ext_trig.add_weight_sets([
     "jet40_ * rootFilesTurnOn/TriggerEffHisto_data_match40_JETLEG.root",
     "jet45_ * rootFilesTurnOn/TriggerEffHisto_data_match45_JETLEG.root",
     "tau40_ * rootFilesTurnOn/TriggerEffHisto_match40_newTauID.root",
     "tau45_ * rootFilesTurnOn/TriggerEffHisto_match45_newTauID.root"
 ])
+"""
+ext_trig.add_weight_sets([
+    "* * data/trigger_eff.root"
+])
+
 ext_trig.finalize()
 
 evaluator_trig = ext_trig.make_evaluator()
@@ -52,9 +58,7 @@ def btag_weights(jets, isQCD = False):
     else:
         flavour_eff = np.zeros_like(pt_clipped)
         flavour_sf = np.zeros_like(pt_clipped)
-    
-    print (pt_clipped.shape, flavour_eff.shape)
-    
+        
         
     b_eff = evaluator_b["eff"](pt_clipped, bjet.eta.content, flavour_eff)
     b_sf = btag_sf.eval("central", flavour_sf, abs(bjet.eta.content), pt_clipped, ignore_missing=True)
@@ -117,7 +121,7 @@ def eval_weight(obj, key):
     return np.where(mask, 1., weight)
 
 
-def calc_weight(jet, tau, prefix):
+def calc_weight(jet, tau, prefix, original_w = False):
     
     # DANGER how to treat overflow bin
     """
@@ -129,23 +133,36 @@ def calc_weight(jet, tau, prefix):
     """
     
     #last_bin = eval_weight(195., "jet" + prefix + "_jet4_eff" )
-    if prefix == "45":
-        last_bin = np.full(len(jet), 0.9523809552192688)
+    if original_w:
+        if prefix == "45":
+            last_bin = np.full(len(jet), 0.9523809552192688)
+        else:
+            last_bin = eval_weight(195., "jet" + prefix + "_jet4_eff" )
+        jet0 = np.where(jet.pt[:,0] < 200., eval_weight(jet.pt[:,0], "jet" + prefix + "_jet4_eff" ), last_bin)
+        jet1 = np.where(jet.pt[:,1] < 200., eval_weight(jet.pt[:,1], "jet" + prefix + "_jet4_eff" ), last_bin)
+        jet2 = np.where(jet.pt[:,2] < 200., eval_weight(jet.pt[:,2], "jet" + prefix + "_jet4_eff" ), last_bin)
+        tau0 = np.where(tau.pt[:,0] < 100., eval_weight(tau.pt[:,0], "tau" + prefix + "_eff_tau" ),
+                        eval_weight(95., "tau" + prefix + "_eff_tau" ))    
+        jet0_err = eval_weight(jet.pt[:,0], "jet" + prefix + "_jet4_eff_error" )
+        jet1_err = eval_weight(jet.pt[:,1], "jet" + prefix + "_jet4_eff_error" )
+        jet2_err = eval_weight(jet.pt[:,2], "jet" + prefix + "_jet4_eff_error" )
+        tau0_err = eval_weight(tau.pt[:,0], "tau" + prefix + "_eff_tau_error" )
     else:
-        last_bin = eval_weight(195., "jet" + prefix + "_jet4_eff" )
-    jet0 = np.where(jet.pt[:,0] < 200., eval_weight(jet.pt[:,0], "jet" + prefix + "_jet4_eff" ), last_bin)
-    jet1 = np.where(jet.pt[:,1] < 200., eval_weight(jet.pt[:,1], "jet" + prefix + "_jet4_eff" ), last_bin)
-    jet2 = np.where(jet.pt[:,2] < 200., eval_weight(jet.pt[:,2], "jet" + prefix + "_jet4_eff" ), last_bin)
-    tau0 = np.where(tau.pt[:,0] < 100., eval_weight(tau.pt[:,0], "tau" + prefix + "_eff_tau" ),
-                    eval_weight(95., "tau" + prefix + "_eff_tau" ))
+        
+        #if prefix == "45":
+        #    last_bin = np.full(len(jet), 0.9523809552192688)
+        #else:
+        last_bin = eval_weight(195., "jet4_eff_" + prefix )
+        jet0 = np.where(jet.pt[:,0] < 200., eval_weight(jet.pt[:,0], "jet4_eff_" + prefix ), last_bin)
+        jet1 = np.where(jet.pt[:,1] < 200., eval_weight(jet.pt[:,1], "jet4_eff_" + prefix ), last_bin)
+        jet2 = np.where(jet.pt[:,2] < 200., eval_weight(jet.pt[:,2], "jet4_eff_" + prefix ), last_bin)
+        tau0 = np.where(tau.pt[:,0] < 100., eval_weight(tau.pt[:,0], "tau_eff_" + prefix ),
+                        eval_weight(95., "tau_eff_" + prefix ))    
+        jet0_err = eval_weight(jet.pt[:,0], "jet4_eff_" + prefix + "_error" )
+        jet1_err = eval_weight(jet.pt[:,1], "jet4_eff_" + prefix + "_error" )
+        jet2_err = eval_weight(jet.pt[:,2], "jet4_eff_" + prefix + "_error" )
+        tau0_err = eval_weight(tau.pt[:,0], "tau_eff_" + prefix + "_error" )
 
-    #print(jet.pt[:,0] < 200.)
-    #print(jet0)
-    
-    jet0_err = eval_weight(jet.pt[:,0], "jet" + prefix + "_jet4_eff_error" )
-    jet1_err = eval_weight(jet.pt[:,1], "jet" + prefix + "_jet4_eff_error" )
-    jet2_err = eval_weight(jet.pt[:,2], "jet" + prefix + "_jet4_eff_error" )
-    tau0_err = eval_weight(tau.pt[:,0], "tau" + prefix + "_eff_tau_error" )
     
     weight = 1. * jet0 * jet1 * jet2 * tau0
     weight_up = 1. * (jet0 + jet0_err) * (jet1 + jet1_err) * (jet2 + jet2_err) * (tau0 + tau0_err)

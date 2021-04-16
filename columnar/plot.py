@@ -27,11 +27,11 @@ def save_var(sample, name, var_name, bins = 20, xlow = 0., xup = 350, corr=None)
         else:
             scale_qcd = 4.3 
         if corr is None:
-            sample['weight'] = sample['btag_weight'] * scale_qcd
+            sample['weight'] = sample['btag_weight2'] * scale_qcd
         elif corr == "mistag_up":
-            sample['weight'] = sample['btag_weight_up'] * scale_qcd
+            sample['weight'] = sample['btag_weight2_up'] * scale_qcd
         elif corr == "mistag_down":
-            sample['weight'] = sample['btag_weight_down'] * scale_qcd
+            sample['weight'] = sample['btag_weight2_down'] * scale_qcd
         else:
             print( "No valid correction" )
 
@@ -42,25 +42,25 @@ def save_var(sample, name, var_name, bins = 20, xlow = 0., xup = 350, corr=None)
         #    sample = sample[sample["train_flag"] == "test"]
         
         if corr is None:
-            sample['weight'] = sample['norm'] * (1/1000) * sample['trigger_weight'] * sample['Jet_btag_weight1']
+            sample['weight'] = sample['norm'] * sample['trigger_weight'] * sample['btag_weight1']
         elif corr == "btag_up":
-            sample['weight'] = sample['norm'] * (1/1000) * sample['trigger_weight'] * sample['Jet_btag_weight1_up']
+            sample['weight'] = sample['norm'] * sample['trigger_weight'] * sample['btag_weight1_up']
         elif corr == "btag_down":
-            sample['weight'] = sample['norm'] * (1/1000) * sample['trigger_weight'] * sample['Jet_btag_weight1_down']
+            sample['weight'] = sample['norm'] * sample['trigger_weight'] * sample['btag_weight1_down']
         elif corr == "trigger_up":
-            sample['weight'] = sample['norm'] * (1/1000) * sample['trigger_weight_up'] * sample['Jet_btag_weight1']
+            sample['weight'] = sample['norm'] * sample['trigger_weight_up'] * sample['btag_weight1']
         elif corr == "trigger_down":
-            sample['weight'] = sample['norm'] * (1/1000) * sample['trigger_weight_down'] * sample['Jet_btag_weight1']
+            sample['weight'] = sample['norm'] * sample['trigger_weight_down'] * sample['btag_weight1']
         elif corr == "xsec_up":
-            sample['weight'] = sample['norm_up'] * (1/1000) * sample['trigger_weight'] * sample['Jet_btag_weight1']
+            sample['weight'] = sample['norm_up'] * sample['trigger_weight'] * sample['btag_weight1']
         elif corr == "xsec_down":
-            sample['weight'] = sample['norm_down'] * (1/1000) * sample['trigger_weight'] * sample['Jet_btag_weight1']
+            sample['weight'] = sample['norm_down'] * sample['trigger_weight'] * sample['btag_weight1']
         elif corr == "pdf_up":
             sample["pdf_up"] = sample["pdf_up"].fillna(0.)
-            sample['weight'] = sample['norm'] * (1/1000) * sample['trigger_weight'] * sample['Jet_btag_weight1'] *                   (1+sample['pdf_up'])
+            sample['weight'] = sample['norm'] * sample['trigger_weight'] * sample['btag_weight1'] *                   (1+sample['pdf_up'])
         elif corr == "pdf_down":
             sample["pdf_down"] = sample["pdf_down"].fillna(0.)
-            sample['weight'] = sample['norm'] * (1/1000) * sample['trigger_weight'] * sample['Jet_btag_weight1']  * (1-sample['pdf_down'])
+            sample['weight'] = sample['norm'] * sample['trigger_weight'] * sample['btag_weight1']  * (1-sample['pdf_down'])
         else:
             print( "No valid correction" )
 
@@ -68,7 +68,7 @@ def save_var(sample, name, var_name, bins = 20, xlow = 0., xup = 350, corr=None)
         #new_samples[sample]['btag_weight2']
             
     # Renorm the test sample for TTJets signal
-    if ("TTJets_signal_centJER" in name) & (var_name == "bdt"):
+    if ("TTJets_signal" in name) & (var_name == "bdt"):
         dummy = ROOT.TH1D("dummy", "dummy", bins, xlow, xup)
         fill_hist(dummy, sample[var_name], weights = sample['weight'])
         sample = sample[sample["train_flag"] == "test"]
@@ -95,7 +95,8 @@ def save_var(sample, name, var_name, bins = 20, xlow = 0., xup = 350, corr=None)
         fill_hist(hist, series, weights = weights)
         
         # Renorm the test templates used in the ml
-        if ("TTJets_signal_centJER" in name) & (var_name == "bdt"):
+        if ("TTJets_signal" in name) & (var_name == "bdt"):
+            print("RENORM TEMPLATE")
             renorm_factor = float(dummy.Integral()) / float(hist.Integral())
             hist.Scale(renorm_factor)
             print(renorm_factor, hist.Integral(), dummy.Integral())

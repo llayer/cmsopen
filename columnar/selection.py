@@ -67,7 +67,7 @@ def hlt_requirement(tau_hlt, jet_hlt):
     return jet_mask & tau_mask
 
 
-def hlt_match(obj, obj_hlt, deltaR = 0.4):
+def hlt_match(obj, obj_hlt, deltaR = 0.5):
     
     cross = obj['p4'].cross(obj_hlt['p4'], nested=True)
     mask = (cross.i0.delta_r(cross.i1) < deltaR).any()
@@ -98,6 +98,7 @@ def hl_features(event):
                                    ((event["tau"]["p4"][:,0].x + met_p4.x)**2) -
                                    ((event["tau"]["p4"][:,0].y + met_p4.y)**2))
     event["evt"]["deltaPhiTauMet"] = abs(event["tau"]["p4"][:,0].delta_phi(met_p4))
+    event["evt"]["nJets"] = event["jet"].counts
     
     
     # Variables based on momentum tensor
@@ -160,7 +161,7 @@ def fill_sample_weight(ev_counts, key, df, btag=False, isTT=False):
         w_sig = w[df["isSignal"] == True]
         w_bkg = w[df["isBkg"] == True]
         ev_counts[key + "_sig"], ev_counts[key + "_err" + "_sig"] = get_sample_weight(w_sig)
-        ev_counts[key + "_bkg"], ev_counts[key + + "_bkg"] = get_sample_weight(w_bkg)
+        ev_counts[key + "_bkg"], ev_counts[key + "_err" + "_bkg"] = get_sample_weight(w_bkg)
         
     else:
         ev_counts[key], ev_counts[key + "_err"] = get_sample_weight(w)
@@ -179,7 +180,6 @@ def event_selection(file_path, isData = False, isTT = False, invert_btag = False
     # Counts
     event_counts = {}
     event_counts["preselected"] = len(events)
-    w_hist = TH1F(sample, sample, 10,  0, 10)
     
     event = {}
     
@@ -388,7 +388,7 @@ def event_selection(file_path, isData = False, isTT = False, invert_btag = False
     to_np(df, "Jet_")
     to_np(df, "Tau_")
     
-    return df, event["jet"], event["tau"], event_counts, w_hist
+    return df, event["jet"], event["tau"], event_counts
     #return df, event["jet"], event_counts
     #return df, event_counts
     

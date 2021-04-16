@@ -46,7 +46,7 @@ def select_muon(muon, vtx, eta_cut = 2.5, pt_cut = 10., reliso_cut = 0.15, vtxma
     reliso_cut = muon['rel_iso'] < reliso_cut
     vtx_cut = abs(muon["z"] - vtx["z"]) < vtxmatch_cut
     
-    return muon[ eta_cut & muon_global_cut & pt_cut & reliso_cut & vtx_cut ]
+    return muon[ eta_cut & muon_global_cut & pt_cut & vtx_cut ]#& reliso_cut & vtx_cut ]
 
 
 def select_electron(electron, vtx, eta_cut = 2.5, pt_cut = 10., reliso_cut = 0.15, vtxmatch_cut = 1.):
@@ -58,7 +58,7 @@ def select_electron(electron, vtx, eta_cut = 2.5, pt_cut = 10., reliso_cut = 0.1
     reliso_cut = electron['rel_iso'] < reliso_cut
     vtx_cut = abs(electron["z"] - vtx["z"]) < vtxmatch_cut
     
-    return electron[ id_cut & eta_cut & pt_cut & reliso_cut & vtx_cut ]
+    return electron[ id_cut & eta_cut & pt_cut & vtx_cut]#& reliso_cut & vtx_cut ]
 
 
 

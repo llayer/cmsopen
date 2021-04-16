@@ -15,9 +15,9 @@ def fit(path, sample_names, fit_var, corr = "central"):
                 hist = f.Get(s + "_" + "centJER" + "_" + fit_var)
                 print(s + "_" + "centJER" + "_" + fit_var)
             else:
-                hist = f.Get(s + "_" + corr +"_" + fit_var)
-                print(s + "_" + corr +"_" + fit_var)
-                #hist = f.Get(s + "_" + fit_var)
+                #hist = f.Get(s + "_" + corr +"_" + fit_var)
+                #print(s + "_" + corr +"_" + fit_var)
+                hist = f.Get(s + "_" + fit_var)
         else:
             hist = f.Get(s + "_" + fit_var)
             print(s + "_" + fit_var)

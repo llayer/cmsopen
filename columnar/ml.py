@@ -76,7 +76,7 @@ def train(samples, outpath, n_sig = 4000, n_bkg = 4000, ntrees=1000, lr = 0.01, 
     
     print("Prepare training data")
     
-    signal = samples["TTJets_centJER_signal"] #samples["TTJets_signal_central"]
+    signal = samples["TTJets_signal"] #samples["TTJets_centJER_signal"] #samples["TTJets_signal_central"]
     bkg = samples["QCD"]
     
     train_test_split(signal, n_sig)
@@ -88,11 +88,11 @@ def train(samples, outpath, n_sig = 4000, n_bkg = 4000, ntrees=1000, lr = 0.01, 
     bkg["label"] = 1
     
     signal_train = signal[signal["train_flag"] == "train"]
-    signal_train["weights"] = signal_train['trigger_weight'] * signal_train['Jet_btag_weight1']
+    signal_train["weights"] = signal_train['trigger_weight'] * signal_train['btag_weight1']
     signal_train["weights"] = signal_train["weights"] * (1. / np.mean(signal_train["weights"]))
     signal_test = signal[signal["train_flag"] == "test"]
     bkg_train = bkg[bkg["train_flag"] == "train"]
-    bkg_train["weights"] = bkg_train['btag_weight']
+    bkg_train["weights"] = bkg_train['btag_weight2']
     bkg_train["weights"] = bkg_train["weights"] * (1. / np.mean(bkg_train["weights"]))
     bkg_test = bkg[bkg["train_flag"] == "test"]
     
