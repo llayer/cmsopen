@@ -178,9 +178,11 @@ def beff():
 
     
     
-def print_yields(cut_flow):
+def print_yields(path):
     
-    df = pd.DataFrame.from_dict(cut_flow)
+    # Load df
+    # TO IMPLEMENT
+    df = pd.read_hdf(path)
     
     df_data = df[df["tau_requirement_w"].isna() == True]
     df_mc = df[df["tau_requirement_w"].isna() == False]

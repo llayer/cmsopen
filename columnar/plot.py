@@ -104,9 +104,11 @@ def save_var(sample, name, var_name, bins = 20, xlow = 0., xup = 350, corr=None)
     hist.Write()
 
 def vars_to_histos(samples, variables, file_path, syst=True):
+    
     file = ROOT.TFile(file_path, 'recreate')
     for name, sample in samples.items():
         
+        """
         # Change name of TTJets samples to be consistent
         if ("TTJets" in name) & (name is not "TTJets_bkg") & (name is not "TTJets_signal"):
             print("Change name")
@@ -117,6 +119,7 @@ def vars_to_histos(samples, variables, file_path, syst=True):
             #print( name[0] + "_" + name[-1] + "_" + name[1] + "_" + name[2] )
             name = pre + "_"+ post + "_" + middle
             print(name)
+        """
         
         for var in variables:
             save_var(sample, name, var["var_name"], var["bins"], var["xlow"], var["xup"])

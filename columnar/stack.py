@@ -20,7 +20,7 @@ def setStyle():
     setTDRStyle()
 """
 
-def plot(infile, var, xtitle, sample_names, outpath, sfs = None, corr="central", post_fit = False):
+def plot(infile, var, xtitle, sample_names, outpath, sfs = None, corr="central", post_fit = False, max_sf=15):
 
     #setStyle()
 
@@ -89,8 +89,8 @@ def plot(infile, var, xtitle, sample_names, outpath, sfs = None, corr="central",
             if s == "QCD":
                 hist = f.Get(s + '_' + var)#path + '/' + s.label)
             else:
-                hist = f.Get(s + '_' + corr + "_" + var)#path + '/' + s.label)
-                #hist = f.Get(s + '_' + var)#path + '/' + s.label)
+                #hist = f.Get(s + '_' + corr + "_" + var)#path + '/' + s.label)
+                hist = f.Get(s + '_' + var)#path + '/' + s.label)
         else:
             hist = f.Get("shapes_fit_s/signal_region/" + s)
         print( s, type(hist) )
@@ -156,7 +156,7 @@ def plot(infile, var, xtitle, sample_names, outpath, sfs = None, corr="central",
     maximum = max(stack.GetMaximum(),hdata.GetMaximum())
     minimum = min(stack.GetMinimum(),hdata.GetMinimum())
     #stack.SetMaximum(maximum*1.55)
-    stack.SetMaximum(maximum*15)
+    stack.SetMaximum(maximum*max_sf)
     stack.SetMinimum(1.)
     stack.Draw("HIST")
     stack.GetYaxis().SetTitle("Events / bin")
@@ -208,8 +208,8 @@ def plot(infile, var, xtitle, sample_names, outpath, sfs = None, corr="central",
     pad2.cd()
     ratio = hdata.Clone("ratio")
     ratio.SetLineColor(ROOT.kBlack)
-    ratio.SetMaximum(1.5)
-    ratio.SetMinimum(0.5)
+    ratio.SetMaximum(0.)
+    ratio.SetMinimum(2.)
     ratio.Sumw2()
     ratio.SetStats(0)
     #hratio.Sumw2()
@@ -237,7 +237,7 @@ def plot(infile, var, xtitle, sample_names, outpath, sfs = None, corr="central",
         h_bkg_err.Draw("e20same")
 
     #f1 = ROOT.TLine(0, 1., 1,1.)
-    print("DDDD", ratio.GetXaxis().GetXmax())
+    #print("DDDD", ratio.GetXaxis().GetXmax())
     f1 = ROOT.TLine(ratio.GetXaxis().GetXmin(), 1., ratio.GetXaxis().GetXmax(),1.)
     f1.SetLineColor(ROOT.kBlack)
     f1.SetLineStyle(ROOT.kDashed)
@@ -258,7 +258,7 @@ def plot(infile, var, xtitle, sample_names, outpath, sfs = None, corr="central",
     ratio.GetYaxis().SetLabelSize(0.15)
     ratio.GetXaxis().SetTitleSize(0.16)
     ratio.GetYaxis().SetTitleSize(0.16)
-    ratio.GetYaxis().SetRangeUser(0.5,1.5)
+    ratio.GetYaxis().SetRangeUser(0.,2.)
     ratio.GetXaxis().SetTitle(xtitle)
     ratio.GetXaxis().SetLabelOffset(0.04)
     ratio.GetYaxis().SetLabelOffset(0.01)
@@ -274,9 +274,11 @@ def plot(infile, var, xtitle, sample_names, outpath, sfs = None, corr="central",
     #    fout_name = "prova/"+outfile
     #c1.Print(outdir + '/' + "Stack/"+canvasname+".pdf")
     if (sfs is not None) | (post_fit == True):
-        c1.Print(outpath + "/" + var + "_" + corr + "_" + "postfit.png")
+        #c1.Print(outpath + "/" + var + "_" + corr + "_" + "postfit.png")
+        c1.Print(outpath + "/" + var + "_postfit.png")
     else:
-        c1.Print(outpath + "/" + var + "_" + corr + ".png")
+        #c1.Print(outpath + "/" + var + "_" + corr + ".png")
+        c1.Print(outpath + "/" + var + ".png")
             
     f.Close()
 
