@@ -28,10 +28,10 @@ def get_graph(file_path):
 
     return gr_obs, r_obs
 
-def plotNLL(cat="signal"):
+def plotNLL( inpath, cat="signal"):
 
-    gr_syst, r_obs = get_graph("out/multi_syst.root")
-    gr_stat, _ = get_graph("out/multi_stat.root")
+    gr_syst, r_obs = get_graph(inpath + "/fit/syst/higgsCombineTest.MultiDimFit.mH120.root")
+    gr_stat, _ = get_graph(inpath + "/fit/stat/higgsCombineTest.MultiDimFit.mH120.root")
 
     c = ROOT.TCanvas("c","c",800, 800)
     c.SetRightMargin(0.06)
@@ -97,7 +97,4 @@ def plotNLL(cat="signal"):
 
     ROOT.gPad.RedrawAxis()
 
-    c.Print("nll.png")
-
-
-plotNLL()
+    c.Print(inpath + "/nll.png")
