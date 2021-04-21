@@ -206,13 +206,13 @@ def transform(jets, met=None, corrLevel = "cent", doJER = True, jer=0.1, forceSt
                                                                       jet.eta.content,
                                                                       jet.phi.content,
                                                                       jet.mass_jes_down.content) 
-    elif corrLevel == "jes_up_old":
+    elif corrLevel == "jes_old_up":
         
         jet._content._contents['p4'] = uproot_methods.TLorentzVectorArray.from_ptetaphim(jet.pt_jes_up_old.content,
                                                                       jet.eta.content,
                                                                       jet.phi.content,
                                                                       jet.mass_jes_up_old.content)         
-    elif corrLevel == "jes_down_old":
+    elif corrLevel == "jes_old_down":
         
         jet._content._contents['p4'] = uproot_methods.TLorentzVectorArray.from_ptetaphim(jet.pt_jes_down_old.content,
                                                                       jet.eta.content,
@@ -272,11 +272,12 @@ def transform(jets, met=None, corrLevel = "cent", doJER = True, jer=0.1, forceSt
     
 def scale_tau(taus, met = None, corr = "tau_eup", percent=0.03):
     
-    if corr == "tau_eup":
+    if corr == "taue_up":
         sf = 1. + percent
-    else:
+    elif corr == "taue_down":
         sf = 1. - percent
-    
+    else:
+        print("No valid correction")    
     tau = JaggedCandidateArray.candidatesfromcounts(
         taus.counts,
         pt=taus.pt.flatten(),
@@ -318,6 +319,14 @@ def scale_tau(taus, met = None, corr = "tau_eup", percent=0.03):
     
     return tau, met
 
+    
+    
+def scale_met(event, factor):
+    
+    event["met"]["px"] *= factor
+    event["met"]["py"] *= factor
+    event["met"]["e"] *= factor
+    event["met"]["met"] = event["met"]["e"]
     
 def make_jer_hists():
     

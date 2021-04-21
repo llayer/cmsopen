@@ -12,8 +12,10 @@ SYST_DIR = BASE_DIR + "syst"
 BDT_DIR = BASE_DIR + "bdt_rs5"
 COMBINE_DIR = BASE_DIR + "combine"
 
-ev_sel = False
-print_cutflow = True
+# TODO CHECK MET BUG
+
+ev_sel = True
+print_cutflow = False
 do_plotting = False
 do_stack = False
 do_syst = False
@@ -32,20 +34,20 @@ bdt_var = [
 ]
 
 variables = [
-    #{"var_name" : "PV_npvs", "bins" : 30, "xlow" : 0., "xup" : 30, "xtitle" : "#PV", "max_sf": 50},
-    #{"var_name" : "MET_met", "bins" : 30, "xlow" : 0., "xup" : 400, "xtitle" : "MET [GeV]", "max_sf": 1.5},
-    #{"var_name" : "Tau_pt", "bins" : 30, "xlow" : 0., "xup" : 300, "xtitle" : "p_{T}(#tau) [GeV]", "max_sf": 15},
+    {"var_name" : "PV_npvs", "bins" : 30, "xlow" : 0., "xup" : 30, "xtitle" : "primary vertices", "max_sf": 50},
+    {"var_name" : "MET_met", "bins" : 30, "xlow" : 0., "xup" : 400, "xtitle" : "MET [GeV]", "max_sf": 1.5},
+    {"var_name" : "Tau_pt", "bins" : 30, "xlow" : 0., "xup" : 300, "xtitle" : "p_{T}(#tau) [GeV]", "max_sf": 15},
     {"var_name" : "Tau_eta", "bins" : 30, "xlow" : -3., "xup" : 3., "xtitle" : "#eta(#tau)", "max_sf": 50},
-    #{"var_name" : "aplanarity", "bins" : 20, "xlow" : 0., "xup" : 0.5, "xtitle" : "aplanarity", "max_sf": 15},
-    #{"var_name" : "ht", "bins" : 20, "xlow" : 0., "xup" : 1600., "xtitle" : "H_{T} [GeV]", "max_sf": 15},
-    #{"var_name" : "chargeEta", "bins" : 20, "xlow" : -3., "xup" : 3., "xtitle" : "q #times #eta(#tau)", "max_sf": 50},
-    #{"var_name" : "deltaPhiTauMet", "bins" : 20, "xlow" : 0., "xup" : 3.2, "xtitle" : "#Delta#phi(#tau, MET)", "max_sf": 50},
-    #{"var_name" : "mt", "bins" : 20, "xlow" : 0., "xup" : 300., "xtitle" : "M_{T}(#tau, MET) [GeV]", "max_sf": 15},
-    #{"var_name" : "mTauJet", "bins" : 20, "xlow" : 0., "xup" : 2500., "xtitle" :"M(#tau, jets) [GeV]", "max_sf": 15},
-    #{"var_name" : "nJets", "bins" : 10, "xlow" : 3., "xup" : 13., "xtitle" : "N. of jets", "max_sf": 50},
-    #{"var_name" : "Jet_pt", "bins" : 30, "xlow" : 0., "xup" : 500., "xtitle" : "p_{T}(jet) [GeV]", "max_sf": 15},
-    #{"var_name" : "Jet_eta", "bins" : 30, "xlow" : -3., "xup" : 3., "xtitle" : "#eta(jet)", "max_sf": 50},
-    #{"var_name" : "sphericity", "bins" : 20, "xlow" : 0., "xup" : 1.0, "xtitle" : "sphericity", "max_sf": 15}
+    {"var_name" : "aplanarity", "bins" : 20, "xlow" : 0., "xup" : 0.5, "xtitle" : "aplanarity", "max_sf": 15},
+    {"var_name" : "ht", "bins" : 20, "xlow" : 0., "xup" : 1600., "xtitle" : "H_{T} [GeV]", "max_sf": 15},
+    {"var_name" : "chargeEta", "bins" : 20, "xlow" : -3., "xup" : 3., "xtitle" : "q #times #eta(#tau)", "max_sf": 50},
+    {"var_name" : "deltaPhiTauMet", "bins" : 20, "xlow" : 0., "xup" : 3.2, "xtitle" : "#Delta#phi(#tau, MET)", "max_sf": 50},
+    {"var_name" : "mt", "bins" : 20, "xlow" : 0., "xup" : 300., "xtitle" : "M_{T}(#tau, MET) [GeV]", "max_sf": 15},
+    {"var_name" : "mTauJet", "bins" : 20, "xlow" : 0., "xup" : 2500., "xtitle" :"M(#tau, jets) [GeV]", "max_sf": 15},
+    {"var_name" : "nJets", "bins" : 10, "xlow" : 3., "xup" : 13., "xtitle" : "N. of jets", "max_sf": 50},
+    {"var_name" : "Jet_pt", "bins" : 30, "xlow" : 0., "xup" : 500., "xtitle" : "p_{T}(jet) [GeV]", "max_sf": 15},
+    {"var_name" : "Jet_eta", "bins" : 30, "xlow" : -3., "xup" : 3., "xtitle" : "#eta(jet)", "max_sf": 50},
+    {"var_name" : "sphericity", "bins" : 20, "xlow" : 0., "xup" : 1.0, "xtitle" : "sphericity", "max_sf": 15}
 ]    
 
 
@@ -56,7 +58,7 @@ def run_taujet_sel():
     outpath = SAMPLES_DIR
     taujet_selection.nominal(outpath)
     #taujet_selection.syst(outpath)
-    #taujet_selection.syst_variation(outpath)
+    #taujet_selection.syst_variations(outpath)
 
     
 def plot_vars( variables, inpath ):
@@ -175,9 +177,9 @@ if __name__ == "__main__":
         
     if plot_bdt:
         print("Plot BDT")
-        plot_vars(bdt_var, inpath = BDT_DIR + "/")
-        plot_stack(bdt_var, "bdt")
-        #plot_syst(bdt_var, "bdt")
+        #plot_vars(bdt_var, inpath = BDT_DIR + "/")
+        #plot_stack(bdt_var, "bdt")
+        plot_syst(bdt_var, "bdt")
         
     if do_fit:
         print("Fit with original script")

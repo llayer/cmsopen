@@ -83,6 +83,8 @@ def to_np(df, prefix):
         
 def hl_features(event):
     
+    
+    
     # HL features
     jet_tau_p4 = event["jet"]["p4"].sum() + event["tau"]["p4"][:,0]
     event["evt"]["h"] = event["jet"]["p4"].E.sum() + event["tau"]["p4"][:,0].E
@@ -90,7 +92,6 @@ def hl_features(event):
     event["evt"]["h_jet"] = event["jet"]["p4"].E.sum()
     event["evt"]["ht_jet"] = event["jet"]["p4"].Et.sum()
     event["evt"]["chargeEta"] = event["tau"]["charge"][:,0] * abs(event["tau"]["eta"])[:,0]
-    event["evt"]['met'] = event["met"]["met"]
     event["evt"]['mTauJet'] = jet_tau_p4.mass
     met_p4 = uproot_methods.classes.TLorentzVector.TLorentzVectorArray(event["met"]["px"], event["met"]["py"],
                                                                        event["met"]["pz"], event["met"]["e"])
@@ -219,29 +220,25 @@ def event_selection(file_path, isData = False, isTT = False, invert_btag = False
             event["tau"],  event["met"] = jetmet.scale_tau(event["tau"], event["met"], corr = corrLevel, percent = tau_factor)
             event["jet"],  event["met"] = jetmet.transform(event["jet"], event["met"], corrLevel = "centJER")
 
-        else:
-            event["jet"],  event["met"] = jetmet.transform(event["jet"], event["met"], corrLevel = corrLevel, jes_factor = jes_factor)
+        elif "met" in corrLevel:
+            event["jet"],  event["met"] = jetmet.transform(event["jet"], event["met"], corrLevel = "centJER")
+            if ("met_up" in corrLevel):
+                print("Scaling MET up by 10%")
+                jetmet.scale_met(event, 1.1)
+            if ("met_down" in corrLevel):
+                print("Scaling MET down by 10%")
+                jetmet.scale_met(event, 0.9)            
+        else:  
+            event["jet"],  event["met"] = jetmet.transform(event["jet"], event["met"], 
+                                                           corrLevel = corrLevel, jes_factor = jes_factor)
         
-            
-        #Add btag weights
-        #event["jet"] = test_weights.btag_weights(event["jet"])
 
-        # Btag:
-        """
-        print("Test btag")
-        flavour = abs(event["jet"].flavour.content)
-        light_mask = (flavour != 4) & (flavour != 5)
-        light_id = np.zeros_like(flavour)
-        flavour_sf = np.where(light_mask, light_id, flavour)
-        flavour_eff = np.where(light_mask, light_id, flavour - 3)
-        event["jet"].add_attributes(flavour_sf = flavour_sf, flavour_eff=flavour_eff)
-        """
     else:
         met_p4 = uproot_methods.classes.TLorentzVector.TLorentzVectorArray(event["met"]["px"], event["met"]["py"],
                                                                            event["met"]["pz"], event["met"]["e"])
         event["met"]["met"] = met_p4.Et
         
-    
+        
     #
     # Object selections
     #
@@ -307,12 +304,7 @@ def event_selection(file_path, isData = False, isTT = False, invert_btag = False
         event["evt"] = pd.concat([event["evt"], trigger_w.set_index(event["evt"].index)], axis=1)
         #print(event["evt"]["trigger_weight"])
         
-        if isTT:
-            
-            # PDF weights
-            pdf = pd.read_hdf("TTJets_pdfweights.h5")
-            df = pd.merge(event["evt"], pdf, how="left", on=["event", "luminosityBlock", "run"])
-            
+        if isTT:                  
             # Classify signal and bkg
             test_weights.classify_tt(event["evt"])  
             # Store event count
@@ -330,7 +322,7 @@ def event_selection(file_path, isData = False, isTT = False, invert_btag = False
             fill_sample_weight(event_counts, "lep_veto_w", event["evt"], btag=False, isTT=True)
         else:
             fill_sample_weight(event_counts, "lep_veto_w", event["evt"], btag=False, isTT=False)
-
+            
     # MET
     mask_met = met_requirement(event["met"]["met"])
     apply_mask(event, mask_met)
@@ -363,7 +355,18 @@ def event_selection(file_path, isData = False, isTT = False, invert_btag = False
                 fill_sample_weight(event_counts, "btag_w", event["evt"], btag=True, isTT=False)
 
     event_counts["btag"] = len(event["evt"])       
+    
+    
+    # PDF weights
+    if isTT:
         
+        # PDF weights
+        pdf = pd.read_hdf("TTJets_pdfweights.h5")
+        pdf = pdf.drop_duplicates()
+        print("before join", len(event["evt"]), len(pdf))
+        event["evt"] = pd.merge(event["evt"], pdf, how="left", on=["event", "luminosityBlock", "run"])
+        print("after join", len(event["evt"]))
+    
     # HL features
     hl_features(event)
     
@@ -388,7 +391,7 @@ def event_selection(file_path, isData = False, isTT = False, invert_btag = False
     to_np(df, "Jet_")
     to_np(df, "Tau_")
     
-    return df, event["jet"], event["tau"], event_counts
+    return df, event["jet"], event["tau"], event["met"], event_counts
     #return df, event["jet"], event_counts
     #return df, event_counts
     

@@ -99,7 +99,7 @@ def train(samples, outpath, n_sig = 4000, n_bkg = 4000, ntrees=1000, lr = 0.01, 
     train_data = pd.concat([signal_train, bkg_train], axis=0)
     test_data = pd.concat([signal_test, bkg_test], axis=0)
     
-    features = ['ht', 'aplanarity', 'sphericity', 'chargeEta', 'met', 'deltaPhiTauMet', 'mt', 'mTauJet']
+    features = ['ht', 'aplanarity', 'sphericity', 'chargeEta', 'MET_met', 'deltaPhiTauMet', 'mt', 'mTauJet']
 
     X_train = train_data[features].values
     y_train = train_data["label"].values.ravel()
@@ -147,6 +147,9 @@ def train(samples, outpath, n_sig = 4000, n_bkg = 4000, ntrees=1000, lr = 0.01, 
     print("Predicting...") 
     
     for sample in samples:
+        if samples[sample][features].isnull().values.any():
+            print ("Frame has nan values in features!!: ", sample)
+            
         samples[sample]["bdt"] = bdt.predict_proba(samples[sample][features].values)[:,0]    
     
 
