@@ -2,204 +2,209 @@ import ROOT as rt
 import CombineHarvester.CombineTools.ch as ch
 import os
 
-# Create combine harvester
-cb = ch.CombineHarvester()
+def run_harvester(file, outpath):
+    # Create combine harvester
+    cb = ch.CombineHarvester()
 
-# Input
-file = "/eos/user/l/llayer/cmsopen/columnar/syst_variation/histos/harvester_input.root"
+    # Systematics
 
-# Systematics
+    norm_systematics = ['xsec']
 
-norm_systematics = ['xsec']
+    #norm_shape_systematics = [ 'btag']
 
-#norm_shape_systematics = [ 'btag']
+    specific_shape_systematics = { 'TTJets_bkg':['btag', 'pdf', 'jer', 'met', "taue", "jes"], #trigger
+                                   'WZJets':['btag', 'jer', 'met', "taue", "jes"], #trigger
+                                   'STJets':['btag', 'jer', 'met', "taue", "jes"], #trigger
+                                   'TTJets_signal':['btag', 'pdf', 'jer', 'met', "taue", "jes"]} #trigger
 
-specific_shape_systematics = { 'TTJets_bkg':['btag', 'pdf', 'jer', 'trigger', 'met', "tau_e_09", "jes"],
-                               'WZJets':['btag', 'jer', 'trigger', 'met', "tau_e_09", "jes"],
-                               'STJets':['btag', 'jer', 'trigger', 'met', "tau_e_09", "jes"],
-                               'TTJets_signal':['btag', 'pdf', 'jer', 'trigger', 'met', "tau_e_09", "jes"]}
+    for name, syst in specific_shape_systematics.iteritems():
 
-for name, syst in specific_shape_systematics.iteritems():
+        f = rt.TFile(file)
+        #print(f.ls())
+        print "Norm variations"
+        for s in syst:
+            print name + "_" + s + "Up"
+            print name, s, f.Get("signal_region/" + name + "_" + s + "Up").Integral()
+            print name, s, f.Get("signal_region/" + name + "_" + s + "Down").Integral()
 
-    f = rt.TFile(file)
-    #print(f.ls())
-    print "Norm variations"
-    for s in syst:
-        print name + "_" + s + "Up"
-        print name, s, f.Get("signal_region/" + name + "_" + s + "Up").Integral()
-        print name, s, f.Get("signal_region/" + name + "_" + s + "Down").Integral()
+    # Definition of channels
+    chns = ['bdt']
 
-# Definition of channels
-chns = ['bdt']
+    # Definition of background processes
+    bkg_procs = {
+    'bdt' : [ "TTJets_bkg", "WZJets", "STJets", "QCD"]
+    }
 
-# Definition of background processes
-bkg_procs = {
-'bdt' : [ "TTJets_bkg", "WZJets", "STJets", "QCD"]
-}
+    # Definition of signal process
+    sig_procs = ['TTJets_signal']
 
-# Definition of signal process
-sig_procs = ['TTJets_signal']
+    # MC processes
+    mc = [ "TTJets_signal", "TTJets_bkg", "WZJets", "STJets"]
 
-# MC processes
-mc = [ "TTJets_signal", "TTJets_bkg", "WZJets", "STJets"]
+    # Categories
+    cat_names = ["signal_region"]
+    cats = []
+    for counter, c in enumerate(cat_names):
+        cats.append( (counter, c) )
 
-# Categories
-cat_names = ["signal_region"]
-cats = []
-for counter, c in enumerate(cat_names):
-    cats.append( (counter, c) )
+    # Add the processes and observations
+    for chn in chns:
+        cb.AddObservations(  ['tt'],  ['taujets'], ['7TeV'], [chn],                 cats      )
+        for key, value in cats:
+            cb.AddProcesses(     ['tt'],  ['taujets'], ['7TeV'], [chn], bkg_procs[chn], [cats[key]], False  )
 
-# Add the processes and observations
-for chn in chns:
-    cb.AddObservations(  ['tt'],  ['taujets'], ['7TeV'], [chn],                 cats      )
-    for key, value in cats:
-        cb.AddProcesses(     ['tt'],  ['taujets'], ['7TeV'], [chn], bkg_procs[chn], [cats[key]], False  )
+    cb.AddProcesses( ['tt'], ['taujets'], ['7TeV'], [chn], sig_procs, cats, True )
 
-cb.AddProcesses( ['tt'], ['taujets'], ['7TeV'], [chn], sig_procs, cats, True )
+    # Get the processes
+    signal = cb.cp().signals().process_set()
+    bkg = cb.cp().backgrounds().process_set()
+    all_pr = signal + bkg
 
-# Get the processes
-signal = cb.cp().signals().process_set()
-bkg = cb.cp().backgrounds().process_set()
-all_pr = signal + bkg
+    # File with the processes
+    #f = rt.TFile('shapes.root')
 
-# File with the processes
-#f = rt.TFile('shapes.root')
-
-# Add the shape systematics
-"""
-for sys in norm_shape_systematics:
-    if sys == '':
-        continue
-    cb.cp().process(signal + bkg).AddSyst(
-    cb, sys, "shape", ch.SystMap()(1.00))
-"""
-# Systs that only affect a part of the bkg
-
-for key, value in specific_shape_systematics.iteritems():
-
-    for sys in value:
-        cb.cp().process([key]).AddSyst(
+    # Add the shape systematics
+    """
+    for sys in norm_shape_systematics:
+        if sys == '':
+            continue
+        cb.cp().process(signal + bkg).AddSyst(
         cb, sys, "shape", ch.SystMap()(1.00))
+    """
+    # Systs that only affect a part of the bkg
 
-# Norm systs
-def getSys(hNominal, hUp, hDown):
+    for key, value in specific_shape_systematics.iteritems():
 
-    nominal = hNominal.Integral()
-    up = hUp.Integral()
-    down = hDown.Integral()
+        for sys in value:
+            cb.cp().process([key]).AddSyst(
+            cb, sys, "shape", ch.SystMap()(1.00))
 
-    syst = 1 + 0.5 * (abs(up - nominal) + abs(down - nominal)) / nominal
+    # Norm systs
+    def getSys(hNominal, hUp, hDown):
 
-    return syst
+        nominal = hNominal.Integral()
+        up = hUp.Integral()
+        down = hDown.Integral()
 
-# Add the rate systematics
-f = rt.TFile(file)
-for pr in mc:
+        syst = 1 + 0.5 * (abs(up - nominal) + abs(down - nominal)) / nominal
 
-    hNominal = f.Get('signal_region/' + pr)
+        return syst
 
-    for sys in norm_systematics:
+    # Add the rate systematics
+    f = rt.TFile(file)
+    for pr in mc:
 
-        hUp = f.Get('signal_region/' + pr + '_' + sys +'Up')
-        hDown = f.Get('signal_region/' + pr + '_' + sys +'Down')
+        hNominal = f.Get('signal_region/' + pr)
 
-        syst_uncertainty = round( getSys(hNominal, hUp, hDown), 3)
-        print pr, syst_uncertainty
+        for sys in norm_systematics:
 
-        cb.cp().process([pr]).AddSyst(
-        cb, "xsec", "lnN", ch.SystMap()(syst_uncertainty))
-        #cb.cp().process([pr]).AddSyst(
-        #cb, sys, "lnN", ch.SystMap('channel', 'era', 'bin_id')
-        #(['bdt'], ['13TeV'],  [0],  syst_uncertainty))
+            hUp = f.Get('signal_region/' + pr + '_' + sys +'Up')
+            hDown = f.Get('signal_region/' + pr + '_' + sys +'Down')
 
+            syst_uncertainty = round( getSys(hNominal, hUp, hDown), 3)
+            print pr, syst_uncertainty
 
-cb.cp().process(["QCD"]).AddSyst(
-cb, "mistag", "lnN", ch.SystMap()(1.05))
-
-# Add lumi uncertainty
-cb.cp().process(mc).AddSyst(
-cb, "lumi", "lnN", ch.SystMap()(1.02))
-
-# Add tau trigger leg uncertainty
-cb.cp().process(mc).AddSyst(
-cb, "tau_trigger", "lnN", ch.SystMap()(1.05))
-
-# Add tau id uncertainty
-cb.cp().process(mc).AddSyst(
-cb, "tau_id", "lnN", ch.SystMap()(1.06))
-
-# Add TTJets variation uncertainties
-# Mass
-cb.cp().process(["TTJets_signal", "TTJets_bkg"]).AddSyst(
-cb, "mass", "lnN", ch.SystMap()(1.03))
-# Q2
-cb.cp().process(["TTJets_signal", "TTJets_bkg"]).AddSyst(
-cb, "q2", "lnN", ch.SystMap()(1.02))
-# Parton match
-cb.cp().process(["TTJets_signal", "TTJets_bkg"]).AddSyst(
-cb, "parton", "lnN", ch.SystMap()(1.03))
-
-"""
-cb.cp().process(["TTJets_signal"]).AddSyst(
-cb, "lumi", "lnN", ch.SystMap()(1.1))
-cb.cp().process(["TTJets_signal"]).AddSyst(
-cb, "lumi2", "lnN", ch.SystMap()(1.1))
-cb.cp().process(["TTJets_signal"]).AddSyst(
-cb, "lumi3", "lnN", ch.SystMap()(1.1))
-cb.cp().process(["TTJets_signal"]).AddSyst(
-cb, "lumi4", "lnN", ch.SystMap()(1.1))
-cb.cp().process(["TTJets_signal"]).AddSyst(
-cb, "lumi5", "lnN", ch.SystMap()(1.1))
-"""
-
-cb.cp().process(["QCD"]).AddSyst(cb, "qcd_rate", "rateParam", ch.SystMap()(1.00))
-
-cb.PrintSysts()
-
-print( '>> Extracting histograms from input root files...' )
-for chn in chns:
-    #file = 'shapes.root'
-    cb.cp().channel([chn]).era(['7TeV']).backgrounds().ExtractShapes(
-        file, '$BIN/$PROCESS', '$BIN/$PROCESS_$SYSTEMATIC')
-    cb.cp().channel([chn]).era(['7TeV']).signals().ExtractShapes(
-        file, '$BIN/$PROCESS', '$BIN/$PROCESS_$SYSTEMATIC')
+            cb.cp().process([pr]).AddSyst(
+            cb, "xsec", "lnN", ch.SystMap()(syst_uncertainty))
+            #cb.cp().process([pr]).AddSyst(
+            #cb, sys, "lnN", ch.SystMap('channel', 'era', 'bin_id')
+            #(['bdt'], ['13TeV'],  [0],  syst_uncertainty))
 
 
-writer = ch.CardWriter( 'DataCard_SystVar' + '/$TAG/$MASS/$ANALYSIS_$CHANNEL_$BIN_$ERA.txt',
-                        'DataCard_SystVar' + '/$TAG/common/$ANALYSIS_$CHANNEL.input.root')
-#writer.SetVerbosity(1)
-writer.WriteCards('cmb', cb)
-for chn in chns: writer.WriteCards(chn,cb.cp().channel([chn]))
+    cb.cp().process(["QCD"]).AddSyst(
+    cb, "mistag", "lnN", ch.SystMap()(1.05))
+
+    # Add lumi uncertainty
+    cb.cp().process(mc).AddSyst(
+    cb, "lumi", "lnN", ch.SystMap()(1.02))
+
+    # Add tau trigger leg uncertainty
+    cb.cp().process(mc).AddSyst(
+    cb, "tau_trigger", "lnN", ch.SystMap()(1.05))
+
+    # Add tau id uncertainty
+    cb.cp().process(mc).AddSyst(
+    cb, "tau_id", "lnN", ch.SystMap()(1.06))
+
+    # Add TTJets variation uncertainties
+    # Mass
+    cb.cp().process(["TTJets_signal", "TTJets_bkg"]).AddSyst(
+    cb, "mass", "lnN", ch.SystMap()(1.03))
+    # Q2
+    cb.cp().process(["TTJets_signal", "TTJets_bkg"]).AddSyst(
+    cb, "q2", "lnN", ch.SystMap()(1.02))
+    # Parton match
+    cb.cp().process(["TTJets_signal", "TTJets_bkg"]).AddSyst(
+    cb, "parton", "lnN", ch.SystMap()(1.03))
+
+    """
+    cb.cp().process(["TTJets_signal"]).AddSyst(
+    cb, "lumi", "lnN", ch.SystMap()(1.1))
+    cb.cp().process(["TTJets_signal"]).AddSyst(
+    cb, "lumi2", "lnN", ch.SystMap()(1.1))
+    cb.cp().process(["TTJets_signal"]).AddSyst(
+    cb, "lumi3", "lnN", ch.SystMap()(1.1))
+    cb.cp().process(["TTJets_signal"]).AddSyst(
+    cb, "lumi4", "lnN", ch.SystMap()(1.1))
+    cb.cp().process(["TTJets_signal"]).AddSyst(
+    cb, "lumi5", "lnN", ch.SystMap()(1.1))
+    """
+
+    cb.cp().process(["QCD"]).AddSyst(cb, "qcd_rate", "rateParam", ch.SystMap()(1.00))
+
+    cb.PrintSysts()
+
+    print( '>> Extracting histograms from input root files...' )
+    for chn in chns:
+        #file = 'shapes.root'
+        cb.cp().channel([chn]).era(['7TeV']).backgrounds().ExtractShapes(
+            file, '$BIN/$PROCESS', '$BIN/$PROCESS_$SYSTEMATIC')
+        cb.cp().channel([chn]).era(['7TeV']).signals().ExtractShapes(
+            file, '$BIN/$PROCESS', '$BIN/$PROCESS_$SYSTEMATIC')
 
 
-# Combine cards
-
-"""
-comb_cards = ""
-for cat in cat_names:
-    comb_cards +=  opt.datacard +  "taujets_st_" + cat + "_7TeV.txt "
-comb_cards += " > " + opt.datacard + opt.cat + ".txt"
-
-print 'Creating workspace'
-os.system("combineCards.py " + comb_cards)
-"""
-"""
-if opt.mc == 'mc_cb':
-    os.system("echo \"* autoMCStats 1\" >> " + opt.datacard + opt.cat + ".txt")
-"""
-
-dc = "DataCard_SystVar/bdt/tt/taujets_bdt_signal_region_7TeV.txt"
-os.system("text2workspace.py " + dc)
+    writer = ch.CardWriter( outpath + '/DataCard' + '/$TAG/$MASS/$ANALYSIS_$CHANNEL_$BIN_$ERA.txt',
+                            outpath + '/DataCard' + '/$TAG/common/$ANALYSIS_$CHANNEL.input.root')
+    #writer.SetVerbosity(1)
+    writer.WriteCards('cmb', cb)
+    for chn in chns: writer.WriteCards(chn,cb.cp().channel([chn]))
 
 
-print()
-print()
-print()
-print( "***********************************************************************************")
-print()
-print( "Datacard produced" )
-print()
-print( "***********************************************************************************" )
-print()
-print()
-print()
+    # Combine cards
+
+    """
+    comb_cards = ""
+    for cat in cat_names:
+        comb_cards +=  opt.datacard +  "taujets_st_" + cat + "_7TeV.txt "
+    comb_cards += " > " + opt.datacard + opt.cat + ".txt"
+
+    print 'Creating workspace'
+    os.system("combineCards.py " + comb_cards)
+    """
+    """
+    if opt.mc == 'mc_cb':
+        os.system("echo \"* autoMCStats 1\" >> " + opt.datacard + opt.cat + ".txt")
+    """
+
+    dc = outpath + "/DataCard/bdt/tt/taujets_bdt_signal_region_7TeV.txt"
+    os.system("text2workspace.py " + dc)
+
+
+    print()
+    print()
+    print()
+    print( "***********************************************************************************")
+    print()
+    print( "Datacard produced" )
+    print()
+    print( "***********************************************************************************" )
+    print()
+    print()
+    print()
+
+
+if __name__ == "__main__":
+
+    file_path = "/eos/user/l/llayer/cmsopen/columnar/syst_variation/combine/harvester_input.root"
+    outpath = "/eos/user/l/llayer/cmsopen/columnar/syst_variation/combine"
+    run_harvester(file_path, outpath)
