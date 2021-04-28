@@ -167,7 +167,7 @@ def calc_weight(jet, tau, prefix, original_w = False):
         tau0_err = eval_weight(tau.pt[:,0], "tau_eff_" + prefix + "_error" )
 
     
-    print(list(zip(jet.pt[:,0], jet0_err, jet1_err, jet2_err, tau0_err)))
+    #print(list(zip(jet.pt[:,0], jet0_err, jet1_err, jet2_err, tau0_err)))
     
     weight = 1. * jet0 * jet1 * jet2 * tau0
     weight_up = 1. * (jet0 + jet0_err) * (jet1 + jet1_err) * (jet2 + jet2_err) * (tau0 + tau0_err)

@@ -60,7 +60,13 @@ def fit(path, sample_names, fit_var, corr = "central"):
     print( "scale factor TTbar tau(h) QQ ", sf_tt_sig, "+-", sf_tt_sig_err )
     print( "scale factor MultiJet ", sf_qcd, "+-", sf_qcd_err )
 
-    return sf_tt_sig, sf_qcd
+    result = {
+        "TTJets_signal": sf_tt_sig,
+        "TTJets_signal_err": sf_tt_sig_err,
+        "QCD": sf_qcd,
+        "QCD_err": sf_qcd_err
+    }
+    return result
 
 """
 print bkg.Integral()

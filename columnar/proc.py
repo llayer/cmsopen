@@ -14,7 +14,7 @@ COMBINE_DIR = BASE_DIR + "combine"
 
 # TODO CHECK MET BUG
 
-ev_sel = True
+ev_sel = False
 print_cutflow = False
 do_plotting = False
 do_stack = False
@@ -23,6 +23,7 @@ run_bdt = False
 plot_bdt = False
 do_fit = False
 to_hv = False
+postfit = True
 
 """
 variables = [
@@ -30,7 +31,7 @@ variables = [
 ]
 """
 bdt_var = [
-    {"var_name" : "bdt", "bins" : 20, "xlow" : 0., "xup" : 1., "xtitle" : "bdt"}
+    {"var_name" : "bdt", "bins" : 20, "xlow" : 0., "xup" : 1., "xtitle" : "bdt", "max_sf": 15}
 ]
 
 variables = [
@@ -130,17 +131,29 @@ def bdt( outpath = BDT_DIR ):
         samples[sample].drop(dropvars, axis=1, errors='ignore').to_hdf(outpath + "/" + sample + ".h5", "frame")
     
         
-def fit_xsec(var = "MET_met", file_name = "bdt_corr", syst=False):
+def fit_xsec(var = "MET_met", file_name = "bdt_corr"):
     
     import fit 
     
     sample_names = ["Data", "TTJets_bkg", "WZJets", "STJets", "QCD", "TTJets_signal"]
-    sf_tt_sig, sf_qcd = fit.fit(HIST_DIR + "/" + file_name + ".root", sample_names, var, corr="centJER")
-    sfs = {}
-    sfs["TTJets_signal"] = sf_tt_sig
-    sfs["QCD"] = sf_qcd
+    result = fit.fit(HIST_DIR + "/" + file_name + ".root", sample_names, var, corr="centJER")
+    pd.DataFrame([result]).to_hdf(COMBINE_DIR + "/roofit/result.h5", "frame")
     #stack.plot( HIST_DIR + "/" + file_name + ".root", var, var, sample_names[1:], STACK_DIR, sfs = sfs, corr = "central" )
         
+        
+def plot_postfit(variables, file_name):
+
+    import stack
+    
+    sample_names = ["TTJets_bkg", "WZJets", "STJets", "QCD", "TTJets_signal"]
+    sfs = pd.read_hdf(COMBINE_DIR + "/roofit/result.h5")
+    for var in variables:
+        stack.plot( HIST_DIR + "/" + file_name + ".root", var["var_name"], var["xtitle"], sample_names, 
+                   COMBINE_DIR + "/roofit", sfs = sfs, max_sf=var["max_sf"])        
+        stack.plot( HIST_DIR + "/" + file_name + ".root", var["var_name"], var["xtitle"], sample_names, 
+                   COMBINE_DIR + "/roofit", sfs = sfs, max_sf=var["max_sf"]) 
+    infile = COMBINE_DIR + "/nominal/fit/syst/fitDiagnosticsTest.root"
+    stack.plot( infile, "bdt", "bdt", sample_names, COMBINE_DIR + "/nominal", post_fit = True )
     
 if __name__ == "__main__":
     
@@ -177,11 +190,12 @@ if __name__ == "__main__":
         
     if plot_bdt:
         print("Plot BDT")
-        #plot_vars(bdt_var, inpath = BDT_DIR + "/")
+        plot_vars(bdt_var, inpath = BDT_DIR + "/")
         #plot_stack(bdt_var, "bdt")
         plot_syst(bdt_var, "bdt")
         
     if do_fit:
+        Path(COMBINE_DIR + "/roofit").mkdir(parents=True, exist_ok=True)
         print("Fit with original script")
         #fit_xsec(var = "MET_met", file_name = "histos")
         fit_xsec(var = "bdt", file_name = "bdt")
@@ -192,4 +206,12 @@ if __name__ == "__main__":
         outpath = COMBINE_DIR + "/harvester_input.root"
         inpath = HIST_DIR + "/bdt.root"
         utils.to_harvester(inpath, outpath)
+         
+        
+    if postfit:
+        
+        plot_postfit(bdt_var, "bdt")
+        
+        
+        
 

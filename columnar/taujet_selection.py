@@ -32,7 +32,7 @@ def nominal(outpath):
     cut_flow = []
     samples = {}
     
-    """
+    
     # Process data
     for sample in data:
         
@@ -43,7 +43,7 @@ def nominal(outpath):
             samples[sample + suffix] = df
             ev_count["sample"] = sample + suffix
             cut_flow.append(ev_count)     
-    """
+    
         
     # Process nominal MC  
     for sample in mc:

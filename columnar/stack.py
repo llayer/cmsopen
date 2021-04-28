@@ -24,11 +24,12 @@ def plot(infile, var, xtitle, sample_names, outpath, sfs = None, corr="central",
 
     #setStyle()
 
+    print(sfs)
     #if not os.path.exists("stacks"):
     #    os.system("mkdir -p stacks")
 
     f = ROOT.TFile(infile, "READ")
-
+    
     histo = []
     h = ROOT.TH1F()
     h_err = ROOT.TH1F()
