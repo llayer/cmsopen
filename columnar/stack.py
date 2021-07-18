@@ -21,7 +21,7 @@ def setStyle():
 """
 
 def plot(infile, var, xtitle, sample_names, outpath, sfs = None, corr="central", post_fit = False, max_sf=15):
-
+    
     #setStyle()
 
     print(sfs)
@@ -259,7 +259,7 @@ def plot(infile, var, xtitle, sample_names, outpath, sfs = None, corr="central",
     ratio.GetYaxis().SetLabelSize(0.15)
     ratio.GetXaxis().SetTitleSize(0.16)
     ratio.GetYaxis().SetTitleSize(0.16)
-    ratio.GetYaxis().SetRangeUser(0.,2.)
+    ratio.GetYaxis().SetRangeUser(0.5,1.5)
     ratio.GetXaxis().SetTitle(xtitle)
     ratio.GetXaxis().SetLabelOffset(0.04)
     ratio.GetYaxis().SetLabelOffset(0.01)

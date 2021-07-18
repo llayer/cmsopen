@@ -10,6 +10,7 @@ HIST_DIR = BASE_DIR + "histos"
 STACK_DIR = BASE_DIR + "stack"
 SYST_DIR = BASE_DIR + "syst"
 BDT_DIR = BASE_DIR + "bdt_rs5"
+INFERNO_DIR = BASE_DIR + "inferno_signal"
 COMBINE_DIR = BASE_DIR + "combine"
 
 # TODO CHECK MET BUG
@@ -21,9 +22,10 @@ do_stack = False
 do_syst = False
 run_bdt = False
 plot_bdt = False
+plot_inferno = False
 do_fit = False
-to_hv = False
-postfit = True
+to_hv = True
+postfit = False
 
 """
 variables = [
@@ -32,6 +34,12 @@ variables = [
 """
 bdt_var = [
     {"var_name" : "bdt", "bins" : 20, "xlow" : 0., "xup" : 1., "xtitle" : "bdt", "max_sf": 15}
+]
+
+inferno_var = [
+    {"var_name" : "inferno", "bins" : 10, "xlow" : 0, "xup" : 10, "xtitle" : "inferno", "max_sf": 50},
+    {"var_name" : "bce", "bins" : 10, "xlow" : 0., "xup" : 1., "xtitle" : "bce", "max_sf": 50},
+    {"var_name" : "inferno_nonn", "bins" : 10, "xlow" : 0, "xup" : 10, "xtitle" : "inferno_nonn", "max_sf": 50}
 ]
 
 variables = [
@@ -77,6 +85,8 @@ def plot_vars( variables, inpath ):
         
     if "bdt" in inpath:
         file_name = "bdt"
+    elif "inferno" in inpath:
+        file_name = "inferno_signal"
     else:
         file_name = "histos"
     
@@ -136,8 +146,9 @@ def fit_xsec(var = "MET_met", file_name = "bdt_corr"):
     import fit 
     
     sample_names = ["Data", "TTJets_bkg", "WZJets", "STJets", "QCD", "TTJets_signal"]
-    result = fit.fit(HIST_DIR + "/" + file_name + ".root", sample_names, var, corr="centJER")
-    pd.DataFrame([result]).to_hdf(COMBINE_DIR + "/roofit/result.h5", "frame")
+    result = fit.fit(HIST_DIR + "/" + file_name + ".root", sample_names, var, corr="down")
+    print(result)
+    #pd.DataFrame([result]).to_hdf(COMBINE_DIR + "/roofit/result.h5", "frame")
     #stack.plot( HIST_DIR + "/" + file_name + ".root", var, var, sample_names[1:], STACK_DIR, sfs = sfs, corr = "central" )
         
         
@@ -194,18 +205,29 @@ if __name__ == "__main__":
         #plot_stack(bdt_var, "bdt")
         plot_syst(bdt_var, "bdt")
         
+    if plot_inferno:
+        print("Plot INFERNO")
+        plot_vars(inferno_var, inpath = INFERNO_DIR + "/")
+        plot_stack(inferno_var, "inferno_signal")
+        #plot_syst(inferno_var, "bdt")
+
     if do_fit:
         Path(COMBINE_DIR + "/roofit").mkdir(parents=True, exist_ok=True)
         print("Fit with original script")
         #fit_xsec(var = "MET_met", file_name = "histos")
-        fit_xsec(var = "bdt", file_name = "bdt")
+        #fit_xsec(var = "bdt", file_name = "bdt")
+        fit_xsec(var = "inferno_nonn", file_name = "inferno")
         #fit_xsec(var = "MET_met")
         
     if to_hv:
         Path(COMBINE_DIR).mkdir(parents=True, exist_ok=True)
-        outpath = COMBINE_DIR + "/harvester_input.root"
-        inpath = HIST_DIR + "/bdt.root"
-        utils.to_harvester(inpath, outpath)
+        #outpath = COMBINE_DIR + "/harvester_input.root"
+        #inpath = HIST_DIR + "/bdt.root"
+        #utils.to_harvester(inpath, outpath)
+        outpath = COMBINE_DIR + "/harvester_inferno_signal.root"
+        inf_vars = ["bce", "inferno", "inferno_nonn"]
+        inpath = HIST_DIR + "/inferno_signal.root"
+        utils.inferno_to_harvester(inf_vars, inpath, outpath)
          
         
     if postfit:

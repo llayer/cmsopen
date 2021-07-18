@@ -1,7 +1,7 @@
 import ROOT
 
 
-def fit(path, sample_names, fit_var, corr = "central"):
+def fit(path, sample_names, fit_var, corr = "qcd"):
 
     f = ROOT.TFile(path)
         
@@ -18,6 +18,9 @@ def fit(path, sample_names, fit_var, corr = "central"):
                 #hist = f.Get(s + "_" + corr +"_" + fit_var)
                 #print(s + "_" + corr +"_" + fit_var)
                 hist = f.Get(s + "_" + fit_var)
+        elif( s == "QCD") & ((corr == "up") | (corr == "down")):
+            print("QCD corr")
+            hist = f.Get(s + "_" + fit_var +"_" + corr)
         else:
             hist = f.Get(s + "_" + fit_var)
             print(s + "_" + fit_var)

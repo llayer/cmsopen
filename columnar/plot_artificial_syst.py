@@ -3,10 +3,7 @@ import numpy as np
 import ROOT
 from root_numpy import fill_hist
 #import btag
-import awkward
 
-def stack_weight(weight, n):
-    return np.full(n ,weight)
 
 def save_var(sample, name, var_name, bins = 20, xlow = 0., xup = 350, corr=None):
 
@@ -21,86 +18,27 @@ def save_var(sample, name, var_name, bins = 20, xlow = 0., xup = 350, corr=None)
     if name == "Data":
         pass
     elif name == "QCD":
-        if var_name == "bdt":
-            scale_qcd = 9. * 0.73 * 1.1
-            sample = sample[sample["train_flag"] == "test"]
-        elif var_name == "inferno":
-            scale_qcd = 9. * 0.73 * 1.1
-            sample = sample[sample["train_flag"] == "test"]
-        else:
-            scale_qcd = 4.3 
-        if corr is None:
-            sample['weight'] = sample['btag_weight2'] * scale_qcd
-        elif corr == "mistag_up":
-            sample['weight'] = sample['btag_weight2_up'] * scale_qcd
-        elif corr == "mistag_down":
-            sample['weight'] = sample['btag_weight2_down'] * scale_qcd
-        else:
-            print("CAUTION SETTING DEFAULT WEIGHT ON VARIATION")
-            sample['weight'] = sample['btag_weight2'] * scale_qcd
-            #print( "No valid correction" )
-
-    else:
-        #samples[sample]['new_trigger_weight'] = new_samples[sample].apply(lambda ev : weights.trigger_weight(ev), axis=1)
-        
-        #if name == "TTJets_signal":
-        #    sample = sample[sample["train_flag"] == "test"]
-        
-        if corr is None:
-            sample['weight'] = sample['norm'] * sample['trigger_weight'] * sample['btag_weight1']
-        elif corr == "btag_up":
-            sample['weight'] = sample['norm'] * sample['trigger_weight'] * sample['btag_weight1_up']
-        elif corr == "btag_down":
-            sample['weight'] = sample['norm'] * sample['trigger_weight'] * sample['btag_weight1_down']
-        elif corr == "trigger_up":
-            sample['weight'] = sample['norm'] * sample['trigger_weight_up'] * sample['btag_weight1']
-        elif corr == "trigger_down":
-            sample['weight'] = sample['norm'] * sample['trigger_weight_down'] * sample['btag_weight1']
-        elif corr == "xsec_up":
-            sample['weight'] = sample['norm_up'] * sample['trigger_weight'] * sample['btag_weight1']
-        elif corr == "xsec_down":
-            sample['weight'] = sample['norm_down'] * sample['trigger_weight'] * sample['btag_weight1']
-        elif corr == "pdf_up":
-            sample["pdf_up"] = sample["pdf_up"].fillna(0.)
-            sample['weight'] = sample['norm'] * sample['trigger_weight'] * sample['btag_weight1'] *                   (1+sample['pdf_up'])
-        elif corr == "pdf_down":
-            sample["pdf_down"] = sample["pdf_down"].fillna(0.)
-            sample['weight'] = sample['norm'] * sample['trigger_weight'] * sample['btag_weight1']  * (1-sample['pdf_down'])
-        else:
-            print( "No valid correction" )
-
-        #print(sample, sum(samples[sample]['weight']))
-        #new_samples[sample]['btag_weight2']
-            
-    # Renorm the test sample for TTJets signal
-    if (name == "TTJets_signal") & ((var_name == "bdt") | (var_name == "inferno")):
+        scale_qcd = 9. * 0.73 * 1.1
+        sample = sample[sample["train_flag"] == "test"]
+        sample['weight'] = sample['btag_weight2'] * scale_qcd
+    elif name == "TTJets_signal":
+        sample['weight'] = sample['norm'] * sample['trigger_weight'] * sample['btag_weight1']
         dummy = ROOT.TH1D("dummy", "dummy", bins, xlow, xup)
         fill_hist(dummy, sample[var_name], weights = sample['weight'])
         sample = sample[sample["train_flag"] == "test"]
-        
-    # Flatten if the column is a list
-    if "Jet_" in var_name:
-        #series = sample[var_name].apply(pd.Series).stack().reset_index(drop=True)
-        series = awkward.fromiter(sample[var_name].values).flatten()
-        if name != "Data":
-            sample['weight_stacked'] = sample.apply(lambda x : stack_weight(x["weight"] ,x["nJets"]), axis=1)
-            weights = awkward.fromiter(sample["weight_stacked"].values).flatten()
-            #weights = sample['weight_stacked'].apply(pd.Series).stack().reset_index(drop=True)
-            print( var_name, len(series), len(weights))
     else:
-        series = sample[var_name]
-        if name != "Data":
-            weights = sample["weight"]
+        sample['weight'] = sample['norm'] * sample['trigger_weight'] * sample['btag_weight1']
+            
+        
+    series = sample[var_name]
+    if name != "Data":
+        weights = sample["weight"]
     if name == "Data":
         fill_hist(hist, series)
     else:
-        #print (name, var_name)
-        #print (len(series))
-        #print (len(sample["weight"]))
         fill_hist(hist, series, weights = weights)
-        
         # Renorm the test templates used in the ml
-        if (name == "TTJets_signal") & ((var_name == "bdt") | (var_name == "inferno")):
+        if (name == "TTJets_signal"):
             print("RENORM TEMPLATE")
             renorm_factor = float(dummy.Integral()) / float(hist.Integral())
             hist.Scale(renorm_factor)
@@ -108,7 +46,7 @@ def save_var(sample, name, var_name, bins = 20, xlow = 0., xup = 350, corr=None)
     #print s, hist.Integral()
     hist.Write()
 
-def vars_to_histos(samples, variables, file_path, syst=True):
+def vars_to_histos(samples, variables, file_path):
     
     file = ROOT.TFile(file_path, 'recreate')
     for name, sample in samples.items():
@@ -127,78 +65,13 @@ def vars_to_histos(samples, variables, file_path, syst=True):
         """
         
         for var in variables:
+            if (("up" in var["var_name"]) | ("down" in var["var_name"])) & (name != "TTJets_signal"):
+                continue
+            else:
+                print(var, name)
             save_var(sample, name, var["var_name"], var["bins"], var["xlow"], var["xup"])
-            if syst:
-                if name in ["TTJets_bkg", "WZJets", "STJets", "TTJets_signal"]:
-                    for corr in ["btag_up", "btag_down", "trigger_up", "trigger_down", "xsec_up", "xsec_down"]:
-                        save_var(sample, name, var["var_name"], var["bins"], var["xlow"], var["xup"], corr = corr)
-                if name in ["TTJets_bkg", "TTJets_signal"]:
-                    save_var(sample, name, var["var_name"], var["bins"], var["xlow"], var["xup"], corr = "pdf_up")
-                    save_var(sample, name, var["var_name"], var["bins"], var["xlow"], var["xup"], corr = "pdf_down")
-                """ 
-                if name == "TTJets_signal":
-                    save_var(sample, name, var["var_name"] + "_up", var["bins"], var["xlow"], var["xup"])
-                    save_var(sample, name, var["var_name"] + "_down", var["bins"], var["xlow"], var["xup"])     
-                """
-                if name == "QCD":
-                    save_var(sample, name, var["var_name"], var["bins"], var["xlow"], var["xup"], corr = "mistag_up")
-                    save_var(sample, name, var["var_name"], var["bins"], var["xlow"], var["xup"], corr = "mistag_down")     
-                    #save_var(sample, name, var["var_name"] + "_up", var["bins"], var["xlow"], var["xup"])
-                    #save_var(sample, name, var["var_name"] + "_down", var["bins"], var["xlow"], var["xup"])     
-                
     file.Close()
     
-    
-def plot_btag_weights():
-    
-    
-    file = ROOT.TFile("histos/btag.root", 'recreate')
-    var = {"var_name" : "MET_met", "bins" : 30, "xlow" : 0., "xup" : 400}
-    var_weight = {"var_name" : "weight", "bins" : 30, "xlow" : 0., "xup" : 2.}
-    
-    # TTJets btag
-    tt = pd.read_hdf("samples/" + "TTJets" + ".h5")
-    tt['nJets'] = tt["Jet_pt"].str.len()
-    tt["Jet_nbtags"] = tt["Jet_csvDisc"].apply( lambda x : btag.count_btags(x, njets=-1) )
-    tt = pd.concat([tt, tt.apply(lambda ev: pd.Series(btag.eval_sf_eff(ev)), axis=1)], axis=1)
-    tt["Jet_btag_weight1"] = tt.apply(lambda ev : btag.b_weight_method1(ev, njets=-1), axis=1)
-    tt["Jet_btag_weight2"] = tt.apply(lambda ev : btag.b_weight_method2(ev, njets=-1), axis=1)
-    tt_at_least_1tag = btag.at_least_1tag(tt)
-    # Unweighted
-    tt_at_least_1tag["weight"] = 1.
-    save_var(tt_at_least_1tag, "TTJets_1tag", var["var_name"], var["bins"], var["xlow"], var["xup"])
-    # Weighted by event weight
-    tt_at_least_1tag["weight"] = tt_at_least_1tag["Jet_btag_weight1"]
-    save_var(tt_at_least_1tag, "TTJets_1tag_weighted", var["var_name"], var["bins"], var["xlow"], var["xup"])
-    # Weighted by probabilistic weight
-    tt["weight"] = tt["Jet_btag_weight2"]
-    save_var(tt, "TTJets_proba_weight", var["var_name"], var["bins"], var["xlow"], var["xup"])
-    # Weights
-    save_var(tt_at_least_1tag, "Jet_btag_weight1", var_weight["var_name"], var_weight["bins"], var_weight["xlow"], var_weight["xup"])
-    save_var(tt, "Jet_btag_weight2", var_weight["var_name"], var_weight["bins"], var_weight["xlow"], var_weight["xup"])
-
-    
-    # QCD Mistag
-    var = {"var_name" : "MET_met", "bins" : 30, "xlow" : 0., "xup" : 300}
-    data = pd.read_hdf("samples/" + "Run2011A_MultiJet" + ".h5")
-    data['nJets'] = data["Jet_pt"].str.len()
-    data["Jet_nbtags"] = data["Jet_csvDisc"].apply( lambda x : btag.count_btags(x, njets=-1) )
-    qcd = btag.no_tag(data)
-    def lf(nJets):
-        return np.zeros((nJets))
-    qcd["Jet_flavour"] = qcd["nJets"].apply(lf)
-    qcd = pd.concat([qcd, qcd.apply(lambda ev: pd.Series(btag.eval_sf_eff(ev)), axis=1)], axis=1)
-    qcd["btag_weight"] = qcd.apply(lambda ev : btag.b_weight_method2(ev, njets=-1), axis=1)
-    # Unweighted
-    qcd["weight"] = 1.
-    save_var(qcd, "QCD_unweighted", var["var_name"], var["bins"], var["xlow"], var["xup"])
-    # Weighted by mistag prog
-    qcd["weight"] = qcd["btag_weight"]
-    save_var(qcd, "QCD_mistag_weight", var["var_name"], var["bins"], var["xlow"], var["xup"])
-    # Weights
-    save_var(qcd, "QCD_mistag_weight", var_weight["var_name"], var_weight["bins"], var_weight["xlow"], var_weight["xup"])
-
-    file.Close() 
     
     
 def createRatio(h1, h2):

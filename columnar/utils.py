@@ -53,6 +53,46 @@ def to_rt(sample_name):
     counts.to_hdf("preselection_merged/" + sample_name + "_counts.h5", "Counts", mode="w")
     """
 
+def inferno_to_harvester(variables, file_path, outpath):
+    
+    f = ROOT.TFile(file_path)
+    
+    print(f.ls())
+    
+    outfile = ROOT.TFile(outpath, 'RECREATE')
+    
+    for var in variables:
+        outfile.mkdir(var)
+        outfile.cd(var)
+        h = f.Get("Data" + "_" + var)
+        h.Write('data_obs')
+        h = f.Get("QCD" + "_" + var)
+        h.Write('QCD')
+        """
+        h = f.Get("QCD_" + var + "_up")
+        h.Write('QCD_VarUp')
+        h = f.Get("QCD_" + var + "_down")
+        h.Write('QCD_VarDown')   
+        """
+        
+        for sample in [ "TTJets_bkg", "WZJets", "STJets", "TTJets_signal"]:
+            # Loop over systematics
+            h = f.Get(sample + "_" + var)
+            h.Write(sample)
+            if sample == "TTJets_signal":   
+                try:
+                    h = f.Get("TTJets_signal_" + var + "_up")
+                    h.Write('TTJets_signal_VarUp')
+                    h = f.Get("TTJets_signal_" + var + "_down")
+                    h.Write('TTJets_signal_VarDown') 
+                except:
+                    print("TTJets_signal_" + var + "_up")
+                
+            
+    print(outfile.ls())
+    outfile.Close()
+        
+    
 def to_harvester(file_path, outpath):
     
     f = ROOT.TFile(file_path)
