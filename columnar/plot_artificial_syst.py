@@ -81,8 +81,8 @@ def createRatio(h1, h2):
     h3.SetMarkerStyle(20)
     h3.SetMarkerSize(0.5)
     h3.SetTitle("")
-    h3.SetMinimum(0.5)
-    h3.SetMaximum(1.5)
+    h3.SetMinimum(0.)
+    h3.SetMaximum(2.)
     # Set up plot for markers and errors
     h3.Sumw2()
     h3.SetStats(0)
