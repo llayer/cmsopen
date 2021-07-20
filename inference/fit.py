@@ -28,6 +28,7 @@ def fit_dc( datacard, outpath, stat_only=False, gof=False, closure=False, impact
         os.system("python diffNuisances.py fitDiagnostics.root")
 
     if(impact):
+        os.system("text2workspace.py " + datacard + ".txt")
         os.system("combineTool.py -M Impacts -d  " + datacard + ".root -m 125 --autoBoundsPOIs r  --robustFit 1 --autoRange 1 --doInitialFit")
         os.system("combineTool.py -M Impacts -d  " + datacard + ".root -m 125 --autoBoundsPOIs r  --robustFit 1 --autoRange 1 --doFits")
         os.system("combineTool.py -M Impacts -d  " + datacard + ".root -m 125 --autoBoundsPOIs r  --autoRange 1 -o prova.json")
