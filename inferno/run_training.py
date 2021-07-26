@@ -119,7 +119,7 @@ def train_bce(data, epochs=50, lr=1e-3):
     return model_bce
 
 
-def train_inferno(data, approx=False, n_shape_alphas=1, shift=0.3, epochs=100, lr=1e-3):
+def train_inferno(data, approx=False, n_shape_alphas=1, shift=[0.3], epochs=100, lr=1e-3):
     
     
     class ApproxCMSOpenInferno(AbsApproxInferno):
@@ -141,14 +141,14 @@ def train_inferno(data, approx=False, n_shape_alphas=1, shift=0.3, epochs=100, l
             u,d = [],[]
 
             # up variations
-            for axis in range(self.n_shape_alphas):
+            for axis, s in enumerate(self.shift):
                 x_s_up = x_s.detach().clone()
-                x_s_up[:,axis] += self.shift
+                x_s_up[:,axis] += s
                 u.append(self.to_shape(self.wrapper.model(x_s_up)))
 
                 # down variations
                 x_s_down = x_s.detach().clone()
-                x_s_down[:,axis] -= self.shift
+                x_s_down[:,axis] -= s
                 d.append(self.to_shape(self.wrapper.model(x_s_down)))
                 
                 #print("axis = ", axis, "nom", x_s[0:10], "up", x_s_up[0:10],  "down",  x_s_down[0:10])
@@ -182,9 +182,9 @@ def train_inferno(data, approx=False, n_shape_alphas=1, shift=0.3, epochs=100, l
 
     lt = LossTracker()
     shape_aux=[]
-    for _ in range(n_shape_alphas):
-        shape_aux.append(Normal(0,shift))
     if approx == False:
+        for s in shift:
+            shape_aux.append(Normal(0,s))
         model_inferno.fit(epochs, data=data, opt=partialler(optim.Adam,lr=lr), loss=None,
                           cbs=[CMSOpenInferno(shape_aux=shape_aux, n_shape_alphas=n_shape_alphas), lt])    
     else:
@@ -242,11 +242,11 @@ def train(path = "/home/centos/data/bdt_rs5/", store=False):
     #model_inferno = train_inferno(data, approx=True,  n_shape_alphas=2, shift=0.3, epochs=10)
     # Train INFERNO models with shift in one var
     
-    
+    """
     for counter, s in enumerate(np.linspace(0.1,1.,10)):
         
         for approx in [False, True]:
-            model_inferno = train_inferno(data, approx=approx, shift=s, epochs=50)
+            model_inferno = train_inferno(data, approx=approx, shift=[s], epochs=50)
             if approx: suffix = "approx" 
             else: suffix = "analytical"
             # INFERNO nominal
@@ -256,33 +256,33 @@ def train(path = "/home/centos/data/bdt_rs5/", store=False):
                          name='inferno_shift_' + suffix + '_' + str(counter))
         # BCE shift
         pred_shifted(samples["TTJets_signal"], model_bce, scaler, axis = 0, shift = s, name='bce_shift_' + str(counter))
-        
+    """   
     
-    
+     
     # Train INFERNO with shift in several nuisances
     for n_nuis in range(1,5):
         
-        shift=0.35
+        shift=[0.5, 0.5, 0.3, 0.5]
         for approx in [False, True]:
             if approx: suffix = "approx" 
             else: suffix = "analytical"
                 
-            model_inferno = train_inferno(data, approx=approx, n_shape_alphas=n_nuis, shift=shift, epochs=50)
+            model_inferno = train_inferno(data, approx=approx, n_shape_alphas=n_nuis, shift=shift[0:n_nuis], epochs=50)
             
             # INFERNO nominal
             pred_nominal(samples, model_inferno, scaler, name='inferno_nuis_' + suffix + '_nominal_' + str(n_nuis))
 
             # INFERNO shift
             for iNuis in range(n_nuis):
-                pred_shifted(samples["TTJets_signal"], model_inferno, scaler, axis = iNuis, shift = shift, 
+                pred_shifted(samples["TTJets_signal"], model_inferno, scaler, axis = iNuis, shift = shift[iNuis], 
                              name='inferno_nuis_' + suffix + '_' + str(n_nuis) + "_var_" + str(iNuis))
         # BCE shift
-        pred_shifted(samples["TTJets_signal"], model_bce, scaler, axis = n_nuis-1, shift = shift, name='bce_nuis_' + str(n_nuis))
+        pred_shifted(samples["TTJets_signal"], model_bce, scaler, axis = n_nuis-1, shift = shift[iNuis], name='bce_nuis_' + str(n_nuis))
     
-    
+     
     # Store
     if store:
-        outpath = "/home/centos/data/inferno_systematic5"
+        outpath = "/home/centos/data/inferno_systematic6"
         for s in samples:
             samples[s].to_hdf(outpath + "/" + s + ".h5", "frame")
     
