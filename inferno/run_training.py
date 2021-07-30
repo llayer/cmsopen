@@ -119,7 +119,7 @@ def train_bce(data, epochs=50, lr=1e-3):
     return model_bce
 
 
-def train_inferno(data, approx=False, n_shape_alphas=1, shift=[0.3], epochs=100, lr=1e-3):
+def train_inferno(data, approx=False, n_shape_alphas=1, shift=[0.3], norm=None, epochs=100, lr=1e-3):
     
     
     class ApproxCMSOpenInferno(AbsApproxInferno):
@@ -131,6 +131,9 @@ def train_inferno(data, approx=False, n_shape_alphas=1, shift=[0.3], epochs=100,
             print("shift", self.shift)
             print("nshape_alphas", self.n_shape_alphas)
             print("shape_aux", self.shape_aux)
+            print("s_norm_aux", self.s_norm_aux)
+            print("n_alpha", self.n_alpha)
+            
             
         def on_train_begin(self) -> None:
             super().on_train_begin()
@@ -163,6 +166,8 @@ def train_inferno(data, approx=False, n_shape_alphas=1, shift=[0.3], epochs=100,
             super().__init__(b_true=b_true, mu_true=mu_true, s_shape_alpha=True, **kwargs)
             print("nshape_alphas", self.n_shape_alphas)
             print("shape_aux", self.shape_aux)
+            print("s_norm_aux", self.s_norm_aux)
+            print("n_alpha", self.n_alpha)
 
         def _aug_data(self, x:Tensor) -> None:
 
@@ -181,16 +186,28 @@ def train_inferno(data, approx=False, n_shape_alphas=1, shift=[0.3], epochs=100,
     model_inferno = ModelWrapper(net_inferno)
 
     lt = LossTracker()
-    shape_aux=[]
+    
+    if norm is not None:
+        s_norm_aux = []
+        for s in norm:
+            s_norm_aux.append(Normal(0,s))
+    else:
+        s_norm_aux = None
+    
     if approx == False:
+        
+        shape_aux=[]
         for s in shift:
             shape_aux.append(Normal(0,s))
+ 
         model_inferno.fit(epochs, data=data, opt=partialler(optim.Adam,lr=lr), loss=None,
-                          cbs=[CMSOpenInferno(shape_aux=shape_aux, n_shape_alphas=n_shape_alphas), lt])    
+                          cbs=[CMSOpenInferno(shape_aux=shape_aux, n_shape_alphas=n_shape_alphas,
+                                              s_norm_aux=s_norm_aux), lt])    
     else:
         print("approx")
         model_inferno.fit(epochs, data=data, opt=partialler(optim.Adam,lr=lr), loss=None,
-                          cbs=[ApproxCMSOpenInferno(n_shape_alphas=n_shape_alphas, shift=shift), lt])    
+                          cbs=[ApproxCMSOpenInferno(n_shape_alphas=n_shape_alphas, shift=shift,
+                                                    s_norm_aux=s_norm_aux), lt])    
     
     return model_inferno
                     
@@ -226,7 +243,7 @@ def pred_shifted(sample, model, scaler, axis = 0, shift = 0.5, name='bce'):
 
 
         
-def train(path = "/home/centos/data/bdt_rs5/", store=False):
+def train_shape(path = "/home/centos/data/bdt_rs5/", store=False):
     
     # Load samples
     samples = {}
@@ -290,11 +307,58 @@ def train(path = "/home/centos/data/bdt_rs5/", store=False):
    
     return samples
     
+    
+def train_shape_norm(path = "/home/centos/data/bdt_rs5/", store=False):
+    
+    # Load samples
+    samples = {}
+    for s in ["TTJets_bkg", "WZJets", "STJets", "QCD", "TTJets_signal", "Data"]:
+        samples[s] = pd.read_hdf(path + s + ".h5")
+    data, test, scaler = get_cmsopen_data(samples, n_sig = 5000, n_bkg = 5000, bs=256)
+    
+    # Train models
+    shift = 0.5
+    model_bce = train_bce(data, epochs=50)
+    pred_nominal(samples, model_bce, scaler, name="bce_norm_nominal")        # BCE shift
+    pred_shifted(samples["TTJets_signal"], model_bce, scaler, axis = 0, shift = shift, name='bce_norm')
+    
+    # Train INFERNO models with shift in one var
+    #train_inferno(data, approx=True, shift=[0.5], norm=[0.05], epochs=1)
+    
+    # Vary norm uncertainty
+    
+    for counter, norm in enumerate(np.linspace(0.02,0.2,10)):
+        
+        samples["TTJets_signal"]["norm_" + str(counter) + "_up" ] = 1.+ norm
+        samples["TTJets_signal"]["norm_" + str(counter) + "_down"] = 1. - norm
+        
+        for approx in [False, True]:
+            model_inferno = train_inferno(data, approx=approx, shift=[0.5], norm=[norm], epochs=50)
+            if approx: suffix = "approx" 
+            else: suffix = "analytical"
+            # INFERNO nominal
+            pred_nominal(samples, model_inferno, scaler, name='inferno_norm_' + suffix + '_nominal_' + str(counter))
+            # INFERNO shift
+            pred_shifted(samples["TTJets_signal"], model_inferno, scaler, axis = 0, shift = shift, 
+                         name='inferno_norm_' + suffix + '_' + str(counter))
+       
+        
+     
+    # Store
+    if store:
+        outpath = "/home/centos/data/inferno_systematic7"
+        for s in samples:
+            samples[s].to_hdf(outpath + "/" + s + ".h5", "frame")
+    
+    print(list(samples["TTJets_signal"]))
+   
+    return samples
+    
 
 if __name__ == "__main__":
 
-    train(store=True)
-    
+    #train_shape(store=True)
+    train_shape_norm(store=True)
     
     
     
