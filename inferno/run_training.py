@@ -446,7 +446,7 @@ def train_full(path = "/home/centos/data/bdt_rs5/", store=False):
                 samples[s + "_" + syst + "_down"] = pd.read_hdf(path + s + "_" + syst + "_down" + ".h5")
                
                
-    data, test, scaler, syst_sample, syst_weight  = run_training.get_cmsopen_data(samples, n_sig = 5000, 
+    data, test, scaler, syst_sample, syst_weight  = get_cmsopen_data(samples, n_sig = 5000, 
                                                                               n_bkg = 5000, bs=256,  syst=True)    
     
     
@@ -455,24 +455,27 @@ def train_full(path = "/home/centos/data/bdt_rs5/", store=False):
                         nn.Linear(100,10), VariableSoftmax(0.1))
     lt = LossTracker()
     #init_net(net)
+    
     model_inferno = ModelWrapper(net_inferno)
-    model_inferno.fit(10, data=data, opt=partialler(optim.Adam,lr=1e-3), loss=None,
+    model_inferno.fit(20, data=data, opt=partialler(optim.Adam,lr=1e-3), loss=None,
                       cbs=[ApproxCMSOpenInferno(n_shape_alphas=len(syst_sample), syst_sample=syst_sample ), lt])  
     
     # Predict the shapes
     pred_nominal(samples, model_inferno, scaler, name='inferno')
-       
+    
     # BCE for comparison
-    #model_bce = train_bce(data, epochs=50)
-    #pred_nominal(samples, model_bce, scaler, name="bce_norm_nominal")        # BCE shift               
-               
+    model_bce = train_bce(data, epochs=50)
+    pred_nominal(samples, model_bce, scaler, name="bce_norm_nominal")        # BCE shift               
+         
                
     # Store
     if store:
         outpath = "/home/centos/data/inferno_full"
         for s in samples:
             samples[s].to_hdf(outpath + "/" + s + ".h5", "frame")
-    
+            
+    print(list(samples["TTJets_signal"]))  
+    return samples
     
 if __name__ == "__main__":
 
