@@ -53,7 +53,7 @@ def train_test_split(df, n = 5000):
     choice = ["train", "test"]
     df['train_flag'] = np.select(cond, choice)
     
-def get_cmsopen_data(samples, n_sig = 20000, n_bkg = 10000, bs=1000):
+def get_cmsopen_data(samples, n_sig = 20000, n_bkg = 10000, bs=1000,  syst=False):
         
     #signal = samples["TTJets_signal"] #samples["TTJets_centJER_signal"] #samples["TTJets_signal_central"]
     #bkg = samples["QCD"]
@@ -104,7 +104,29 @@ def get_cmsopen_data(samples, n_sig = 20000, n_bkg = 10000, bs=1000):
     test = DataPair(WeightedDataLoader(DataSet(*trn), batch_size=bs), 
                     WeightedDataLoader(DataSet(*val), batch_size=bs))
     
-    return data, test, scaler
+    if syst == False:
+        return data, test, scaler
+    
+    else:
+        for s in samples:
+            if "TTJets_signal_" in s:
+                train_test_split(samples[s], n_sig)
+        syst_sample = []
+        syst_weight = []
+        # Sample variations
+        for syst in ["jes", "met"]:
+            s_up = samples["TTJets_signal_" + syst + "_up"][samples["TTJets_signal_" + syst + "_up"]["train_flag"] == "train"]
+            s_down = samples["TTJets_signal_" + syst + "_down"][samples["TTJets_signal_" + syst + "_down"]["train_flag"] == "train"]
+            s_up = scaler.transform(s_up[features])
+            s_down = scaler.transform(s_down[features])
+            syst_sample.append((s_up, s_down))
+        # Weights
+        for syst in ['btag_weight1']:
+            up_w = train_data[syst + '_up'].values.reshape((-1,1))
+            down_w = train_data[syst + '_down'].values.reshape((-1,1)) 
+            syst_weight.append((up_w, down_w))
+
+        return data, test, scaler, syst_sample, syst_weight
 
 
 def train_bce(data, epochs=50, lr=1e-3):
@@ -355,10 +377,107 @@ def train_shape_norm(path = "/home/centos/data/bdt_rs5/", store=False):
     return samples
     
 
+    
+    
+def train_full(path = "/home/centos/data/bdt_rs5/", store=False):
+                   
+    class ApproxCMSOpenInferno(AbsApproxInferno):
+        r'''Inheriting class for dealing with INFERNO paper synthetic problem'''
+        @delegates(AbsApproxInferno, but=['b_shape_alpha', 's_shape_alpha'])
+        def __init__(self, b_true:float=2800, mu_true:float=300,  s_shape_alpha=True, syst_sample=[], **kwargs):
+            super().__init__(b_true=b_true, mu_true=mu_true, **kwargs)
+            self.syst_sample = syst_sample
+            print("nshape_alphas", self.n_shape_alphas)
+            print("shape_aux", self.shape_aux)
+            print("s_norm_aux", self.s_norm_aux)
+            print("n_alpha", self.n_alpha)
+            print("syst_sample", len(self.syst_sample))
+
+
+        def on_train_begin(self) -> None:
+            super().on_train_begin()
+            pass
+
+        def _get_up_down(self, x_s:Tensor, x_b:Tensor, **kwargs) -> Tuple[Tuple[Optional[Tensor],Optional[Tensor]],Tuple[Optional[Tensor],Optional[Tensor]]]:
+
+            u,d = [],[]
+
+            batch_size = x_s.shape[0]
+
+            #print("bs", batch_size)
+
+            # modified template variations
+            for syst in self.syst_sample:
+
+                up_batch = syst[0][np.random.choice(syst[0].shape[0], batch_size, replace=False), :]
+                down_batch = syst[1][np.random.choice(syst[1].shape[0], batch_size, replace=False), :]
+
+                up_batch = torch.from_numpy(up_batch).to(self.wrapper.device).float()
+                down_batch = torch.from_numpy(down_batch).to(self.wrapper.device).float()
+
+                # up variation
+                u.append(self.to_shape(self.wrapper.model(up_batch)))
+
+                # down variations
+                d.append(self.to_shape(self.wrapper.model(down_batch)))
+
+            """
+            # reweighting variations
+            for w_up, w_down in self.syst_w_up, self.syst_w_down:
+                x_s_up = x_s.detach().clone()
+                x_s_up = x_s_up * w_up
+                u.append(self.to_shape(self.wrapper.model(x_s_up)))
+
+                # down variations
+                x_s_down = x_s.detach().clone()
+                x_s_up = x_s_up * w_down
+                d.append(self.to_shape(self.wrapper.model(x_s_down)))
+            """
+
+            return (torch.stack(u),torch.stack(d)), (None,None)
+    
+
+    samples = {}
+    for s in ["TTJets_bkg", "WZJets", "STJets", "QCD", "TTJets_signal", "Data"]:
+        samples[s] = pd.read_hdf(path + s + ".h5")
+        if s == "TTJets_signal":
+            for syst in["jes", "jer", "met", "taue"]:
+                samples[s + "_" + syst + "_up"] = pd.read_hdf(path + s + "_" + syst + "_up" + ".h5")
+                samples[s + "_" + syst + "_down"] = pd.read_hdf(path + s + "_" + syst + "_down" + ".h5")
+               
+               
+    data, test, scaler, syst_sample, syst_weight  = run_training.get_cmsopen_data(samples, n_sig = 5000, 
+                                                                              n_bkg = 5000, bs=256,  syst=True)    
+    
+    
+    net_inferno = nn.Sequential(nn.Linear(4,100),  nn.ReLU(),
+                        nn.Linear(100,100), nn.ReLU(),
+                        nn.Linear(100,10), VariableSoftmax(0.1))
+    lt = LossTracker()
+    #init_net(net)
+    model_inferno = ModelWrapper(net_inferno)
+    model_inferno.fit(10, data=data, opt=partialler(optim.Adam,lr=1e-3), loss=None,
+                      cbs=[ApproxCMSOpenInferno(n_shape_alphas=len(syst_sample), syst_sample=syst_sample ), lt])  
+    
+    # Predict the shapes
+    pred_nominal(samples, model_inferno, scaler, name='inferno')
+       
+    # BCE for comparison
+    #model_bce = train_bce(data, epochs=50)
+    #pred_nominal(samples, model_bce, scaler, name="bce_norm_nominal")        # BCE shift               
+               
+               
+    # Store
+    if store:
+        outpath = "/home/centos/data/inferno_full"
+        for s in samples:
+            samples[s].to_hdf(outpath + "/" + s + ".h5", "frame")
+    
+    
 if __name__ == "__main__":
 
     #train_shape(store=True)
-    train_shape_norm(store=True)
-    
+    #train_shape_norm(store=True)
+    train_full(store=True)
     
     
