@@ -3,6 +3,188 @@ import CombineHarvester.CombineTools.ch as ch
 import os
 
 
+
+def inferno_full(file, outpath, variable, variation='_norm_0', norm=1.):
+
+    cb = ch.CombineHarvester()
+
+    # Systematics
+    # specific_shape_systematics = { 'TTJets_signal':['Var'] }
+    if "inferno" in variable:
+        specific_shape_systematics = { 'TTJets_signal':[variable + variation] } #Artificial variation
+    else:
+        specific_shape_systematics = { 'TTJets_signal':[variable + "_norm"] } #Artificial variation
+
+    # Definition of channels
+    chns = [variable + variation]
+
+    # Definition of bacxkground processes
+    bkg_procs = {
+    variable + variation : [ "TTJets_bkg", "WZJets", "STJets", "QCD"]
+    }
+
+    # Definition of signal process
+    sig_procs = ['TTJets_signal']
+
+    # MC processes
+    mc = [ "TTJets_signal", "TTJets_bkg", "WZJets", "STJets"]
+
+    # Categories
+    if 'inferno' in variable:
+        cat_names = [variable + variation]
+    else:
+        cat_names = [variable]
+    cats = []
+    for counter, c in enumerate(cat_names):
+        cats.append( (counter, c) )
+
+    # Add the processes and observations
+    for chn in chns:
+        cb.AddObservations(  ['tt'],  ['taujets'], ['7TeV'], [chn],                 cats      )
+        for key, value in cats:
+            cb.AddProcesses(     ['tt'],  ['taujets'], ['7TeV'], [chn], bkg_procs[chn], [cats[key]], False  )
+
+    cb.AddProcesses( ['tt'], ['taujets'], ['7TeV'], [chn], sig_procs, cats, True )
+
+    # Get the processes
+    signal = cb.cp().signals().process_set()
+    bkg = cb.cp().backgrounds().process_set()
+    all_pr = signal + bkg
+
+
+    for key, value in specific_shape_systematics.iteritems():
+
+        for sys in value:
+            cb.cp().process([key]).AddSyst(
+            cb, sys, "shape", ch.SystMap()(1.00))
+
+
+    cb.cp().process(["TTJets_signal"]).AddSyst(
+    cb, "norm", "lnN", ch.SystMap()(norm))
+
+    cb.cp().process(["QCD"]).AddSyst(cb, "qcd_rate", "rateParam", ch.SystMap()(1.00))
+
+    cb.PrintSysts()
+
+    print( '>> Extracting histograms from input root files...' )
+    for chn in chns:
+        #file = 'shapes.root'
+        cb.cp().channel([chn]).era(['7TeV']).backgrounds().ExtractShapes(
+            file, '$BIN/$PROCESS', '$BIN/$PROCESS_$SYSTEMATIC')
+        cb.cp().channel([chn]).era(['7TeV']).signals().ExtractShapes(
+            file, '$BIN/$PROCESS', '$BIN/$PROCESS_$SYSTEMATIC')
+
+
+    writer = ch.CardWriter( outpath + 'DataCard' + '/$TAG/$MASS/$ANALYSIS_$CHANNEL_$BIN_$ERA.txt',
+                            outpath + 'DataCard' + '/$TAG/common/$ANALYSIS_$CHANNEL.input.root')
+    #writer.SetVerbosity(1)
+    writer.WriteCards('cmb', cb)
+    for chn in chns: writer.WriteCards(chn,cb.cp().channel([chn]))
+
+    print()
+    print()
+    print()
+    print( "***********************************************************************************")
+    print()
+    print( "Datacard produced" )
+    print()
+    print( "***********************************************************************************" )
+    print()
+    print()
+    print()
+
+
+def inferno_norm_dc(file, outpath, variable, variation='_norm_0', norm=1.):
+
+    cb = ch.CombineHarvester()
+
+    # Systematics
+    # specific_shape_systematics = { 'TTJets_signal':['Var'] }
+    if "inferno" in variable:
+        specific_shape_systematics = { 'TTJets_signal':[variable + variation] } #Artificial variation
+    else:
+        specific_shape_systematics = { 'TTJets_signal':[variable + "_norm"] } #Artificial variation
+
+    # Definition of channels
+    chns = [variable + variation]
+
+    # Definition of background processes
+    bkg_procs = {
+    variable + variation : [ "TTJets_bkg", "WZJets", "STJets", "QCD"]
+    }
+
+    # Definition of signal process
+    sig_procs = ['TTJets_signal']
+
+    # MC processes
+    mc = [ "TTJets_signal", "TTJets_bkg", "WZJets", "STJets"]
+
+    # Categories
+    if 'inferno' in variable:
+        cat_names = [variable + variation]
+    else:
+        cat_names = [variable]
+    cats = []
+    for counter, c in enumerate(cat_names):
+        cats.append( (counter, c) )
+
+    # Add the processes and observations
+    for chn in chns:
+        cb.AddObservations(  ['tt'],  ['taujets'], ['7TeV'], [chn],                 cats      )
+        for key, value in cats:
+            cb.AddProcesses(     ['tt'],  ['taujets'], ['7TeV'], [chn], bkg_procs[chn], [cats[key]], False  )
+
+    cb.AddProcesses( ['tt'], ['taujets'], ['7TeV'], [chn], sig_procs, cats, True )
+
+    # Get the processes
+    signal = cb.cp().signals().process_set()
+    bkg = cb.cp().backgrounds().process_set()
+    all_pr = signal + bkg
+
+
+    for key, value in specific_shape_systematics.iteritems():
+
+        for sys in value:
+            cb.cp().process([key]).AddSyst(
+            cb, sys, "shape", ch.SystMap()(1.00))
+
+
+    cb.cp().process(["TTJets_signal"]).AddSyst(
+    cb, "norm", "lnN", ch.SystMap()(norm))
+
+    cb.cp().process(["QCD"]).AddSyst(cb, "qcd_rate", "rateParam", ch.SystMap()(1.00))
+
+    cb.PrintSysts()
+
+    print( '>> Extracting histograms from input root files...' )
+    for chn in chns:
+        #file = 'shapes.root'
+        cb.cp().channel([chn]).era(['7TeV']).backgrounds().ExtractShapes(
+            file, '$BIN/$PROCESS', '$BIN/$PROCESS_$SYSTEMATIC')
+        cb.cp().channel([chn]).era(['7TeV']).signals().ExtractShapes(
+            file, '$BIN/$PROCESS', '$BIN/$PROCESS_$SYSTEMATIC')
+
+
+    writer = ch.CardWriter( outpath + 'DataCard' + '/$TAG/$MASS/$ANALYSIS_$CHANNEL_$BIN_$ERA.txt',
+                            outpath + 'DataCard' + '/$TAG/common/$ANALYSIS_$CHANNEL.input.root')
+    #writer.SetVerbosity(1)
+    writer.WriteCards('cmb', cb)
+    for chn in chns: writer.WriteCards(chn,cb.cp().channel([chn]))
+
+    print()
+    print()
+    print()
+    print( "***********************************************************************************")
+    print()
+    print( "Datacard produced" )
+    print()
+    print( "***********************************************************************************" )
+    print()
+    print()
+    print()
+
+
+
 def inferno_dc(file, outpath, variable, variation='_shift_0'):
 
 
