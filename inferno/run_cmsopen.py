@@ -53,13 +53,17 @@ def train_test_split(df, n = 5000):
     df['train_flag'] = np.select(cond, choice)
     
     
+def get_train_evts(sample):
+    return sample[sample["train_flag"]=="train"]["event_id"]    
+    
+    
 def get_cmsopen_data(samples, n_sig = 20000, n_bkg = 10000, bs=256):
         
     # Add a unique event key
     for s in samples:
         add_key(samples[s])
     
-    # Add a suffix to be able to merge the framees
+    # Add a suffix to be able to merge the frames
     for syst in systematics:
         samples["TTJets_signal" + syst] = samples["TTJets_signal" + syst].add_suffix(syst)
         samples["TTJets_signal" + syst].rename(columns={'event_id' + syst: 'event_id'}, inplace=True)        
@@ -76,6 +80,7 @@ def get_cmsopen_data(samples, n_sig = 20000, n_bkg = 10000, bs=256):
     bkg = samples["QCD"]
     train_test_split(signal, n_sig)
     train_test_split(bkg, n_bkg)
+    train_idx = get_train_evts(signal)  
     
     # Add labels
     signal["label"] = 1
@@ -131,9 +136,100 @@ def get_cmsopen_data(samples, n_sig = 20000, n_bkg = 10000, bs=256):
     #test = DataPair(WeightedDataLoader(DataSet(*trn), batch_size=bs), 
     #                WeightedDataLoader(DataSet(*val), batch_size=bs))
 
-    return trn_dl, val_dl
+    # rename the syst frames:
+    for syst in systematics:
+        #samples["TTJets_signal" + syst].columns = samples["TTJets_signal" + syst].columns.str.rstrip(syst)
+        samples["TTJets_signal" + syst].columns = samples["TTJets_signal" + syst].columns.str.replace(syst + r'$', '')
+        
+    for s in samples:
+        if "TTJets_signal" in s:
+            print(s)
+            print(list(samples[s]))
+            samples[s]["is_train"] = samples[s].event_id.isin(train_idx)
+    
+    return trn_dl, val_dl, scaler
 
 
+
+
+def run_inferno(data):
+    
+    class ApproxCMSOpenInferno(AbsApproxInferno):
+        r'''Inheriting class for dealing with INFERNO paper synthetic problem'''
+        @delegates(AbsApproxInferno, but=['b_shape_alpha', 's_shape_alpha'])
+        def __init__(self, b_true:float=2800, mu_true:float=300,  s_shape_alpha=True, **kwargs):
+            super().__init__(b_true=b_true, mu_true=mu_true, **kwargs)
+            print("nshape_alphas", self.n_shape_alphas)
+            print("shape_aux", self.shape_aux)
+            print("s_norm_aux", self.s_norm_aux)
+            print("n_alpha", self.n_alpha)
+
+
+        def on_train_begin(self) -> None:
+            super().on_train_begin()
+            pass
+
+        def _get_up_down(self, x_s:Tensor, x_b:Tensor, **kwargs) -> Tuple[Tuple[Optional[Tensor],Optional[Tensor]],Tuple[Optional[Tensor],Optional[Tensor]]]:
+
+            u,d = [],[]
+
+            # modified template variations
+            for i in range(self.n_shape_alphas):
+
+                idx_up = 1 + 2*i
+                idx_down = 2 + 2*i
+
+                up_batch = self.to_shape(self.wrapper.model(x_s[:,:,idx_up]))
+                down_batch = self.to_shape(self.wrapper.model(x_s[:,:,idx_down]))
+
+                u.append(up_batch)
+                d.append(down_batch)    
+
+            print(x_s[0])
+
+            return (torch.stack(u),torch.stack(d)), (None,None)
+
+    
+    # Set up network
+    net_inferno = nn.Sequential(nn.Linear(4,100),  nn.ReLU(),
+                    nn.Linear(100,100), nn.ReLU(),
+                    nn.Linear(100,10), VariableSoftmax(0.1))
+    lt = LossTracker()
+    #init_net(net)
+    model_inferno = ModelWrapper(net_inferno)
+    
+    model_inferno.fit(1, data=data, opt=partialler(optim.Adam,lr=1e-3), loss=None,
+                      cbs=[ApproxCMSOpenInferno(n_shape_alphas=2), lt])  
+    
+    return model_inferno
+
+
+
+def train_bce(data, epochs=50, lr=1e-3):
+    
+    net_bce = nn.Sequential(nn.Linear(4,12),  nn.ReLU(),
+                            nn.Linear(12,8), nn.ReLU(),
+                            nn.Linear(8,1),  nn.Sigmoid())
+    #init_net(net)    
+    model_bce = ModelWrapper(net_bce)
+    model_bce.fit(epochs, data=data, opt=partialler(optim.Adam), loss=nn.BCELoss(),
+                  cbs=[LossTracker()])  
+    return model_bce
+
+
+
+def pred_nominal(samples, model, scaler, name):
+    #"TTJets_signal"
+    for s in samples:
+        X = samples[s][features].values
+        X = scaler.transform(X)
+        loader = WeightedDataLoader(DataSet(X, None, None), batch_size=256)
+        if "bce" in name:
+            samples[s][name] = model._predict_dl(loader)
+        else:
+            samples[s][name] = model._predict_dl(loader, pred_cb=InfernoPred())
+
+            
 def train(path = "/home/centos/data/bdt_rs5/", store=False):
     
     
@@ -146,9 +242,28 @@ def train(path = "/home/centos/data/bdt_rs5/", store=False):
                 samples[s + "_" + syst + "_down"] = pd.read_hdf(path + s + "_" + syst + "_down" + ".h5")
 
 
-    trn_dl, val_dl = get_cmsopen_data(samples, n_sig = 5000, n_bkg = 5000, bs=256)    
+    trn_dl, val_dl, scaler = get_cmsopen_data(samples, n_sig = 5000, n_bkg = 5000, bs=256)    
 
-    return trn_dl, val_dl
+    #data = DataPair(trn_dl, val_dl)
+    #model_inferno = run_inferno(data)
+
+    # Predict the shapes
+    #pred_nominal(samples, model_inferno, scaler, name='inferno')
+    
+    
+    # BCE for comparison
+    #model_bce = train_bce(data, epochs=50)
+    #pred_nominal(samples, model_bce, scaler, name="bce_norm_nominal")        # BCE shift               
+
+    
+    # Store
+    if store:
+        outpath = "/home/centos/data/inferno_cmsopen"
+        for s in samples:
+            samples[s].to_hdf(outpath + "/" + s + ".h5", "frame")
+
+    
+    return trn_dl, val_dl, samples
     
 
 
