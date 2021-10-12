@@ -1,5 +1,4 @@
-
-## Setup
+## NanoAOD production
 On lxplus a singularity image has to be loaded (https://cms-sw.github.io/singularity.html)
 ```
 cmssw-slc6
@@ -33,3 +32,8 @@ Locally this can be tested with:
 cmsRun pf_sync.py
 ```
 With the scripts submit_jobs.sh this can be submitted to the lxplus condor batch system and with validate_jobs.py it can be checked whether all jobs finished succesfully
+
+## Preselection
+After the NanoAOD production the NanoAOD can be further skimmed by using the scripts in the folder "preselection".
+
+
