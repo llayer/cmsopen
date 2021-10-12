@@ -361,7 +361,7 @@ def event_selection(file_path, isData = False, isTT = False, invert_btag = False
     if isTT:
         
         # PDF weights
-        pdf = pd.read_hdf("TTJets_pdfweights.h5")
+        pdf = pd.read_hdf("data/TTJets_pdfweights.h5")
         pdf = pdf.drop_duplicates()
         print("before join", len(event["evt"]), len(pdf))
         event["evt"] = pd.merge(event["evt"], pdf, how="left", on=["event", "luminosityBlock", "run"])

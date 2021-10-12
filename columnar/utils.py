@@ -8,6 +8,37 @@ data = ['Run2011A_MultiJet', 'Run2011B_MultiJet']
 mc = ['TTJets', 'WJetsToLNu', 'DYJetsToLL', 'T_TuneZ2_s', 'T_TuneZ2_tW', 'T_TuneZ2_t-channel',
        'Tbar_TuneZ2_s', 'Tbar_TuneZ2_tW', 'Tbar_TuneZ2_t-channel']
 
+
+
+def uncertainty(x):
+    
+    x = x["MCEvt_cteq66_pdf_weights"]
+    ups = []
+    downs = []
+    for i in range(1, len(x)):
+                
+        if i%2 == 0:
+            #print( "Down" , x[i])
+            downs.append((x[i] / x[0]) - 1)
+        else:
+            #print( "Up" , x[i])
+            ups.append((x[i] / x[0]) - 1)
+    
+    weight_up = np.sqrt( np.sum(np.array(ups)**2 ) )
+    weight_down = np.sqrt( np.sum(np.array(downs)**2 ) )
+    
+    return {"pdf": x[0], "pdf_up": weight_up, "pdf_down" : weight_down}
+    
+    
+def pdf_syst():
+    
+    pdf = root_pandas.read_root("TTJets_pdfweights.root")
+    pdf = pd.concat([pdf, pdf.apply(lambda x: pd.Series(uncertainty(x)), axis=1)], axis=1)
+    pdf = pdf.drop(["MCEvt_cteq66_pdf_weights"], axis=1)
+    pdf.to_hdf("TTJets_pdfweights.h5", "frame")
+
+
+
 def to_rt(sample_name):
 
     """
