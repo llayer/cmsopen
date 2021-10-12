@@ -31,7 +31,7 @@ The trigger efficiencies can be produced with 'trigger_eff.py'.
 The b-tagging corrections and procedures are accesible here: https://twiki.cern.ch/twiki/bin/view/CMSPublic/BtagRecommendation2011OpenData#Data_MC_Scale_Factors.
 The efficiencies can be found in the 'data' directory.
 
-# JES/JER
+## JES/JER
 The JES uncertainties can be found here: https://twiki.cern.ch/twiki/bin/viewauth/CMS/JECUncertaintySources#2011_JEC_uncertainty_correlation and the JER here: https://twiki.cern.ch/twiki/bin/viewauth/CMS/JetResolution#JER_Scaling_factors_and_Unce_AN2. 
 
 ## Cross-sections
