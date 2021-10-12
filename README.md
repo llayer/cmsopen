@@ -14,6 +14,6 @@ cmsrel CMSSW_5_3_32
 ```
 The environment can then be loaded via:
 ```
-$ cd CMSSW_5_3_32/src/
-$ cmsenv
+cd CMSSW_5_3_32/src/
+cmsenv
 ```
