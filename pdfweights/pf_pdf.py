@@ -33,7 +33,8 @@ process.GlobalTag.globaltag = 'START53_LV6A1::All'
 process.options = cms.untracked.PSet(wantSummary = cms.untracked.bool(False))
 process.maxEvents = cms.untracked.PSet(input = cms.untracked.int32(maxEvents))
 
-files = ["file:/afs/cern.ch/work/l/llayer/CMSSW_5_3_32/src/workspace/analyzer/tt.root"]
+#files = ["file:/afs/cern.ch/work/l/llayer/CMSSW_5_3_32/src/workspace/analyzer/tt.root"]
+files = ["root://eospublic.cern.ch//eos/opendata/cms/MonteCarlo2011/Summer11LegDR/TTJets_TuneZ2_7TeV-madgraph-tauola/AODSIM/PU_S13_START53_LV6-v1/00000/7CE6694B-30C8-E311-A567-002590A371AC.root"]
 
 process.source = cms.Source(
     "PoolSource", fileNames=cms.untracked.vstring(*files))
@@ -62,10 +63,10 @@ process.out = cms.OutputModule('PoolOutputModule',
 ####################################
 
 
-text_file = open("evlist.txt", "r")
-#text_file = open("TTJets_ids.txt", "r")
+#text_file = open("evlist.txt", "r")
+text_file = open("/afs/cern.ch/work/l/llayer/CMSSW_5_3_32/src/workspace/pdfweights/TTJets_ids.txt", "r")
 lines = text_file.read().split('\n')
-#print lines[:5]
+print lines[:5]
 text_file.close()
 
 process.pdffilter = cms.EDFilter("PDFFilter",
