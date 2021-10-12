@@ -13,11 +13,11 @@ git checkout v8.2.0
 scramv1 b clean; scramv1 b # always make a clean build
 ``` 
 and combine harvester package:
-'''
+```
 cd CMSSW_10_2_13/src
 cmsenv
 git clone https://github.com/cms-analysis/CombineHarvester.git CombineHarvester
 scram b
-'''
+```
 
 
