@@ -17,10 +17,10 @@ ext_b.finalize()
 ext_trig = extractor()
 """
 ext_trig.add_weight_sets([
-    "jet40_ * rootFilesTurnOn/TriggerEffHisto_data_match40_JETLEG.root",
-    "jet45_ * rootFilesTurnOn/TriggerEffHisto_data_match45_JETLEG.root",
-    "tau40_ * rootFilesTurnOn/TriggerEffHisto_match40_newTauID.root",
-    "tau45_ * rootFilesTurnOn/TriggerEffHisto_match45_newTauID.root"
+    "jet40_ * data/rootFilesTurnOn/TriggerEffHisto_data_match40_JETLEG.root",
+    "jet45_ * data/rootFilesTurnOn/TriggerEffHisto_data_match45_JETLEG.root",
+    "tau40_ * data/rootFilesTurnOn/TriggerEffHisto_match40_newTauID.root",
+    "tau45_ * data/rootFilesTurnOn/TriggerEffHisto_match45_newTauID.root"
 ])
 """
 ext_trig.add_weight_sets([
