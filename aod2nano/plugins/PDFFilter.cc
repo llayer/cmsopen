@@ -17,16 +17,18 @@ private:
   std::vector<std::string> eventlist;
 };
 
-PDFFilter::PDFFilter(edm::ParameterSet const& ps) : eventlist(ps.getParameter<std::vector < std::string >>("eventlist")) {}
+PDFFilter::PDFFilter(edm::ParameterSet const& ps) : eventlist(ps.getParameter<std::vector < std::string >>("eventlist")) {
+
+  std::cout<< std::endl << "Eventlist size: " << eventlist.size() << std::endl;
+  //for (unsigned int i = 0; i < eventlist.size (); i++) {
+  //  std::cout<< eventlist[i];
+  //}
+}
 
 PDFFilter::~PDFFilter() {}
 
 bool PDFFilter::filter(edm::Event& event, edm::EventSetup const&){
 
-  //std::cout<< std::endl << "Eventlist" << std::endl;
-  //for (unsigned int i = 0; i < eventlist.size (); i++) {
-  //  std::cout<< eventlist[i];
-  //}
 
   int run = event.run();
   int lumi_block = event.luminosityBlock();
@@ -34,15 +36,14 @@ bool PDFFilter::filter(edm::Event& event, edm::EventSetup const&){
 
   std::string key = std::to_string(run) + std::to_string(lumi_block) + std::to_string(ev_id);
 
-  /*
-  std::cout<< std::endl << "Run ID " << run;
-  std::cout<< std::endl << "Lumi ID " << lumi_block;
-  std::cout<< std::endl << "Event ID " << ev_id;
-  std::cout<< std::endl << "key " << key << std::endl;
-  */
 
   if (std::find(eventlist.begin(), eventlist.end(), key) != eventlist.end()){
     std::cout << "Element found";
+
+    std::cout<< std::endl << "Run ID " << run;
+    std::cout<< std::endl << "Lumi ID " << lumi_block;
+    std::cout<< std::endl << "Event ID " << ev_id;
+    std::cout<< std::endl << "key " << key << std::endl;
     return true;
   }
   else{
