@@ -1,0 +1,549 @@
+{
+ "cells": [
+  {
+   "cell_type": "code",
+   "execution_count": 1,
+   "id": "passive-plaza",
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "Welcome to JupyROOT 6.20/06\n"
+     ]
+    },
+    {
+     "name": "stderr",
+     "output_type": "stream",
+     "text": [
+      "/eos/home-l/llayer/cmsopen/columnar/btag.py:13: RuntimeWarning: invalid value encountered in true_divide\n",
+      "  eff = np.divide(num[0], denom[0])\n"
+     ]
+    }
+   ],
+   "source": [
+    "import pandas as pd\n",
+    "import numpy as np\n",
+    "import selection\n",
+    "import weights\n",
+    "import btag\n",
+    "import root_pandas\n",
+    "import importlib"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 67,
+   "id": "demographic-casino",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "data = ['Run2011A_MultiJet', 'Run2011B_MultiJet']\n",
+    "mc = ['T_TuneZ2_s', 'WJetsToLNu', 'DYJetsToLL', 'T_TuneZ2_tW', 'T_TuneZ2_t-channel',\n",
+    "       'Tbar_TuneZ2_s', 'Tbar_TuneZ2_tW', 'Tbar_TuneZ2_t-channel', 'TTJets']"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 68,
+   "id": "waiting-senate",
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "Processing: T_TuneZ2_s.root isData: False isTT: False corrLevel cent\n",
+      "Processing: WJetsToLNu.root isData: False isTT: False corrLevel cent\n",
+      "Processing: DYJetsToLL.root isData: False isTT: False corrLevel cent\n",
+      "Processing: T_TuneZ2_tW.root isData: False isTT: False corrLevel cent\n",
+      "Processing: T_TuneZ2_t-channel.root isData: False isTT: False corrLevel cent\n",
+      "Processing: Tbar_TuneZ2_s.root isData: False isTT: False corrLevel cent\n",
+      "Processing: Tbar_TuneZ2_tW.root isData: False isTT: False corrLevel cent\n",
+      "Processing: Tbar_TuneZ2_t-channel.root isData: False isTT: False corrLevel cent\n",
+      "Processing: TTJets.root isData: False isTT: True corrLevel cent\n",
+      "Processing: Run2011A_MultiJet.root isData: True isTT: False corrLevel cent\n",
+      "Processing: Run2011B_MultiJet.root isData: True isTT: False corrLevel cent\n"
+     ]
+    }
+   ],
+   "source": [
+    "importlib.reload(selection)\n",
+    "def event_selection():\n",
+    "    \n",
+    "    samples = {}\n",
+    "    for sample in mc + data:\n",
+    "        \n",
+    "        #!!!!!!! Careful with JER application before Tau?!\n",
+    "        \n",
+    "        if \"TTJets\" in sample: isTT = True\n",
+    "        else: isTT = False\n",
+    "            \n",
+    "        if \"Run2011\" in sample: isData = True\n",
+    "        else: isData = False\n",
+    "        \n",
+    "        path = \"/eos/user/l/llayer/opendata_files/preselection_merged/\" + sample + \".root\"\n",
+    "        \n",
+    "        df, cut_flow = selection.event_selection(path, isData = isData, isTT = isTT)\n",
+    "        \n",
+    "        print( cut_flow )\n",
+    "        \"\"\"\n",
+    "        df.to_hdf(outpath + sample + \".h5\", \"central\", mode='w')\n",
+    "                \n",
+    "        if isData == False:\n",
+    "            \n",
+    "            for c in corrections:\n",
+    "                df, cut_flow = selection.event_selection(path, isData = isData, isTT = isTT, corrLevel = c)\n",
+    "                print( cut_flow )\n",
+    "                df.to_hdf(outpath + sample + \".h5\", c, mode='a')  \n",
+    "        \"\"\"\n",
+    "        \n",
+    "        samples[sample] = df\n",
+    "        \n",
+    "    return samples\n",
+    "\n",
+    "samples = event_selection()"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 69,
+   "id": "satellite-seminar",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "importlib.reload(btag)\n",
+    "importlib.reload(weights)\n",
+    "\n",
+    "def candidates(sample, df, invert_btag = False, njets=-1):\n",
+    "    \n",
+    "    if \"Run2011\" in sample: isData = True\n",
+    "    else: isData = False\n",
+    "\n",
+    "    print( \"Processing:\", sample,\"isData:\", isData, \"invert_btag:\", invert_btag)\n",
+    "\n",
+    "    df['nJets'] = df[\"Jet_pt\"].str.len()\n",
+    "    \n",
+    "    # b-tagging\n",
+    "    df[\"Jet_nbtags\"] = df[\"Jet_csvDisc\"].apply( lambda x : btag.count_btags(x, njets=njets) )\n",
+    "    if invert_btag:\n",
+    "        df = btag.no_tag(df)\n",
+    "    else:\n",
+    "        df = btag.at_least_1tag(df)\n",
+    "\n",
+    "    # MET cut\n",
+    "    df = selection.met_requirement(df)\n",
+    "\n",
+    "    \n",
+    "    # HL features\n",
+    "    #df = pd.concat([df, df.apply(lambda ev : pd.Series(hl.hlFeatures(ev, njets=njets)), axis=1)], axis=1)\n",
+    "    \n",
+    "\n",
+    "    # MC weights\n",
+    "    if not isData:\n",
+    "\n",
+    "        hlt_40, hlt_45 = weights.lumi()\n",
+    "        total_lumi = hlt_40 + hlt_45\n",
+    "        trigger_frac = hlt_40 / float(hlt_45)\n",
+    "        df = pd.concat([df, df.apply(lambda ev: pd.Series(btag.eval_sf_eff(ev)), axis=1)], axis=1)\n",
+    "        df[\"Jet_btag_weight1\"] = df.apply(lambda ev : btag.b_weight_method1(ev, njets=njets), axis=1)\n",
+    "        #df[\"Jet_btag_weight2\"] = df.apply(lambda ev : btag.b_weight_method2(ev, njets=njets), axis=1)\n",
+    "        # trigger weights\n",
+    "        #df[\"trigger_weight\"] = df.apply(lambda ev : weights.trigger_weight(ev, trigger_frac), axis=1)\n",
+    "        df = pd.concat([df, df.apply(lambda ev: pd.Series(weights.trigger_weight(ev, trigger_frac)), axis=1)], axis=1)\n",
+    "        # normalization\n",
+    "        counts_path = \"/eos/user/l/llayer/opendata_files/preselection_merged/\" + sample + \"_counts.root\"\n",
+    "        total_counts = root_pandas.read_root(counts_path)\n",
+    "        xsec = weights.get_xsec(sample)\n",
+    "        weights.norm(df, total_counts, xsec, lumi = total_lumi)\n",
+    "\n",
+    "    # QCD\n",
+    "    if isData & invert_btag:\n",
+    "        \n",
+    "        # Assume light flavour\n",
+    "        def lf(nJets):\n",
+    "            return np.zeros((nJets))\n",
+    "        df[\"Jet_flavour\"] = df[\"nJets\"].apply(lf)\n",
+    "        df = pd.concat([df, df.apply(lambda ev: pd.Series(btag.eval_sf_eff(ev)), axis=1)], axis=1)\n",
+    "        df[\"btag_weight\"] = df.apply(lambda ev : btag.b_weight_method2(ev, njets=njets), axis=1)\n",
+    "        \n",
+    "    return df"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 70,
+   "id": "accompanied-veteran",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "def rearrange_samples(samples):\n",
+    "    \n",
+    "    # Concat and split MC in signal and background\n",
+    "    new_samples = {}\n",
+    "    new_samples[\"TTJets_signal\"], new_samples[\"TTJets_bkg\"] = weights.classify_tt(samples[\"TTJets\"])\n",
+    "    new_samples[\"WZJets\"] = pd.concat([samples['WJetsToLNu'], samples['DYJetsToLL']], axis=0)\n",
+    "    new_samples[\"STJets\"] = pd.concat([samples['T_TuneZ2_s'], samples['T_TuneZ2_tW'], samples['T_TuneZ2_t-channel'], \n",
+    "                              samples['Tbar_TuneZ2_s'], samples['Tbar_TuneZ2_tW'], \n",
+    "                              samples['Tbar_TuneZ2_t-channel']], axis=0)\n",
+    "\n",
+    "    # Concat the data\n",
+    "    new_samples[\"Data\"] = pd.concat([samples[\"Run2011A_MultiJet\"], samples[\"Run2011B_MultiJet\"]], axis=0)\n",
+    "    new_samples[\"QCD\"] = pd.concat([samples[\"QCD_Run2011A_MultiJet\"], samples[\"QCD_Run2011B_MultiJet\"]], axis=0)\n",
+    "    \n",
+    "    return new_samples"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 71,
+   "id": "deadly-chosen",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "def proc_candidates(samples, njets = -1):\n",
+    "    \n",
+    "    cand_samples = {}\n",
+    "    for sample in data:\n",
+    "        cand_samples[sample] = candidates(sample, samples[sample], invert_btag = False, njets=njets)\n",
+    "        cand_samples[\"QCD_\" + sample] = candidates(sample, samples[sample], invert_btag = True, njets=njets)\n",
+    "    \n",
+    "    \n",
+    "    for sample in mc:\n",
+    "        cand_samples[sample] = candidates(sample, samples[sample], invert_btag = False, njets=njets)   \n",
+    "\n",
+    "    new_samples = rearrange_samples(cand_samples)\n",
+    "    return new_samples"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 72,
+   "id": "restricted-setup",
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "Processing: Run2011A_MultiJet isData: True invert_btag: False\n",
+      "Processing: Run2011A_MultiJet isData: True invert_btag: True\n",
+      "Processing: Run2011B_MultiJet isData: True invert_btag: False\n",
+      "Processing: Run2011B_MultiJet isData: True invert_btag: True\n",
+      "Processing: T_TuneZ2_s isData: False invert_btag: False\n",
+      "Processing: WJetsToLNu isData: False invert_btag: False\n",
+      "Processing: DYJetsToLL isData: False invert_btag: False\n",
+      "Processing: T_TuneZ2_tW isData: False invert_btag: False\n",
+      "Processing: T_TuneZ2_t-channel isData: False invert_btag: False\n",
+      "Processing: Tbar_TuneZ2_s isData: False invert_btag: False\n",
+      "Processing: Tbar_TuneZ2_tW isData: False invert_btag: False\n",
+      "Processing: Tbar_TuneZ2_t-channel isData: False invert_btag: False\n",
+      "Processing: TTJets isData: False invert_btag: False\n"
+     ]
+    }
+   ],
+   "source": [
+    "cands = proc_candidates(samples)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 73,
+   "id": "partial-trance",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "import ROOT\n",
+    "from root_numpy import fill_hist\n",
+    "\n",
+    "def save_var(sample, name, var_name, bins = 20, xlow = 0., xup = 350):\n",
+    "\n",
+    "    hist = ROOT.TH1D(name + \"_\" + var_name, name + \"_\" + var_name, bins, xlow, xup)\n",
+    "    hist.Sumw2()\n",
+    "    \n",
+    "    if name == \"Data\":\n",
+    "        pass\n",
+    "    elif name == \"QCD\":\n",
+    "        if var_name == \"bdt\":\n",
+    "            scale_qcd = 9.\n",
+    "            sample = sample[sample[\"train_flag\"] == \"test\"]\n",
+    "        else:\n",
+    "            scale_qcd = 4.3\n",
+    "        sample['weight'] = sample['btag_weight'] * scale_qcd\n",
+    "    else:\n",
+    "        #samples[sample]['new_trigger_weight'] = new_samples[sample].apply(lambda ev : weights.trigger_weight(ev), axis=1)\n",
+    "        sample['weight'] = sample['norm'] * (1/1000) * sample['trigger_weight'] * sample['Jet_btag_weight1']\n",
+    "        #print(sample, sum(samples[sample]['weight']))\n",
+    "        #new_samples[sample]['btag_weight2']\n",
+    "    \n",
+    "    # Flatten if the column is a list\n",
+    "    if \"Jet_\" in var_name:\n",
+    "        series = sample[var_name].apply(pd.Series).stack().reset_index(drop=True)\n",
+    "        if name != \"Data\":\n",
+    "            sample['weight_stacked'] = sample.apply(lambda x : stack_weight(x[\"weight\"] ,x[\"nJets\"]), axis=1)\n",
+    "            weights = sample['weight_stacked'].apply(pd.Series).stack().reset_index(drop=True)\n",
+    "    else:\n",
+    "        series = sample[var_name]\n",
+    "        if name != \"Data\":\n",
+    "            weights = sample[\"weight\"]\n",
+    "    if name == \"Data\":\n",
+    "        fill_hist(hist, series)\n",
+    "    else:\n",
+    "        fill_hist(hist, series, weights = weights)\n",
+    "    #hist.Write()\n",
+    "    return hist\n",
+    "\n",
+    "def vars_to_histos(samples, variables):\n",
+    "    \n",
+    "    hists = {}\n",
+    "    for name, sample in samples.items():\n",
+    "        for var in variables:\n",
+    "            hists[name + \"_\" + var[\"var_name\"]] = save_var(sample, name, var[\"var_name\"], var[\"bins\"], var[\"xlow\"], var[\"xup\"])\n",
+    "\n",
+    "    return hists"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 74,
+   "id": "affecting-burst",
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stderr",
+     "output_type": "stream",
+     "text": [
+      "Warning in <TROOT::Append>: Replacing existing TH1: TTJets_signal_MET_met (Potential memory leak).\n",
+      "Warning in <TROOT::Append>: Replacing existing TH1: TTJets_bkg_MET_met (Potential memory leak).\n",
+      "Warning in <TROOT::Append>: Replacing existing TH1: WZJets_MET_met (Potential memory leak).\n",
+      "Warning in <TROOT::Append>: Replacing existing TH1: STJets_MET_met (Potential memory leak).\n",
+      "Warning in <TROOT::Append>: Replacing existing TH1: Data_MET_met (Potential memory leak).\n",
+      "Warning in <TROOT::Append>: Replacing existing TH1: QCD_MET_met (Potential memory leak).\n"
+     ]
+    }
+   ],
+   "source": [
+    "variables = [\n",
+    "    {\"var_name\" : \"MET_met\", \"bins\" : 30, \"xlow\" : 0., \"xup\" : 400, \"xtitle\" : \"MET [GeV]\"}\n",
+    "]\n",
+    "\n",
+    "hists = vars_to_histos(cands, variables)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 79,
+   "id": "powered-mount",
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "TTJets_signal_MET_met 349.21755187397986\n",
+      "TTJets_bkg_MET_met 146.95675542050776\n",
+      "WZJets_MET_met 63.87570787074157\n",
+      "STJets_MET_met 30.639485276966358\n",
+      "Data_MET_met 3343.0\n",
+      "QCD_MET_met 2821.2398084619435\n"
+     ]
+    }
+   ],
+   "source": [
+    "f = ROOT.TFile(\"histos_test.root\", \"RECREATE\")\n",
+    "for s, hist in hists.items():\n",
+    "\n",
+    "    print( s, hist.Integral() )\n",
+    "    hist.Write()\n",
+    "    \n",
+    "f.Close()"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 76,
+   "id": "adapted-gravity",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "def fit(histos, fit_var, corr = \"central\"):\n",
+    "        \n",
+    "\n",
+    "    bkg = histos['TTJets_bkg' + \"_\" + fit_var ].Clone()\n",
+    "    bkg.Add(histos['WZJets' + \"_\" + fit_var ])\n",
+    "    bkg.Add(histos['STJets' + \"_\" + fit_var ])\n",
+    "\n",
+    "    data = histos[\"Data\" + \"_\" + fit_var ].Clone()\n",
+    "    data.Add(bkg, -1.)\n",
+    "\n",
+    "    signal = histos[\"TTJets_signal\" + \"_\" + fit_var ]\n",
+    "\n",
+    "    qcd = histos[\"QCD\" + \"_\" + fit_var ]\n",
+    "\n",
+    "    x = ROOT.RooRealVar(\"x\",\"x\",0.,350.)\n",
+    "    rooSignal =  ROOT.RooDataHist(\"signal\",\"signal\",ROOT.RooArgList( x ), signal)\n",
+    "    rooBkg = ROOT.RooDataHist(\"bkg\",\"bkg\", ROOT.RooArgList( x ), qcd)\n",
+    "    signal_pdf = ROOT.RooHistPdf(\"signal\",\"signal\",ROOT.RooArgSet( x ), rooSignal)\n",
+    "    bkg_pdf = ROOT.RooHistPdf(\"bkg\",\"bkg\",ROOT.RooArgSet( x ), rooBkg)\n",
+    "\n",
+    "    c0 = ROOT.RooRealVar(\"c0\",\"c0\",0.5,0.,1.)\n",
+    "    pdf = ROOT.RooAddPdf(\"pdf\",\"pdf\", signal_pdf,bkg_pdf, c0)\n",
+    "\n",
+    "    dataFit = ROOT.RooDataHist(\"data\",\"data\",ROOT.RooArgList( x ), data);\n",
+    "\n",
+    "    fitResult = pdf.fitTo(dataFit)\n",
+    "    #print( fitResult )\n",
+    "\n",
+    "    sf_tt_sig = (c0.getVal() * data.Integral()) / signal.Integral() \n",
+    "    sf_tt_sig_err = (c0.getError() * data.Integral()) / signal.Integral()\n",
+    "    \n",
+    "    sf_qcd = ((1-c0.getVal())*data.Integral()) / qcd.Integral()\n",
+    "    sf_qcd_err = (c0.getError() * data.Integral()) / qcd.Integral()\n",
+    "    \n",
+    "    \n",
+    "    print( \"scale factor TTbar tau(h) QQ \", sf_tt_sig, \"+-\", sf_tt_sig_err )\n",
+    "    print( \"scale factor MultiJet \", sf_qcd, \"+-\", sf_qcd_err )\n",
+    "\n",
+    "    return sf_tt_sig, sf_qcd"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 77,
+   "id": "cooperative-douglas",
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "scale factor TTbar tau(h) QQ  0.9910458961661615 +- 0.09467095587401728\n",
+      "scale factor MultiJet  0.97667607748668 +- 0.011718521532530633\n"
+     ]
+    },
+    {
+     "data": {
+      "text/plain": [
+       "(0.9910458961661615, 0.97667607748668)"
+      ]
+     },
+     "execution_count": 77,
+     "metadata": {},
+     "output_type": "execute_result"
+    },
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "[#1] INFO:DataHandling -- RooDataHist::adjustBinning(signal): fit range of variable x expanded to nearest bin boundaries: [0,350] --> [0,360]\n",
+      "[#0] WARNING:InputArguments -- RooAbsPdf::fitTo(pdf) WARNING: a likelihood fit is requested of what appears to be weighted data.\n",
+      "       While the estimated values of the parameters will always be calculated taking the weights into account,\n",
+      "       there are multiple ways to estimate the errors of the parameters. You are advised to make an \n",
+      "       explicit choice for the error calculation:\n",
+      "           - Either provide SumW2Error(true), to calculate a sum-of-weights-corrected HESSE error matrix\n",
+      "             (error will be proportional to the number of events in MC).\n",
+      "           - Or provide SumW2Error(false), to return errors from original HESSE error matrix\n",
+      "             (which will be proportional to the sum of the weights, i.e., a dataset with <sum of weights> events).\n",
+      "           - Or provide AsymptoticError(true), to use the asymptotically correct expression\n",
+      "             (for details see https://arxiv.org/abs/1911.01303).\n",
+      "[#1] INFO:Minization -- RooMinimizer::optimizeConst: activating const optimization\n",
+      "[#1] INFO:Minization --  The following expressions have been identified as constant and will be precalculated and cached: (signal,bkg)\n",
+      " **********\n",
+      " **   46 **SET PRINT           1\n",
+      " **********\n",
+      " **********\n",
+      " **   47 **SET NOGRAD\n",
+      " **********\n",
+      " PARAMETER DEFINITIONS:\n",
+      "    NO.   NAME         VALUE      STEP SIZE      LIMITS\n",
+      "     1 c0           5.00000e-01  1.00000e-01    0.00000e+00  1.00000e+00\n",
+      " **********\n",
+      " **   48 **SET ERR         0.5\n",
+      " **********\n",
+      " **********\n",
+      " **   49 **SET PRINT           1\n",
+      " **********\n",
+      " **********\n",
+      " **   50 **SET STR           1\n",
+      " **********\n",
+      " NOW USING STRATEGY  1: TRY TO BALANCE SPEED AGAINST RELIABILITY\n",
+      " **********\n",
+      " **   51 **MIGRAD         500           1\n",
+      " **********\n",
+      " FIRST CALL TO USER FUNCTION AT NEW START POINT, WITH IFLAG=4.\n",
+      " START MIGRAD MINIMIZATION.  STRATEGY  1.  CONVERGENCE WHEN EDM .LT. 1.00e-03\n",
+      " FCN=13429.1 FROM MIGRAD    STATUS=INITIATE        4 CALLS           5 TOTAL\n",
+      "                     EDM= unknown      STRATEGY= 1      NO ERROR MATRIX       \n",
+      "  EXT PARAMETER               CURRENT GUESS       STEP         FIRST   \n",
+      "  NO.   NAME      VALUE            ERROR          SIZE      DERIVATIVE \n",
+      "   1  c0           5.00000e-01   1.00000e-01   2.01358e-01   8.44100e+02\n",
+      "                               ERR DEF= 0.5\n",
+      " MIGRAD MINIMIZATION HAS CONVERGED.\n",
+      " MIGRAD WILL VERIFY CONVERGENCE AND ERROR MATRIX.\n",
+      " COVARIANCE MATRIX CALCULATED SUCCESSFULLY\n",
+      " FCN=13053.1 FROM MIGRAD    STATUS=CONVERGED      19 CALLS          20 TOTAL\n",
+      "                     EDM=1.99634e-09    STRATEGY= 1      ERROR MATRIX ACCURATE \n",
+      "  EXT PARAMETER                                   STEP         FIRST   \n",
+      "  NO.   NAME      VALUE            ERROR          SIZE      DERIVATIVE \n",
+      "   1  c0           1.11587e-01   1.06595e-02   2.67319e-03   1.31951e-03\n",
+      "                               ERR DEF= 0.5\n",
+      " EXTERNAL ERROR MATRIX.    NDIM=  25    NPAR=  1    ERR DEF=0.5\n",
+      "  1.137e-04 \n",
+      " **********\n",
+      " **   52 **SET ERR         0.5\n",
+      " **********\n",
+      " **********\n",
+      " **   53 **SET PRINT           1\n",
+      " **********\n",
+      " **********\n",
+      " **   54 **HESSE         500\n",
+      " **********\n",
+      " COVARIANCE MATRIX CALCULATED SUCCESSFULLY\n",
+      " FCN=13053.1 FROM HESSE     STATUS=OK              5 CALLS          25 TOTAL\n",
+      "                     EDM=1.99243e-09    STRATEGY= 1      ERROR MATRIX ACCURATE \n",
+      "  EXT PARAMETER                                INTERNAL      INTERNAL  \n",
+      "  NO.   NAME      VALUE            ERROR       STEP SIZE       VALUE   \n",
+      "   1  c0           1.11587e-01   1.06595e-02   1.06928e-04  -8.89609e-01\n",
+      "                               ERR DEF= 0.5\n",
+      " EXTERNAL ERROR MATRIX.    NDIM=  25    NPAR=  1    ERR DEF=0.5\n",
+      "  1.137e-04 \n",
+      "[#1] INFO:Minization -- RooMinimizer::optimizeConst: deactivating const optimization\n"
+     ]
+    }
+   ],
+   "source": [
+    "fit(hists, \"MET_met\")"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "graduate-saturday",
+   "metadata": {},
+   "outputs": [],
+   "source": []
+  }
+ ],
+ "metadata": {
+  "kernelspec": {
+   "display_name": "Python 3",
+   "language": "python",
+   "name": "python3"
+  },
+  "language_info": {
+   "codemirror_mode": {
+    "name": "ipython",
+    "version": 3
+   },
+   "file_extension": ".py",
+   "mimetype": "text/x-python",
+   "name": "python",
+   "nbconvert_exporter": "python",
+   "pygments_lexer": "ipython3",
+   "version": "3.7.6"
+  }
+ },
+ "nbformat": 4,
+ "nbformat_minor": 5
+}
