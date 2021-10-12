@@ -17,3 +17,7 @@ The environment can then be loaded via:
 cd CMSSW_5_3_32/src/
 cmsenv
 ```
+and the code can be compiled via:
+```
+scram b -j8
+```
