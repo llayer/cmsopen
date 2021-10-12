@@ -1,3 +1,6 @@
+# Columnar analysis
+
+## Setup
 The columnar analysis was developed with the following package versions and on Softwarestack 97a with ROOT versionn '6.20/06' on the SWAN platform:
 
 ```
@@ -17,4 +20,19 @@ tables==3.6.1
 uproot==3.10.12
 xgboost==0.90
 ```
-The b-tagging corrections and procedures are accesible here: https://twiki.cern.ch/twiki/bin/view/CMSPublic/BtagRecommendation2011OpenData#Data_MC_Scale_Factors, the JES here: https://twiki.cern.ch/twiki/bin/viewauth/CMS/JECUncertaintySources#2011_JEC_uncertainty_correlation and the JER here: https://twiki.cern.ch/twiki/bin/viewauth/CMS/JetResolution#JER_Scaling_factors_and_Unce_AN2. 
+
+## Event selection
+The event selection can be done with the script 'proc.py'.
+
+## Trigger efficiencies
+The trigger efficiencies can be produced with 'trigger_eff.py'.
+
+## B-tagging
+The b-tagging corrections and procedures are accesible here: https://twiki.cern.ch/twiki/bin/view/CMSPublic/BtagRecommendation2011OpenData#Data_MC_Scale_Factors.
+The efficiencies can be found in the 'data' directory.
+
+# JES/JER
+The JES uncertainties can be found here: https://twiki.cern.ch/twiki/bin/viewauth/CMS/JECUncertaintySources#2011_JEC_uncertainty_correlation and the JER here: https://twiki.cern.ch/twiki/bin/viewauth/CMS/JetResolution#JER_Scaling_factors_and_Unce_AN2. 
+
+## Cross-sections
+The relevant cross-sections can be found here: https://github.com/cernopendata/opendata.cern.ch/issues/2476
