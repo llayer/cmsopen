@@ -8,8 +8,8 @@ from copy import deepcopy
 ext = extractor()
 ext.add_weight_sets([
     "* * data/Legacy11_V1_DATA_UncertaintySources_AK5PFchs.junc.txt",
-    "* * jer_sf.root",
-    "* * JESUncMC.root"
+    "* * data/jer_sf.root",
+    "* * data/JESUncMC.root"
 ])
 ext.finalize()
 
