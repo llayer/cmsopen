@@ -17,4 +17,4 @@ tables==3.6.1
 uproot==3.10.12
 xgboost==0.90
 ```
-
+The b-tagging corrections and procedures are accesible here: https://twiki.cern.ch/twiki/bin/view/CMSPublic/BtagRecommendation2011OpenData#Data_MC_Scale_Factors, the JES here: https://twiki.cern.ch/twiki/bin/viewauth/CMS/JECUncertaintySources#2011_JEC_uncertainty_correlation and the JER here: https://twiki.cern.ch/twiki/bin/viewauth/CMS/JetResolution#JER_Scaling_factors_and_Unce_AN2. 
