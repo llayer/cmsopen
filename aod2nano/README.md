@@ -32,3 +32,4 @@ Locally this can be tested with:
 ```
 cmsRun pf_sync.py
 ```
+With the scripts submit_jobs.sh this can be submitted to the lxplus condor batch system and with validate_jobs.py it can be checked whether all jobs finished succesfully
