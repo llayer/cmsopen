@@ -9,6 +9,10 @@ mc = ['TTJets', 'WJetsToLNu', 'DYJetsToLL', 'T_TuneZ2_s', 'T_TuneZ2_tW', 'T_Tune
        'Tbar_TuneZ2_s', 'Tbar_TuneZ2_tW', 'Tbar_TuneZ2_t-channel']
 
 
+def write_pdf_evts(tt):
+    
+    out = tt['run'].astype(str) + tt['luminosityBlock'].astype(str) + tt['event'].astype(str)
+    out.to_csv("TTJets_ids.txt", index=False, header=False)
 
 def uncertainty(x):
     

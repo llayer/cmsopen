@@ -24,12 +24,12 @@ corrs = ["btag_up", "btag_down"]
 
 def main():
     
-    #samples = load_samples()
-    #variables = get_variables()
+    samples = load_samples()
+    variables = get_variables(samples)
     #importlib.reload(plot_artificial_syst)
-    #plot_artificial_syst.vars_to_histos(samples, variables, HISTO_PATH, corrs=corrs)
+    plot_artificial_syst.vars_to_histos(samples, variables, HISTO_PATH, corrs=corrs)
     #stack_vars = [ x for x in variables if "nominal" in x["var_name"]]
-    #plot_stack(variables)
+    plot_stack(variables)
     #plot_all_systs()
     inferno_to_harvester(HISTO_PATH, COMBINE_PATH)
 
@@ -47,7 +47,7 @@ def load_samples(inpath = INPUT_PATH):
     return samples
 
 
-def get_variables():
+def get_variables(samples):
     bce = [ x for x in list(samples["TTJets_signal"]) if "bce" in x]
     inferno = [ x for x in list(samples["TTJets_signal"]) if "inferno" in x]
     inferno_var = []
