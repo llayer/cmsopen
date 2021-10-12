@@ -51,7 +51,7 @@ def save_var(sample, name, var_name, bins = 20, xlow = 0., xup = 350, corr=None)
     #print s, hist.Integral()
     hist.Write()
 
-def vars_to_histos(samples, variables, file_path, weight_syst=True):
+def vars_to_histos(samples, variables, file_path, corrs=None):
     
     file = ROOT.TFile(file_path, 'recreate')
     for name, sample in samples.items():
@@ -75,8 +75,8 @@ def vars_to_histos(samples, variables, file_path, weight_syst=True):
             else:
                 print(var, name)
             save_var(sample, name, var["var_name"], var["bins"], var["xlow"], var["xup"])
-            if weight_syst == True:
-                for corr in ["btag_up", "btag_down"]:#, "trigger_up", "trigger_down", "xsec_up", "xsec_down"]:
+            if corrs is not None:
+                for corr in corrs:#, "trigger_up", "trigger_down", "xsec_up", "xsec_down"]:
                     save_var(sample, name, var["var_name"], var["bins"], var["xlow"], var["xup"], corr = corr)
 
             """
