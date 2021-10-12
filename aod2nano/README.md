@@ -35,5 +35,6 @@ With the scripts submit_jobs.sh this can be submitted to the lxplus condor batch
 
 ## Preselection
 After the NanoAOD production the NanoAOD can be further skimmed by using the scripts in the folder "preselection".
+The script 'pre_sel.py' can be used for a preselection of the analyzed events, while the script pre_trigger.py can be used to preselect events for the trigger measurement. The selected events can be merged with the script merge.py.
 
 
