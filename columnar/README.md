@@ -1,4 +1,4 @@
-The columnar analysis was developed with the following package versions and on Softwarestack 97a on the SWAN platform:
+The columnar analysis was developed with the following package versions and on Softwarestack 97a with ROOT versionn '6.20/06' on the SWAN platform:
 
 ```
 awkward==0.12.17
