@@ -4,15 +4,24 @@ import os, commands
 #datacard = "/afs/cern.ch/work/l/llayer/CMSSW_10_2_18/src/cmsopen/inference/DataCard_SystVar/bdt/tt/taujets_bdt_signal_region_7TeV"
 #datacard = "/afs/cern.ch/work/l/llayer/CMSSW_10_2_18/src/cmsopen/inference/DataCard/bdt/tt/taujets_bdt_signal_region_7TeV.txt"
 
-def fit_dc( datacard, outpath, stat_only=False, gof=False, closure=False, impact=False, maxL=False, multi=False ):
+def fit_dc( datacard, outpath, stat_only=False, gof=False, closure=False, impact=False, maxL=False, multi=False, asimov=False ):
 
     print "Fitting datacard:", datacard
 
     # Output directory
     if stat_only == True:
-        outdir = outpath + "/fit/stat"
+        outdir = outpath + "/stat"
     else:
-        outdir = outpath + "/fit/syst"
+        outdir = outpath + "/syst"
+
+    if asimov == True:
+        print("FITTING WITH ASIMOV DATA")
+        asimov_suffix = " -t -1 --expectSignal 1"
+        outdir += "_asimov"
+    else:
+        asimov_suffix = ""
+
+
 
     if not os.path.exists(outdir):
         os.makedirs(outdir)
@@ -29,17 +38,18 @@ def fit_dc( datacard, outpath, stat_only=False, gof=False, closure=False, impact
 
     if(impact):
         os.system("text2workspace.py " + datacard + ".txt")
-        os.system("combineTool.py -M Impacts -d  " + datacard + ".root -m 125 --autoBoundsPOIs r  --robustFit 1 --autoRange 1 --doInitialFit")
-        os.system("combineTool.py -M Impacts -d  " + datacard + ".root -m 125 --autoBoundsPOIs r  --robustFit 1 --autoRange 1 --doFits")
-        os.system("combineTool.py -M Impacts -d  " + datacard + ".root -m 125 --autoBoundsPOIs r  --autoRange 1 -o prova.json")
+        os.system("combineTool.py -M Impacts -d  " + datacard + ".root -m 125 --autoBoundsPOIs r  --robustFit 1 --autoRange 1 --doInitialFit" + asimov_suffix)
+        os.system("combineTool.py -M Impacts -d  " + datacard + ".root -m 125 --autoBoundsPOIs r  --robustFit 1 --autoRange 1 --doFits" + asimov_suffix)
+        os.system("combineTool.py -M Impacts -d  " + datacard + ".root -m 125 --autoBoundsPOIs r  --autoRange 1 -o prova.json" + asimov_suffix)
         os.system("plotImpacts.py -i prova.json  -o impacts")
-        os.system("cp impacts.pdf " + outpath)
+        os.system("cp impacts.pdf " + outdir)
 
     if(maxL):
         #--cminDefaultMinimizerStrategy 0 TEST
         #os.system("combine -M FitDiagnostics " + datacard + ".root --out " + outdir ) #  --saveShapes --saveWithUncertainties --plots --saveNormalizations --robustFit 1 --customStartingPoint --stepSize 0.004 --out " + directory + " --profilingMode all --keepFailures  --autoBoundsPOIs r")
 
-        command = "combine -M FitDiagnostics " + datacard + ".txt --out " + outdir + " --saveNormalizations --saveShapes"
+        command = "combine -M FitDiagnostics " + datacard + ".txt --out " + outdir + " --saveNormalizations --saveShapes" + asimov_suffix
+        #command = "combine -M FitDiagnostics " + datacard + ".txt" + asimov_suffix
         if stat_only:
             command += " --freezeParameters allConstrainedNuisances"
         os.system( command )
@@ -60,7 +70,7 @@ def fit_dc( datacard, outpath, stat_only=False, gof=False, closure=False, impact
         # DANGER add robust fit??
         paramRange = "--setParameterRanges r=0.,2."
         #os.system("combine " + datacard + " -M MultiDimFit --algo=grid  --points 200 " + paramRange )# --robustFit 1 --stepSize 0.004 )
-        command = "combine " + datacard + ".txt -M MultiDimFit --algo=grid  --points 200 " + paramRange
+        command = "combine " + datacard + ".txt -M MultiDimFit --algo=grid  --points 200 " + paramRange + asimov_suffix
         if stat_only:
             command += " --freezeParameters allConstrainedNuisances"
         os.system( command )

@@ -4,23 +4,23 @@ import os
 
 
 
-def inferno_full(file, outpath, variable, variation='_norm_0', norm=1.):
+def inferno_full(file, outpath, variable, syst, norm=None):
 
     cb = ch.CombineHarvester()
 
     # Systematics
     # specific_shape_systematics = { 'TTJets_signal':['Var'] }
     if "inferno" in variable:
-        specific_shape_systematics = { 'TTJets_signal':[variable + variation] } #Artificial variation
+        specific_shape_systematics = { 'TTJets_signal':syst } #Artificial variation
     else:
-        specific_shape_systematics = { 'TTJets_signal':[variable + "_norm"] } #Artificial variation
+        specific_shape_systematics = { 'TTJets_signal':syst } #Artificial variation
 
     # Definition of channels
-    chns = [variable + variation]
+    chns = [variable]
 
     # Definition of bacxkground processes
     bkg_procs = {
-    variable + variation : [ "TTJets_bkg", "WZJets", "STJets", "QCD"]
+    variable : [ "TTJets_bkg", "WZJets", "STJets", "QCD"]
     }
 
     # Definition of signal process
@@ -30,10 +30,7 @@ def inferno_full(file, outpath, variable, variation='_norm_0', norm=1.):
     mc = [ "TTJets_signal", "TTJets_bkg", "WZJets", "STJets"]
 
     # Categories
-    if 'inferno' in variable:
-        cat_names = [variable + variation]
-    else:
-        cat_names = [variable]
+    cat_names = [variable]
     cats = []
     for counter, c in enumerate(cat_names):
         cats.append( (counter, c) )
@@ -59,8 +56,10 @@ def inferno_full(file, outpath, variable, variation='_norm_0', norm=1.):
             cb, sys, "shape", ch.SystMap()(1.00))
 
 
-    cb.cp().process(["TTJets_signal"]).AddSyst(
-    cb, "norm", "lnN", ch.SystMap()(norm))
+
+    if norm is not None:
+        cb.cp().process(["TTJets_signal"]).AddSyst(
+        cb, "norm", "lnN", ch.SystMap()(norm))
 
     cb.cp().process(["QCD"]).AddSyst(cb, "qcd_rate", "rateParam", ch.SystMap()(1.00))
 

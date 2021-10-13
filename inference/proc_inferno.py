@@ -6,7 +6,7 @@ import numpy as np
 
 BASE_DIR = "/eos/user/l/llayer/cmsopen/columnar/note_v0/"
 COMBINE_DIR = BASE_DIR + "combine/"
-FIT_DIR = COMBINE_DIR + "inferno_systematic7/"
+FIT_DIR = COMBINE_DIR + "inferno_systematic5/" #"inferno_cmsopen/" #"inferno_systematic7/"
 #DC_DIR = FIT_DIR + "/DataCard/bdt/tt/taujets_bdt_signal_region_7TeV"
 
 dc = False
@@ -14,15 +14,16 @@ run_combine = True
 stat_only = False
 gof = False
 closure = False
-impact = True
+impact = False
 maxL = True
-multi = True
+multi = False
 plot_ll = False
+asimov = True
 
 if __name__ == "__main__":
 
     if dc:
-        f = COMBINE_DIR + "inferno_full.root" #"inferno_systematic7.root"
+        f = COMBINE_DIR + "inferno_cmsopen.root" #"inferno_systematic7.root"
         #shift
         if not os.path.exists(FIT_DIR):
             os.makedirs(FIT_DIR)
@@ -52,6 +53,8 @@ if __name__ == "__main__":
                 create_dc.inferno_norm_dc(f, FIT_DIR, 'inferno', '_norm_' + suffix + '_' +str(i), norm=1.+norm)
         """
 
+        #create_dc.inferno_full(f, FIT_DIR, 'bce', ["bce_jes", "bce_btag"])
+        #create_dc.inferno_full(f, FIT_DIR, 'inferno', ["inferno_jes", "inferno_btag"])
 
 
     if run_combine:
@@ -67,13 +70,13 @@ if __name__ == "__main__":
                 outdir = FIT_DIR + "Fit/inferno_shift_" + suffix + "_" + str(i)
                 DC_DIR = FIT_DIR + "/DataCard/inferno_shift_" + suffix + "_" + str(i) + \
                             "/tt/taujets_inferno_shift_" + suffix + "_" + str(i) + "_inferno_shift_" + suffix + "_"  + str(i) + "_7TeV"
-                fit.fit_dc(DC_DIR, outdir, stat_only=stat_only, impact=impact, maxL=maxL, multi=multi)
-
+                fit.fit_dc(DC_DIR, outdir, stat_only=stat_only, impact=impact, maxL=maxL, multi=multi, asimov=asimov)
+        """
         for i in range(10):
             outdir = FIT_DIR + "Fit/bce_shift_" + str(i)
             DC_DIR = FIT_DIR + "/DataCard/bce_shift_" + str(i) + "/tt/taujets_bce_shift_" + str(i) + "_bce_7TeV"
-            fit.fit_dc(DC_DIR, outdir, stat_only=stat_only, impact=impact, maxL=maxL, multi=multi)
-
+            fit.fit_dc(DC_DIR, outdir, stat_only=stat_only, impact=impact, maxL=maxL, multi=multi, asimov=asimov)
+        """
 
         for nnuis in range(1,5):
             for suffix in ["approx", "analytical"]:
@@ -103,7 +106,12 @@ if __name__ == "__main__":
             fit.fit_dc(DC_DIR, outdir, stat_only=stat_only, impact=impact, maxL=maxL, multi=multi)
         """
 
-
+        """
+        for var in ["bce", "inferno"]:
+            outdir = FIT_DIR + "Fit/" + var
+            DC_DIR = FIT_DIR + "/DataCard/" + var + "/tt/taujets_" + var + "_" + var + "_7TeV"
+            fit.fit_dc(DC_DIR, outdir, stat_only=stat_only, impact=impact, maxL=maxL, multi=multi, asimov=asimov)
+        """
 
     if plot_ll:
         print("Plotting")
