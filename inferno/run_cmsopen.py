@@ -29,8 +29,11 @@ from sklearn import preprocessing
 from pytorch_inferno.data import *
 import random
 
+import os
 import copy
 from functools import reduce
+
+
 
 #features = ['ht', 'aplanarity', 'sphericity', 'chargeEta', 'MET_met', 'deltaPhiTauMet', 'mt', 'mTauJet']
 features = ['aplanarity', 'chargeEta', 'MET_met', 'deltaPhiTauMet']
@@ -57,8 +60,8 @@ def get_train_evts(sample):
     return sample[sample["train_flag"]=="train"]["event_id"]    
     
     
-def get_cmsopen_data(samples, n_sig = 20000, n_bkg = 10000, bs=256):
-        
+def get_cmsopen_data(samples, n_sig = 20000, n_bkg = 10000):
+    
     # Add a unique event key
     for s in samples:
         add_key(samples[s])
@@ -128,10 +131,7 @@ def get_cmsopen_data(samples, n_sig = 20000, n_bkg = 10000, bs=256):
     
     trn = (X_train, y_train) #, weights_train)    
     val = (X_test, y_test)
-    
-    trn_dl = WeightedDataLoader(DataSet(*trn), batch_size=bs, shuffle=True, drop_last=True)
-    val_dl = WeightedDataLoader(DataSet(*val), batch_size=bs, shuffle=True)
-    
+        
     #data = DataPair(trn_dl, val_dl)
     #test = DataPair(WeightedDataLoader(DataSet(*trn), batch_size=bs), 
     #                WeightedDataLoader(DataSet(*val), batch_size=bs))
@@ -143,16 +143,22 @@ def get_cmsopen_data(samples, n_sig = 20000, n_bkg = 10000, bs=256):
         
     for s in samples:
         if "TTJets_signal" in s:
-            print(s)
-            print(list(samples[s]))
+            #print(s)
+            #print(list(samples[s]))
             samples[s]["is_train"] = samples[s].event_id.isin(train_idx)
     
-    return trn_dl, val_dl, scaler
+    
+    n_sig_train = sum(samples["TTJets_signal"]["is_train"]==1)
+    print("Number of signal training / test events:", n_sig_train, len(samples["TTJets_signal"]) - n_sig_train)
+    n_bkg_train = sum(samples["QCD"]["train_flag"]=="train")
+    print("Number of bkg training / test events:", n_bkg_train, len(samples["QCD"]) - n_bkg_train)
+    
+    return trn, val, scaler
 
 
 
 
-def run_inferno(data):
+def run_inferno(data, epochs=20):
     
     class ApproxCMSOpenInferno(AbsApproxInferno):
         r'''Inheriting class for dealing with INFERNO paper synthetic problem'''
@@ -185,8 +191,6 @@ def run_inferno(data):
                 u.append(up_batch)
                 d.append(down_batch)    
 
-            print(x_s[0])
-
             return (torch.stack(u),torch.stack(d)), (None,None)
 
     
@@ -195,13 +199,13 @@ def run_inferno(data):
                     nn.Linear(100,100), nn.ReLU(),
                     nn.Linear(100,10), VariableSoftmax(0.1))
     lt = LossTracker()
-    #init_net(net)
+    #init_net(net_inferno)
     model_inferno = ModelWrapper(net_inferno)
     
-    model_inferno.fit(1, data=data, opt=partialler(optim.Adam,lr=1e-3), loss=None,
+    model_inferno.fit(epochs, data=data, opt=partialler(optim.Adam,lr=1e-3), loss=None,
                       cbs=[ApproxCMSOpenInferno(n_shape_alphas=2), lt])  
     
-    return model_inferno
+    return model_inferno, lt
 
 
 
@@ -211,10 +215,11 @@ def train_bce(data, epochs=50, lr=1e-3):
                             nn.Linear(12,8), nn.ReLU(),
                             nn.Linear(8,1),  nn.Sigmoid())
     #init_net(net)    
+    lt = LossTracker()
     model_bce = ModelWrapper(net_bce)
     model_bce.fit(epochs, data=data, opt=partialler(optim.Adam), loss=nn.BCELoss(),
-                  cbs=[LossTracker()])  
-    return model_bce
+                  cbs=[lt])  
+    return model_bce, lt
 
 
 
@@ -229,9 +234,45 @@ def pred_nominal(samples, model, scaler, name):
         else:
             samples[s][name] = model._predict_dl(loader, pred_cb=InfernoPred())
 
-            
-def train(path = "/home/centos/data/bdt_rs5/", store=False):
+        
+def plot_loss(lt, outpath, name="inferno"):
     
+    plt.plot(lt.losses["trn"], label="train")
+    plt.plot(lt.losses["val"], label="val")
+    plt.ylabel(r"$\sigma^2(\mu)$")
+    plt.xlabel(r"epoch")
+    plt.legend(loc="upper right")
+    plt.savefig(outpath + "/loss_" + name + ".png")
+    plt.show()
+        
+        
+def plot_predictions(model, test_dl, outpath, name="inferno"):
+
+    if name == "inferno":
+        preds = model._predict_dl(test_dl, pred_cb=InfernoPred())
+    else:
+        preds = model._predict_dl(test_dl).squeeze()
+        
+    df = pd.DataFrame({'pred':preds})
+    df['gen_target'] = test_dl.dataset.y
+    
+    sig = df[df["gen_target"]==1]["pred"]
+    bkg = df[df["gen_target"]==0]["pred"]
+    if name == "inferno":
+        hist_range=(0,10)
+    else:
+        hist_range=(0,1.)
+    plt.hist(sig, density=True, alpha=0.5, bins=10, range=hist_range, label="Signal")
+    plt.hist(bkg, density=True, alpha=0.5, bins=10, range=hist_range, label="Background")
+    plt.legend(loc="upper left")
+    plt.savefig(outpath + "/preds_" + name + ".png")    
+    plt.show()
+        
+        
+def train(outpath, path = "/home/centos/data/bdt_rs5/", bs=256, epochs = 50, n_sig = 5000, n_bkg = 5000, store=True):
+    
+    if not os.path.exists(outpath):
+        os.makedirs(outpath)
     
     samples = {}
     for s in ["TTJets_bkg", "WZJets", "STJets", "QCD", "TTJets_signal", "Data"]:
@@ -241,29 +282,39 @@ def train(path = "/home/centos/data/bdt_rs5/", store=False):
                 samples[s + "_" + syst + "_up"] = pd.read_hdf(path + s + "_" + syst + "_up" + ".h5")
                 samples[s + "_" + syst + "_down"] = pd.read_hdf(path + s + "_" + syst + "_down" + ".h5")
 
+    trn, val, scaler = get_cmsopen_data(samples, n_sig = n_sig, n_bkg = n_bkg)    
+    trn_dl = WeightedDataLoader(DataSet(*trn), batch_size=bs, shuffle=True, drop_last=True)
+    val_dl = WeightedDataLoader(DataSet(*val), batch_size=bs, shuffle=True)
+    test_dl = WeightedDataLoader(DataSet(*val), batch_size=bs)
+    data = DataPair(trn_dl, val_dl)
 
-    trn_dl, val_dl, scaler = get_cmsopen_data(samples, n_sig = 5000, n_bkg = 5000, bs=256)    
-
-    #data = DataPair(trn_dl, val_dl)
-    #model_inferno = run_inferno(data)
-
+    # Run INFERNO
+    
+    model_inferno, lt_inferno = run_inferno(data, epochs=epochs)
+    # Monitor training
+    plot_predictions(model_inferno, test_dl, outpath, name="inferno")
+    plot_loss(lt_inferno, outpath, name="inferno")
     # Predict the shapes
-    #pred_nominal(samples, model_inferno, scaler, name='inferno')
+    pred_nominal(samples, model_inferno, scaler, name='inferno')
     
     
     # BCE for comparison
-    #model_bce = train_bce(data, epochs=50)
-    #pred_nominal(samples, model_bce, scaler, name="bce_norm_nominal")        # BCE shift               
-
+    model_bce, lt_bce = train_bce(data, epochs=50)
+    # Monitor training
+    plot_predictions(model_bce, test_dl, outpath, name="bce")
+    plot_loss(lt_bce, outpath, name="bce")
+    # Predict the shapes
+    pred_nominal(samples, model_bce, scaler, name="bce")        # BCE shift               
+    
+    
     
     # Store
     if store:
-        outpath = "/home/centos/data/inferno_cmsopen"
         for s in samples:
             samples[s].to_hdf(outpath + "/" + s + ".h5", "frame")
 
     
-    return trn_dl, val_dl, samples
+    return trn_dl, val_dl, test_dl, samples, model_bce
     
 
 
