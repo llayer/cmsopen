@@ -14,6 +14,7 @@ def write_pdf_evts(tt):
     out = tt['run'].astype(str) + tt['luminosityBlock'].astype(str) + tt['event'].astype(str)
     out.to_csv("TTJets_ids.txt", index=False, header=False)
 
+    
 def uncertainty(x):
     
     x = x["MCEvt_cteq66_pdf_weights"]

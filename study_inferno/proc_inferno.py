@@ -12,7 +12,7 @@ import importlib
 import ROOT
 
 
-NAME = "inferno_cmsopen"
+NAME = "inferno_cmsopen6"
 INPUT_PATH = "/eos/user/l/llayer/cmsopen/columnar/note_v0/input/"+ NAME + "/"
 HISTO_PATH = "/eos/user/l/llayer/cmsopen/study_inferno/results/histos/"+ NAME + ".root"
 STACK_PATH = "/eos/user/l/llayer/cmsopen/study_inferno/results/stacks/"+ NAME + "/"
