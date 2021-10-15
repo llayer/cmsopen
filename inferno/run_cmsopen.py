@@ -34,11 +34,6 @@ import copy
 from functools import reduce
 
 
-
-#features = ['ht', 'aplanarity', 'sphericity', 'chargeEta', 'MET_met', 'deltaPhiTauMet', 'mt', 'mTauJet']
-features = ['aplanarity', 'chargeEta', 'MET_met', 'deltaPhiTauMet']
-systematics = ["_jes_up", "_jes_down"]
-
 def add_key(df):
     df["event_id"] = df["event"].astype(str) + df["luminosityBlock"].astype(str)
 
@@ -60,27 +55,29 @@ def get_train_evts(sample):
     return sample[sample["train_flag"]=="train"]["event_id"]    
     
     
-def get_cmsopen_data(samples, n_sig = 20000, n_bkg = 10000):
+def get_cmsopen_data(samples, features, shape_syst, weight_syst, n_sig = 20000, n_bkg = 10000, use_weights = False):
     
     # Add a unique event key
     for s in samples:
         add_key(samples[s])
     
     # Add a suffix to be able to merge the frames
-    for syst in systematics:
-        samples["TTJets_signal" + syst] = samples["TTJets_signal" + syst].add_suffix(syst)
-        samples["TTJets_signal" + syst].rename(columns={'event_id' + syst: 'event_id'}, inplace=True)        
+    for syst in shape_syst:
+        for ud in ["_up", "_down"]:    
+            samples["TTJets_signal_" + syst + ud] = samples["TTJets_signal_" + syst + ud].add_suffix("_" + syst + ud)
+            samples["TTJets_signal_" + syst + ud].rename(columns={'event_id_' + syst + ud: 'event_id'}, inplace=True) 
+            #print(list(samples["TTJets_signal_" + syst + ud]))
     
     # Merge the nominal and systematic frames
     dfs = []
     dfs.append(samples["TTJets_signal"])
-    for syst in systematics:
-        dfs.append(samples["TTJets_signal" + syst])
-        
+    for syst in shape_syst:
+        for ud in ["_up", "_down"]:    
+            dfs.append(samples["TTJets_signal_" + syst + ud])
     signal = reduce(lambda  left,right: pd.merge(left,right,how="inner", on="event_id"), dfs)
-    
-    # Split in training and test
     bkg = samples["QCD"]
+
+    # Split in training and test
     train_test_split(signal, n_sig)
     train_test_split(bkg, n_bkg)
     train_idx = get_train_evts(signal)  
@@ -116,20 +113,25 @@ def get_cmsopen_data(samples, n_sig = 20000, n_bkg = 10000):
     # Add the systematic shape variations
     signal_train_syst= []
     signal_test_syst = []
-    for syst in systematics:
-        feat_syst = [x + syst for x in features]
-        signal_train_syst.append(scaler.transform(train_data[feat_syst].values))
-        signal_test_syst.append(scaler.transform(test_data[feat_syst].values))
+    for syst in shape_syst:
+        for ud in ["_up", "_down"]:    
+            feat_syst = [x + "_" + syst + ud for x in features]
+            signal_train_syst.append(scaler.transform(train_data[feat_syst].values))
+            signal_test_syst.append(scaler.transform(test_data[feat_syst].values))
     
     # Add the weights
-    for syst in ["btag_weight1_up", "btag_weight1_down"]:
-        signal_train_syst.append(X_train*train_data[syst].values.reshape((-1,1)))
-        signal_test_syst.append(X_test*test_data[syst].values.reshape((-1,1)))
+    for syst in weight_syst:
+        for ud in ["_up", "_down"]:
+            signal_train_syst.append(X_train*train_data[syst + ud].values.reshape((-1,1)))
+            signal_test_syst.append(X_test*test_data[syst + ud].values.reshape((-1,1)))
     
     X_train = np.stack((X_train, *signal_train_syst), axis=2)
     X_test = np.stack((X_test, *signal_test_syst), axis=2)
     
-    trn = (X_train, y_train) #, weights_train)    
+    if use_weights == True:
+        trn = (X_train, y_train, weights_train)  
+    else:
+        trn = (X_train, y_train) 
     val = (X_test, y_test)
         
     #data = DataPair(trn_dl, val_dl)
@@ -137,9 +139,12 @@ def get_cmsopen_data(samples, n_sig = 20000, n_bkg = 10000):
     #                WeightedDataLoader(DataSet(*val), batch_size=bs))
 
     # rename the syst frames:
-    for syst in systematics:
-        #samples["TTJets_signal" + syst].columns = samples["TTJets_signal" + syst].columns.str.rstrip(syst)
-        samples["TTJets_signal" + syst].columns = samples["TTJets_signal" + syst].columns.str.replace(syst + r'$', '')
+    for syst in shape_syst:
+        for ud in ["_up", "_down"]:
+            #samples["TTJets_signal" + syst].columns = samples["TTJets_signal" + syst].columns.str.rstrip(syst)
+            samples["TTJets_signal_" + syst + ud].columns = samples["TTJets_signal_" + syst + ud].columns.str.replace(
+                "_" + syst + ud + r'$', '')
+            #print(list(samples["TTJets_signal_" + syst + ud]))
         
     for s in samples:
         if "TTJets_signal" in s:
@@ -147,29 +152,39 @@ def get_cmsopen_data(samples, n_sig = 20000, n_bkg = 10000):
             #print(list(samples[s]))
             samples[s]["is_train"] = samples[s].event_id.isin(train_idx)
     
-    
+    print("*********************")
+    print("Summary training data")
+    print("Features", features)
+    print("Shape systematics", shape_syst)
+    print("Weight systematics", weight_syst)
+    print("Use weights", use_weights)
     n_sig_train = sum(samples["TTJets_signal"]["is_train"]==1)
     print("Number of signal training / test events:", n_sig_train, len(samples["TTJets_signal"]) - n_sig_train)
     n_bkg_train = sum(samples["QCD"]["train_flag"]=="train")
     print("Number of bkg training / test events:", n_bkg_train, len(samples["QCD"]) - n_bkg_train)
-    
+    print("*********************")
+        
     return trn, val, scaler
 
 
 
 
-def run_inferno(data, epochs=20):
+def run_inferno(data, epochs=20, inferno_args=None, train_args=None):
     
     class ApproxCMSOpenInferno(AbsApproxInferno):
         r'''Inheriting class for dealing with INFERNO paper synthetic problem'''
         @delegates(AbsApproxInferno, but=['b_shape_alpha', 's_shape_alpha'])
         def __init__(self, b_true:float=2800, mu_true:float=300,  s_shape_alpha=True, **kwargs):
             super().__init__(b_true=b_true, mu_true=mu_true, **kwargs)
+            print("*********************")
+            print("Summary INFERNO setup")
+            print("b_true", self.b_true)
+            print("mu_true", self.mu_true)
             print("nshape_alphas", self.n_shape_alphas)
             print("shape_aux", self.shape_aux)
             print("s_norm_aux", self.s_norm_aux)
             print("n_alpha", self.n_alpha)
-
+            print("*********************")
 
         def on_train_begin(self) -> None:
             super().on_train_begin()
@@ -193,17 +208,54 @@ def run_inferno(data, epochs=20):
 
             return (torch.stack(u),torch.stack(d)), (None,None)
 
+        
+    if train_args is not None:
+        lr = train_args["lr"]
+        n_feats = train_args["n_feats"]
+        neurons = train_args["neurons"]
+        bins = train_args["bins"]
+        temperature = train_args["temperature"]
+        weights = train_args["weights"]
+    else:
+        lr = 1e-3
+        n_feats = 4
+        neurons = 100
+        bins = 10
+        temperature = 0.1
+        weights = False
     
     # Set up network
-    net_inferno = nn.Sequential(nn.Linear(4,100),  nn.ReLU(),
-                    nn.Linear(100,100), nn.ReLU(),
-                    nn.Linear(100,10), VariableSoftmax(0.1))
+    net_inferno = nn.Sequential(nn.Linear(n_feats,neurons),  nn.ReLU(),
+                    nn.Linear(neurons,neurons), nn.ReLU(),
+                    nn.Linear(neurons,bins), VariableSoftmax(temperature))
     lt = LossTracker()
     #init_net(net_inferno)
     model_inferno = ModelWrapper(net_inferno)
     
-    model_inferno.fit(epochs, data=data, opt=partialler(optim.Adam,lr=1e-3), loss=None,
-                      cbs=[ApproxCMSOpenInferno(n_shape_alphas=2), lt])  
+    
+    if inferno_args is not None:
+        # Signal and bkg
+        b_true = inferno_args["b_true"]
+        mu_true = inferno_args["mu_true"]
+        # Number of shape nuisances
+        n_shape_alphas = inferno_args["n_shape_alphas"]
+        # Constraints on the nuisance parameters - typically should be N(0,1) if +-1sigma templates are provided
+        shape_aux = inferno_args["shape_aux"]
+        # Uncertainties on signal norm - should be Normal(0,s) with s in absolute event numbers
+        s_norm_aux = inferno_args["s_norm_aux"]
+        # Boolean whether to let the background float
+        nonaux_b_norm = inferno_args["nonaux_b_norm"]
+    else:
+        b_true = 2800
+        mu_true = 300
+        n_shape_alphas = 2
+        shape_aux = None  
+        s_norm_aux = None
+        nonaux_b_norm = False
+    
+    model_inferno.fit(epochs, data=data, opt=partialler(optim.Adam,lr=lr), loss=None,
+                      cbs=[ApproxCMSOpenInferno(b_true=b_true, mu_true=mu_true, n_shape_alphas=n_shape_alphas, 
+                                                shape_aux=shape_aux, s_norm_aux=s_norm_aux, nonaux_b_norm=nonaux_b_norm), lt])  
     
     return model_inferno, lt
 
@@ -269,7 +321,8 @@ def plot_predictions(model, test_dl, outpath, name="inferno"):
     plt.show()
         
         
-def train(outpath, path = "/home/centos/data/bdt_rs5/", bs=256, epochs = 50, n_sig = 5000, n_bkg = 5000, store=True):
+def train(outpath, features, shape_syst, weight_syst, path = "/home/centos/data/bdt_rs5/", bs=256, epochs = 50, 
+          n_sig = 5000, n_bkg = 5000, inferno_args = None, train_args = None, use_weights = False, store=True):
     
     if not os.path.exists(outpath):
         os.makedirs(outpath)
@@ -282,22 +335,30 @@ def train(outpath, path = "/home/centos/data/bdt_rs5/", bs=256, epochs = 50, n_s
                 samples[s + "_" + syst + "_up"] = pd.read_hdf(path + s + "_" + syst + "_up" + ".h5")
                 samples[s + "_" + syst + "_down"] = pd.read_hdf(path + s + "_" + syst + "_down" + ".h5")
 
-    trn, val, scaler = get_cmsopen_data(samples, n_sig = n_sig, n_bkg = n_bkg)    
+    trn, val, scaler = get_cmsopen_data(samples, features, shape_syst, weight_syst, 
+                                        n_sig = n_sig, n_bkg = n_bkg, use_weights = use_weights)    
     trn_dl = WeightedDataLoader(DataSet(*trn), batch_size=bs, shuffle=True, drop_last=True)
     val_dl = WeightedDataLoader(DataSet(*val), batch_size=bs, shuffle=True)
     test_dl = WeightedDataLoader(DataSet(*val), batch_size=bs)
     data = DataPair(trn_dl, val_dl)
+    
+    print("*********************")
+    print("Summary dataloader")
+    print("x", trn_dl.dataset[0][0].shape)
+    print("y", trn_dl.dataset[0][1])
+    print("w", trn_dl.dataset[0][2])
+    print("*********************")
 
     # Run INFERNO
     
-    model_inferno, lt_inferno = run_inferno(data, epochs=epochs)
+    model_inferno, lt_inferno = run_inferno(data, epochs=epochs, inferno_args = inferno_args, train_args = train_args)
     # Monitor training
     plot_predictions(model_inferno, test_dl, outpath, name="inferno")
     plot_loss(lt_inferno, outpath, name="inferno")
     # Predict the shapes
     pred_nominal(samples, model_inferno, scaler, name='inferno')
     
-    
+    """
     # BCE for comparison
     model_bce, lt_bce = train_bce(data, epochs=50)
     # Monitor training
@@ -305,8 +366,8 @@ def train(outpath, path = "/home/centos/data/bdt_rs5/", bs=256, epochs = 50, n_s
     plot_loss(lt_bce, outpath, name="bce")
     # Predict the shapes
     pred_nominal(samples, model_bce, scaler, name="bce")        # BCE shift               
-    
-    
+    """
+     
     
     # Store
     if store:
@@ -314,7 +375,7 @@ def train(outpath, path = "/home/centos/data/bdt_rs5/", bs=256, epochs = 50, n_s
             samples[s].to_hdf(outpath + "/" + s + ".h5", "frame")
 
     
-    return trn_dl, val_dl, test_dl, samples, model_bce
+    return trn_dl, val_dl, test_dl, samples, model_inferno
     
 
 
