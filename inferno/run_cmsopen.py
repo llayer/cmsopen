@@ -223,6 +223,16 @@ def run_inferno(data, epochs=20, inferno_args=None, train_args=None):
         bins = 10
         temperature = 0.1
         weights = False
+
+    print("*********************")
+    print("Summary NN setup")
+    print("learning rate", lr)
+    print("n_feats", n_feats)
+    print("neurons", neurons)
+    print("temperature", temperature)
+    print("bins", bins)
+    print("weights", weights)
+    print("*********************")
     
     # Set up network
     net_inferno = nn.Sequential(nn.Linear(n_feats,neurons),  nn.ReLU(),
@@ -275,7 +285,7 @@ def train_bce(data, epochs=50, lr=1e-3):
 
 
 
-def pred_nominal(samples, model, scaler, name):
+def pred_nominal(samples, features, model, scaler, name):
     #"TTJets_signal"
     for s in samples:
         X = samples[s][features].values
@@ -287,18 +297,19 @@ def pred_nominal(samples, model, scaler, name):
             samples[s][name] = model._predict_dl(loader, pred_cb=InfernoPred())
 
         
-def plot_loss(lt, outpath, name="inferno"):
+def plot_loss(lt, outpath, name="inferno", store=True):
     
     plt.plot(lt.losses["trn"], label="train")
     plt.plot(lt.losses["val"], label="val")
     plt.ylabel(r"$\sigma^2(\mu)$")
     plt.xlabel(r"epoch")
     plt.legend(loc="upper right")
-    plt.savefig(outpath + "/loss_" + name + ".png")
+    if store:
+        plt.savefig(outpath + "/loss_" + name + ".png")
     plt.show()
         
         
-def plot_predictions(model, test_dl, outpath, name="inferno"):
+def plot_predictions(model, test_dl, outpath, name="inferno", store=True):
 
     if name == "inferno":
         preds = model._predict_dl(test_dl, pred_cb=InfernoPred())
@@ -317,7 +328,8 @@ def plot_predictions(model, test_dl, outpath, name="inferno"):
     plt.hist(sig, density=True, alpha=0.5, bins=10, range=hist_range, label="Signal")
     plt.hist(bkg, density=True, alpha=0.5, bins=10, range=hist_range, label="Background")
     plt.legend(loc="upper left")
-    plt.savefig(outpath + "/preds_" + name + ".png")    
+    if store:
+        plt.savefig(outpath + "/preds_" + name + ".png")    
     plt.show()
         
         
@@ -344,6 +356,8 @@ def train(outpath, features, shape_syst, weight_syst, path = "/home/centos/data/
     
     print("*********************")
     print("Summary dataloader")
+    print("batch size", bs)
+    print("epochs", epochs)
     print("x", trn_dl.dataset[0][0].shape)
     print("y", trn_dl.dataset[0][1])
     print("w", trn_dl.dataset[0][2])
@@ -353,29 +367,28 @@ def train(outpath, features, shape_syst, weight_syst, path = "/home/centos/data/
     
     model_inferno, lt_inferno = run_inferno(data, epochs=epochs, inferno_args = inferno_args, train_args = train_args)
     # Monitor training
-    plot_predictions(model_inferno, test_dl, outpath, name="inferno")
-    plot_loss(lt_inferno, outpath, name="inferno")
-    # Predict the shapes
-    pred_nominal(samples, model_inferno, scaler, name='inferno')
+    plot_predictions(model_inferno, test_dl, outpath, name="inferno", store=store)
+    plot_loss(lt_inferno, outpath, name="inferno", store=store)
     
     """
     # BCE for comparison
     model_bce, lt_bce = train_bce(data, epochs=50)
     # Monitor training
-    plot_predictions(model_bce, test_dl, outpath, name="bce")
-    plot_loss(lt_bce, outpath, name="bce")
+    plot_predictions(model_bce, test_dl, outpath, name="bce", store=store)
+    plot_loss(lt_bce, outpath, name="bce", store=store)
     # Predict the shapes
-    pred_nominal(samples, model_bce, scaler, name="bce")        # BCE shift               
+    pred_nominal(samples, features, model_bce, scaler, name="bce")        # BCE shift               
     """
      
     
     # Store
     if store:
+        # Predict the shapes
+        pred_nominal(samples, features, model_inferno, scaler, name='inferno')
         for s in samples:
             samples[s].to_hdf(outpath + "/" + s + ".h5", "frame")
-
     
-    return trn_dl, val_dl, test_dl, samples, model_inferno
+    return lt_inferno
     
 
 
