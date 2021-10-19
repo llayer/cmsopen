@@ -281,15 +281,28 @@ def print_yields(path):
     print(df_out[cols3].to_latex(escape=False, header=header3))
 
     
+def norms_to_hdf(inpath, outpath):
     
-    
+    f = ROOT.TFile(inpath)
+    d = f.Get("signal_region")
+    hists = [l.GetName()for l in d.GetListOfKeys()]
+    norm_dict = {}
+    for h_name in hists:
+        h = d.Get(h_name)
+        norm_dict[h_name] = h.Integral()
+    df = pd.DataFrame([norm_dict])
+    df.to_hdf(outpath, "frame")
     
 if __name__ == "__main__":
     
-    file_path = "/eos/user/l/llayer/cmsopen/columnar/syst_variation/histos/bdt.root"
-    outpath = "/eos/user/l/llayer/cmsopen/columnar/syst_variation/histos/harvester_input.root"
-    to_harvester(file_path, outpath)
-    
+    #file_path = "/eos/user/l/llayer/cmsopen/columnar/syst_variation/histos/bdt.root"
+    #outpath = "/eos/user/l/llayer/cmsopen/columnar/syst_variation/histos/harvester_input.root"
+    #to_harvester(file_path, outpath)
+ 
+    inpath = "/eos/user/l/llayer/cmsopen/columnar/note_v0/combine/harvester_input.root"
+    outpath = "/eos/user/l/llayer/cmsopen/columnar/note_v0/bdt_rs5/norms.h5"
+    norms_to_hdf(inpath, outpath)
+
     """
     for d in mc: # + data:
         print( d )
