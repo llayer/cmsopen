@@ -7,26 +7,26 @@ import plotScan
 import os
 import numpy as np
 
-NAME = "inferno_cmsopen6"
+NAME = "inferno_cmsopen7"
 BASE_DIR = "/eos/user/l/llayer/cmsopen/study_inferno/results/combine/"
 FIT_DIR = BASE_DIR + NAME + "/"
 
-dc = True
-run_combine = True
+dc = False
+float_qcd = True
+run_combine = False
 stat_only = False
 gof = False
 closure = False
-impact = True
+impact = False
 maxL = True
 multi = True
-plot_ll = False
+plot_ll = True
 #asimov = True
 
 if dc:
     f = FIT_DIR + "harvester_input.root"
-    create_dc.inferno_full(f, FIT_DIR, 'bce', ["bce_jes", "bce_btag"])
-    create_dc.inferno_full(f, FIT_DIR, 'inferno', ["inferno_jes", "inferno_btag"])
-
+    create_dc.inferno_full(f, FIT_DIR, 'bce', ["bce_jes", "bce_btag"], float_qcd=float_qcd)
+    create_dc.inferno_full(f, FIT_DIR, 'inferno', ["inferno_jes", "inferno_btag"],float_qcd=float_qcd)
 
 if run_combine:
 
@@ -40,4 +40,5 @@ if run_combine:
 
 if plot_ll:
     print("Plotting")
-    plotScan.plotNLL(FIT_DIR)
+    indir = FIT_DIR + "Fit/"
+    plotScan.plot_comp_nll(indir)

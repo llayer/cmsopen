@@ -4,7 +4,7 @@ import os
 
 
 
-def inferno_full(file, outpath, variable, syst, norm=None):
+def inferno_full(file, outpath, variable, syst, norm=None, float_qcd=True):
 
     cb = ch.CombineHarvester()
 
@@ -61,7 +61,8 @@ def inferno_full(file, outpath, variable, syst, norm=None):
         cb.cp().process(["TTJets_signal"]).AddSyst(
         cb, "norm", "lnN", ch.SystMap()(norm))
 
-    cb.cp().process(["QCD"]).AddSyst(cb, "qcd_rate", "rateParam", ch.SystMap()(1.00))
+    if float_qcd:
+        cb.cp().process(["QCD"]).AddSyst(cb, "qcd_rate", "rateParam", ch.SystMap()(1.00))
 
     cb.PrintSysts()
 
@@ -321,11 +322,11 @@ def run_harvester(file, outpath):
 
         f = rt.TFile(file)
         #print(f.ls())
-        print "Norm variations"
+        print( "Norm variations" )
         for s in syst:
-            print name + "_" + s + "Up"
-            print name, s, f.Get("signal_region/" + name + "_" + s + "Up").Integral()
-            print name, s, f.Get("signal_region/" + name + "_" + s + "Down").Integral()
+            print(name + "_" + s + "Up")
+            print(name, s, f.Get("signal_region/" + name + "_" + s + "Up").Integral())
+            print(name, s, f.Get("signal_region/" + name + "_" + s + "Down").Integral())
 
     # Definition of channels
     chns = ['bdt']
@@ -402,7 +403,7 @@ def run_harvester(file, outpath):
             hDown = f.Get('signal_region/' + pr + '_' + sys +'Down')
 
             syst_uncertainty = round( getSys(hNominal, hUp, hDown), 3)
-            print pr, syst_uncertainty
+            print( pr, syst_uncertainty )
 
             cb.cp().process([pr]).AddSyst(
             cb, "xsec", "lnN", ch.SystMap()(syst_uncertainty))
