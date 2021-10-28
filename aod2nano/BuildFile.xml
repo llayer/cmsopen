@@ -1,0 +1,29 @@
+<use   name="DataFormats/FWLite"/>
+<use   name="FWCore/Utilities"/>
+<use   name="FWCore/ParameterSet"/>
+<use   name="FWCore/MessageLogger"/>
+<use   name="FWCore/ServiceRegistry"/>
+<use   name="CommonTools/UtilAlgos"/>
+<use   name="PhysicsTools/PatUtils"/>
+<use   name="PhysicsTools/CandUtils"/>
+<use   name="PhysicsTools/KinFitter"/>
+<use   name="PhysicsTools/Utilities"/>
+<use   name="DataFormats/JetReco"/>
+<use   name="DataFormats/MuonReco"/>
+<use   name="DataFormats/EgammaReco"/>
+<use   name="DataFormats/CaloTowers"/>
+<use   name="DataFormats/EgammaCandidates"/>
+<use   name="DataFormats/PatCandidates"/>
+<use   name="DataFormats/Math"/>
+<use   name="SimDataFormats/GeneratorProducts"/>
+<use   name="TopAnalysis/TopUtils"/>
+<use   name="AnalysisDataFormats/TopObjects"/>
+<use   name="TopQuarkAnalysis/TopKinFitter"/>
+<use   name="TopQuarkAnalysis/TopEventSelection"/>
+<use   name="lhapdffull"/>
+<use   name="RecoBTag/Records"/>
+<use   name="RecoBTag/PerformanceDB"/>
+<use   name="CondFormats/PhysicsToolsObjects"/>
+<export>
+  <lib   name="1"/>
+</export>
