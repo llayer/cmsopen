@@ -8,31 +8,40 @@ import matplotlib.pyplot as plt
 import glob as glob
 from pathlib import Path
 import stack
-import importlib
+import json
 import ROOT
 
 ROOT.gROOT.SetBatch(True)
 
-NAME = "inferno_cmsopen7"
+NAME = "inferno_cmsopen13"
 INPUT_PATH = "/eos/user/l/llayer/cmsopen/columnar/note_v0/input/"+ NAME + "/"
 HISTO_PATH = "/eos/user/l/llayer/cmsopen/study_inferno/results/histos/"+ NAME + ".root"
 STACK_PATH = "/eos/user/l/llayer/cmsopen/study_inferno/results/stacks/"+ NAME + "/"
 SYST_PATH = "/eos/user/l/llayer/cmsopen/study_inferno/results/systs/"+ NAME + "/"
 COMBINE_PATH = "/eos/user/l/llayer/cmsopen/study_inferno/results/combine/"+ NAME + "/"
-SYSTS = ["jes", "btag"]
-corrs = ["btag_up", "btag_down"]
-
 
 def main():
 
     samples = load_samples()
+
+    summary = load_summary(INPUT_PATH)
+    print(summary)
+    shape_syst = summary["shape_syst"]
+    weight_syst = summary["weight_syst"]
+    norm_syst = summary["norm_syst"]
+
     variables = get_variables(samples)
-    #importlib.reload(plot_artificial_syst)
-    plot_artificial_syst.vars_to_histos(samples, variables, HISTO_PATH, corrs=corrs)
+    plot_artificial_syst.vars_to_histos(samples, variables, HISTO_PATH, corrs = weight_syst)
     #stack_vars = [ x for x in variables if "nominal" in x["var_name"]]
     plot_stack(variables)
-    #plot_all_systs()
-    inferno_to_harvester(HISTO_PATH, COMBINE_PATH)
+    plot_all_systs(syst = shape_syst + weight_syst)
+    inferno_to_harvester(HISTO_PATH, COMBINE_PATH, syst = shape_syst + weight_syst)
+
+
+def load_summary(inpath):
+    with open(inpath + "summary.json") as json_file:
+        data = json.load(json_file)
+    return data
 
 
 def load_samples(inpath = INPUT_PATH):
@@ -40,7 +49,7 @@ def load_samples(inpath = INPUT_PATH):
     samples = {}
     for sample in files:
 
-        if "cutflow" in sample: continue
+        if "summary" in sample: continue
         sample_name = sample.split("/")[-1][:-3]
         print(sample_name)
         samples[sample_name] = pd.read_hdf(sample)
@@ -76,13 +85,13 @@ def plot_syst(f, nominal, up, down, sample = "TTJets_signal", name="test", bce=T
     cent = f.Get(sample + "_" + nominal)
     up = f.Get(sample + "_" + up)
     down = f.Get(sample + "_" + down)
-    plot_artificial_syst.plot_variation(SYST_PATH, name, name, "", cent, up, down, bce=bce)
+    plot_artificial_syst.plot_variation(SYST_PATH, name, name, cent, up, down, bce=bce)
 
 
-def plot_all_systs():
+def plot_all_systs(syst):
     Path(SYST_PATH).mkdir(parents=True, exist_ok=True)
     f = ROOT.TFile(HISTO_PATH, "READ")
-    for c in SYSTS:
+    for c in syst:
         plot_syst(f, 'bce', str(c) + '_up' + "_bce",
                   str(c) + '_down' + "_bce", name='bce_' + str(c), bce=True)
         plot_syst(f, 'inferno', str(c) + '_up' + "_inferno", str(c) + '_down' + "_inferno", name='inferno_' + str(c), bce=False)
@@ -90,48 +99,34 @@ def plot_all_systs():
 
 
 
-def inferno_to_harvester(file_path, outpath):
+def inferno_to_harvester(file_path, outpath, syst = []):
 
     Path(COMBINE_PATH).mkdir(parents=True, exist_ok=True)
     f = ROOT.TFile(file_path)
     outfile = ROOT.TFile(outpath + "harvester_input.root", 'RECREATE')
 
-    # BCE
-    outfile.mkdir("bce")
-    outfile.cd("bce")
-    h = f.Get("Data" + "_" + "bce")
-    h.Write('data_obs')
+    for var in ["bce", "inferno"]:
 
-    for sample in [ "QCD", "TTJets_bkg", "WZJets", "STJets", "TTJets_signal"]:
-        h = f.Get(sample + "_" + "bce")
-        h.Write(sample)
+        outfile.mkdir(var)
+        outfile.cd(var)
+        h = f.Get("Data" + "_" + var)
+        h.Write('data_obs')
 
-        if sample == "TTJets_signal":
+        for sample in [ "QCD", "TTJets_bkg", "WZJets", "STJets", "TTJets_signal"]:
+            h = f.Get(sample + "_" + var)
+            h.Write(sample)
 
-            for c in SYSTS:#, "met"]:
-                h = f.Get(sample + "_" + str(c) + '_up' + "_bce")
-                h.Write(sample + "_" + "bce_" + c + "Up")
-                h = f.Get(sample + "_" + str(c) + '_down' + "_bce")
-                h.Write(sample + "_" + "bce_" + c + "Down")
+            if sample == "TTJets_signal":
 
-
-    # INFERNO shift norm
-    outfile.mkdir("inferno")
-    outfile.cd("inferno")
-    h = f.Get("Data" + "_" + "inferno")
-    h.Write('data_obs')
-
-    for sample in [ "QCD", "TTJets_bkg", "WZJets", "STJets", "TTJets_signal"]:
-
-        h = f.Get(sample + "_" + "inferno")
-        h.Write(sample)
-
-        if sample == "TTJets_signal":
-            for c in SYSTS:#, "met"]:
-                h = f.Get(sample + "_" + str(c) + '_up' + "_inferno")
-                h.Write(sample + "_" + "inferno_" + c + "Up")
-                h = f.Get(sample + "_" + str(c) + '_down' + "_inferno")
-                h.Write(sample + "_" + "inferno_" + c + "Down")
+                for c in syst:#, "met"]:
+                    if "jes" in c:
+                        name = "jes"
+                    else:
+                        name = c
+                    h = f.Get(sample + "_" + str(c) + '_up' + "_bce")
+                    h.Write(sample + "_" + name + "Up")
+                    h = f.Get(sample + "_" + str(c) + '_down' + "_bce")
+                    h.Write(sample + "_" + name + "Down")
 
     print(outfile.ls())
     outfile.Close()

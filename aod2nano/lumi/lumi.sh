@@ -1,6 +1,0 @@
-#export PATH=$HOME/.local/bin:/cvmfs/cms-bril.cern.ch/brilconda/bin:$PATH
-#export PATH=$HOME/.local/bin:/cvmfs/cms-bril.cern.ch/brilconda3/bin:$PATH
-#brilcalc lumi  -c web --type pxl --begin 171050 --end 178420  --hltpath "HLT_QuadJet45_IsoPFTau45_v*" -u /pb -i /afs/cern.ch/work/l/llayer/CMSSW_5_3_32/src/workspace/pattuples2011/data/Cert_160404-180252_7TeV_ReRecoNov08_Collisions11_JSON.txt > HLT_QuadJet45_IsoPFTau45_171050_178420.txt
-#brilcalc lumi  -c web --type pxl --begin 165970 --end 166782  --hltpath "HLT_QuadJet45_IsoPFTau45_v*" -u /pb -i /afs/cern.ch/work/l/llayer/CMSSW_5_3_32/src/workspace/pattuples2011/data/Cert_160404-180252_7TeV_ReRecoNov08_Collisions11_JSON.txt > HLT_QuadJet45_IsoPFTau45_165970_166782.txt
-brilcalc lumi  -c web --type pxl --begin 160431 --end 165969  --hltpath "HLT_QuadJet40_IsoPFTau40_v*" -u /pb -i /afs/cern.ch/work/l/llayer/CMSSW_5_3_32/src/workspace/pattuples2011/data/Cert_160404-180252_7TeV_ReRecoNov08_Collisions11_JSON.txt > HLT_QuadJet40_IsoPFTau40_160431_165969.txt
-brilcalc lumi  -c web --type pxl --begin 166783 --end 171049  --hltpath "HLT_QuadJet40_IsoPFTau40_v*" -u /pb -i /afs/cern.ch/work/l/llayer/CMSSW_5_3_32/src/workspace/pattuples2011/data/Cert_160404-180252_7TeV_ReRecoNov08_Collisions11_JSON.txt > HLT_QuadJet40_IsoPFTau40_166783_171049.txt

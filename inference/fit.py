@@ -1,10 +1,10 @@
 import os, commands
-
+import plot_pulls
 # Used datacard
 #datacard = "/afs/cern.ch/work/l/llayer/CMSSW_10_2_18/src/cmsopen/inference/DataCard_SystVar/bdt/tt/taujets_bdt_signal_region_7TeV"
 #datacard = "/afs/cern.ch/work/l/llayer/CMSSW_10_2_18/src/cmsopen/inference/DataCard/bdt/tt/taujets_bdt_signal_region_7TeV.txt"
 
-def fit_dc( datacard, outpath, stat_only=False, gof=False, closure=False, impact=False, maxL=False, multi=False, asimov=False ):
+def fit_dc( datacard, outpath, stat_only=False, impact=False, maxL=False, multi=False, robust=True, asimov=False ):
 
     print "Fitting datacard:", datacard
 
@@ -16,72 +16,60 @@ def fit_dc( datacard, outpath, stat_only=False, gof=False, closure=False, impact
 
     if asimov == True:
         print("FITTING WITH ASIMOV DATA")
-        asimov_suffix = " -t -1 --expectSignal 1"
+        suffix = " -t -1 --expectSignal 1"
         outdir += "_asimov"
     else:
-        asimov_suffix = ""
+        suffix = ""
 
+    if robust == True:
+        suffix += " --robustFit 1"
 
+    print("Suffix:", suffix)
 
     if not os.path.exists(outdir):
         os.makedirs(outdir)
 
-    if (gof):
-        # Evtl. fix signal strength
-        os.system("combine -M GoodnessOfFit " + datacard + ".txt --algo=KS")
-        os.system("combine -M GoodnessOfFit " + datacard + ".txt --algo=KS -t 100")
-
-    if (closure):
-        os.system("combine -M FitDiagnostics " + datacard + ".txt -t -1 --expectSignal 0")
-        os.system("combine -M FitDiagnostics " + datacard + ".txt -t -1 --expectSignal 1")
-        os.system("python diffNuisances.py fitDiagnostics.root")
 
     if(impact):
+
         os.system("text2workspace.py " + datacard + ".txt")
-        os.system("combineTool.py -M Impacts -d  " + datacard + ".root -m 125 --autoBoundsPOIs r  --robustFit 1 --autoRange 1 --doInitialFit" + asimov_suffix)
-        os.system("combineTool.py -M Impacts -d  " + datacard + ".root -m 125 --autoBoundsPOIs r  --robustFit 1 --autoRange 1 --doFits" + asimov_suffix)
-        os.system("combineTool.py -M Impacts -d  " + datacard + ".root -m 125 --autoBoundsPOIs r  --autoRange 1 -o prova.json" + asimov_suffix)
-        os.system("plotImpacts.py -i prova.json  -o impacts")
-        os.system("cp impacts.pdf " + outdir)
+        para  = ""#" --parallel 8"
+
+        # CHECK --squareDistPoiStep and--autoRange
+        os.system("combineTool.py -M Impacts -d  " + datacard + ".root -m 125 --autoBoundsPOIs r  --autoRange 2 --doInitialFit" + suffix + para)
+        os.system("combineTool.py -M Impacts -d  " + datacard + ".root -m 125 --autoBoundsPOIs r  --autoRange 2  --doFits" + suffix + para)
+        os.system("combineTool.py -M Impacts -d  " + datacard + ".root -m 125 --autoBoundsPOIs r  --autoRange 2 --squareDistPoiStep -o" + outdir + "/prova.json" + suffix)
+
+
+        os.system("plotImpacts.py -i " + outdir + "/prova.json -o impacts --pullDef relDiffAsymErrs")
+        os.system("mv impacts.pdf " + outdir)
+        os.system("rm *.root")
+
+
 
     if(maxL):
-        #--cminDefaultMinimizerStrategy 0 TEST
-        #os.system("combine -M FitDiagnostics " + datacard + ".root --out " + outdir ) #  --saveShapes --saveWithUncertainties --plots --saveNormalizations --robustFit 1 --customStartingPoint --stepSize 0.004 --out " + directory + " --profilingMode all --keepFailures  --autoBoundsPOIs r")
 
-        command = "combine -M FitDiagnostics " + datacard + ".txt --out " + outdir + " --saveNormalizations --saveShapes" + asimov_suffix
-        #command = "combine -M FitDiagnostics " + datacard + ".txt" + asimov_suffix
+        command = "combine -M FitDiagnostics " + datacard + ".txt --out " + outdir + " --saveNormalizations  --saveShapes" + suffix
+        #command = "combine -M FitDiagnostics " + datacard + ".txt" + suffix
         if stat_only:
             command += " --freezeParameters allConstrainedNuisances"
         os.system( command )
 
+        command = "python ..//..//HiggsAnalysis/CombinedLimit/test/diffNuisances.py " + outdir + "/fitDiagnosticsTest.root" + \
+                  " --pullDef relDiffAsymErrs  | sed -e 's/!/ /g' -e 's/,/ /g' | sed -e 's/*/ /g' -e 's/,/ /g' | tail -n +3 > " + outdir + "/pulls.txt"
+        #print( command )
+        os.system( command )
+        os.system("cat " + outdir + "/pulls.txt")
+        plot_pulls.plot(outdir)
 
-        """
-        print "Making pull distributions ..."
-        os.system("./fit_macros/make_pulls.sh " + directory +"/fitDiagnostics.root")
-        os.system("cat pulls.txt")
-        os.system("python fit_macros/pulls.py -f pulls.txt")
-        os.system("mv pulls.txt "+directory)
-        os.system("mv pulls.tex "+directory)
-        os.system("mv pulls_no_binbybin.png "+directory)
-        os.system("mv rho_no_binbybin.png "+directory)
-        """
 
     if(multi):
         # DANGER add robust fit??
         paramRange = "--setParameterRanges r=0.,2."
         #os.system("combine " + datacard + " -M MultiDimFit --algo=grid  --points 200 " + paramRange )# --robustFit 1 --stepSize 0.004 )
-        command = "combine " + datacard + ".txt -M MultiDimFit --algo=grid  --points 200 " + paramRange + asimov_suffix
+        command = "combine " + datacard + ".txt -M MultiDimFit --algo=grid  --points 200 " + paramRange + suffix
         if stat_only:
             command += " --freezeParameters allConstrainedNuisances"
         os.system( command )
 
         os.system("mv higgsCombineTest.MultiDimFit.mH120.root " + outdir)
-
-        """
-        if stat_only:
-            os.system("mv higgsCombineTest.MultiDimFit.mH120.root " + outdir + "/multi_stat.root")
-        else:
-            os.system("mv higgsCombineTest.MultiDimFit.mH120.root " + outdir + "/multi_syst.root")
-        """
-        #if opt.multidim == False:
-        #    os.system("python fit_macros/plotScan.py -o " + directory + ' --cat ' + opt.cat)
