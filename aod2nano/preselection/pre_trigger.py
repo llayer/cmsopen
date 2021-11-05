@@ -31,7 +31,7 @@ def pass_against_mu(evt, iTau):
     return False
 
 
-def pass_pre_sel(evt):
+def pass_pre_sel_tau(evt):
 
 
     if not ( evt.nJet>=4 ):
@@ -49,10 +49,28 @@ def pass_pre_sel(evt):
     return True
 
 
+def pass_pre_sel_jet(evt):
+
+    #print ":::::::::::::::"
+    if evt.nJet < 4:
+        return False
+
+    for iJet in range(evt.nJet):
+
+        if iJet == 3:
+            break
+
+        #print evt.Jet_pt[iJet]
+        if evt.Jet_pt[iJet] < 70.:
+            return False
+
+    #print "Pass"
+    return True
+
 
 def preselect():
 
-    ff = ROOT.TFile( '/eos/user/l/llayer/opendata_files/legacy_id/Run2011A_MultiJet/Run2011A_MultiJet_564CBC7A-C143-E311-895A-C860001BD936_348.root')  #ff = ROOT.TFile( '/eos/user/l/llayer/opendata_files/legacy/Run2011A_MultiJet/Run2011A_MultiJet_56D66460-C743-E311-B818-BCAEC518FF62_3089.root') # ff = ROOT.TFile( '/eos/user/l/llayer/opendata_files/legacy/DYJetsToLL/DYJetsToLL_AA11C768-AEBC-E311-B184-0025905A60BE_4018.root')
+    ff = ROOT.TFile( '/eos/user/l/llayer/opendata_files/legacy_id/Run2011B_SingleMu/Run2011B_SingleMu_808BDB63-9837-E311-8A49-003048F23A06_2595.root')# '/eos/user/l/llayer/opendata_files/legacy_id/Run2011A_MultiJet/Run2011A_MultiJet_564CBC7A-C143-E311-895A-C860001BD936_348.root')  #ff = ROOT.TFile( '/eos/user/l/llayer/opendata_files/legacy/Run2011A_MultiJet/Run2011A_MultiJet_56D66460-C743-E311-B818-BCAEC518FF62_3089.root') # ff = ROOT.TFile( '/eos/user/l/llayer/opendata_files/legacy/DYJetsToLL/DYJetsToLL_AA11C768-AEBC-E311-B184-0025905A60BE_4018.root')
     #'/eos/user/l/llayer/opendata_files/legacy/Run2011A_MultiJet/Run2011A_MultiJet_56D66460-C743-E311-B818-BCAEC518FF62_3089.root')
     tree_in = ff.Get("MyModule/Events")
     tree_info = ff.Get("MyModule/Info")
@@ -62,7 +80,7 @@ def preselect():
 
     for counter, evt in enumerate(tree_in):
 
-        if not pass_pre_sel(evt):
+        if not pass_pre_sel_jet(evt):
             continue
         else:
             newtree.Fill()

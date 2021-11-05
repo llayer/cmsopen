@@ -7,6 +7,7 @@
 #include "AnalysisDataFormats/TopObjects/interface/TtGenEvent.h"
 #include "DataFormats/Common/interface/TriggerResults.h"
 #include "DataFormats/Common/interface/MergeableCounter.h"
+#include "CondFormats/JetMETObjects/interface/JetCorrectionUncertainty.h"
 #include "FWCore/Common/interface/TriggerNames.h"
 #include "FWCore/Framework/interface/Run.h"
 #include "FWCore/ServiceRegistry/interface/Service.h"
@@ -23,6 +24,7 @@
 #include "TLorentzVector.h"
 #include "TopTauAnalyze.h"
 
+
 typedef math::XYZPoint Point;
 
 TopTauAnalyze::TopTauAnalyze(const edm::ParameterSet& cfg)
@@ -30,8 +32,10 @@ TopTauAnalyze::TopTauAnalyze(const edm::ParameterSet& cfg)
   edm::Service<TFileService> fs;
 
   isData            = cfg.getParameter < bool >      ("isData");
-  skim_jets         = cfg.getParameter < bool >      ("skim_jets");
-  skim_tau          = cfg.getParameter < bool >      ("skim_tau");
+  inFile            = cfg.getParameter < std::string >("inFile");
+  prefilter         = cfg.getParameter < bool >      ("prefilter");
+  prefilter_jet_trigger          = cfg.getParameter < bool >      ("prefilter_jet_trigger");
+  prefilter_tau_trigger          = cfg.getParameter < bool >      ("prefilter_tau_trigger");
   electron_cut_pt   = cfg.getParameter < double >    ("electron_cut_pt");
   electron_cut_eta  = cfg.getParameter < double >    ("electron_cut_eta");
   muon_cut_pt       = cfg.getParameter < double >    ("muon_cut_pt");
@@ -42,6 +46,7 @@ TopTauAnalyze::TopTauAnalyze(const edm::ParameterSet& cfg)
   jet_cut_eta       = cfg.getParameter < double >    ("jet_cut_eta");
 
 
+  jecUnc = new JetCorrectionUncertainty("JEC/START53_LV6A1_Uncertainty_AK5PF.txt");
 
   tree = fs->make<TTree>("Events", "Events");
 
@@ -50,6 +55,7 @@ TopTauAnalyze::TopTauAnalyze(const edm::ParameterSet& cfg)
   tree->Branch("luminosityBlock", &value_lumi_block);
   tree->Branch("event", &value_event);
   tree->Branch("isData", &value_isData);
+  tree->Branch("file", &inFile);
 
 
   // Trigger
@@ -302,6 +308,11 @@ TopTauAnalyze::TopTauAnalyze(const edm::ParameterSet& cfg)
   tree->Branch("Jet_eHLT45", value_jet_hlt45e, "Jet_eHLT45[nJet]/F");
   if ( isData != 1 ) {
     tree->Branch("Jet_flavour", value_jet_flavour, "Jet_flavour[nJet]/I");
+    tree->Branch("Jet_jec_up", value_jec_up, "Jet_jec_up[nJet]/F");
+    tree->Branch("Jet_jec_down", value_jec_down, "Jet_jec_down[nJet]/F");
+    tree->Branch("Jet_jer_cent", value_jer_cent, "Jet_jer_cent[nJet]/F");
+    tree->Branch("Jet_jer_down", value_jer_down, "Jet_jer_down[nJet]/F");
+    tree->Branch("Jet_jer_up", value_jer_up, "Jet_jer_up[nJet]/F");
     tree->Branch("Jet_genpx", value_jet_genpx, "Jet_genpx[nJet]/F");
     tree->Branch("Jet_genpy", value_jet_genpy, "Jet_genpy[nJet]/F");
     tree->Branch("Jet_genpz", value_jet_genpz, "Jet_genpz[nJet]/F");
@@ -351,13 +362,24 @@ TopTauAnalyze::TopTauAnalyze(const edm::ParameterSet& cfg)
   nEventsFiltered = 0;
   info->Branch("nEventsFiltered", &nEventsFiltered);
 
-  /*
-  btag = fs->make<TTree>("btag", "btag");
-  btag->Branch("flavour", &b_flavour, "Jet_flavour/I");
-  btag->Branch("pt", &b_pt, "Jet_pt/F");
-  btag->Branch("eta", &b_eta, "Jet_eta/F");
-  btag->Branch("csvDisc", &b_csvDisc, "Jet_csvDisc/F");
-  */
+  if (!isData ){
+    // Histos to store the b-tag efficiency
+    // https://github.com/rappoccio/usercode/blob/Dev_53x/EDSHyFT/plugins/BTaggingEffAnalyzer.cc
+    // DANGER check the Disc value!! set to medium
+    int ptNBins            = 100;
+    float ptMin              = 0.;
+    float ptMax              = 1000.;
+    int etaNBins           = 60;
+    float etaMin             = -3.;
+    float etaMax             = 3.;
+    h2_BTaggingEff_Denom_b    = fs->make<TH2F>("h2_BTaggingEff_Denom_b", ";p_{T} [GeV];#eta", ptNBins, ptMin, ptMax, etaNBins, etaMin, etaMax);
+    h2_BTaggingEff_Denom_c    = fs->make<TH2F>("h2_BTaggingEff_Denom_c", ";p_{T} [GeV];#eta", ptNBins, ptMin, ptMax, etaNBins, etaMin, etaMax);
+    h2_BTaggingEff_Denom_udsg = fs->make<TH2F>("h2_BTaggingEff_Denom_udsg", ";p_{T} [GeV];#eta", ptNBins, ptMin, ptMax, etaNBins, etaMin, etaMax);
+    h2_BTaggingEff_Num_b    = fs->make<TH2F>("h2_BTaggingEff_Num_b", ";p_{T} [GeV];#eta", ptNBins, ptMin, ptMax, etaNBins, etaMin, etaMax);
+    h2_BTaggingEff_Num_c    = fs->make<TH2F>("h2_BTaggingEff_Num_c", ";p_{T} [GeV];#eta", ptNBins, ptMin, ptMax, etaNBins, etaMin, etaMax);
+    h2_BTaggingEff_Num_udsg = fs->make<TH2F>("h2_BTaggingEff_Num_udsg", ";p_{T} [GeV];#eta", ptNBins, ptMin, ptMax, etaNBins, etaMin, etaMax);
+  }
+
 }
 
 TopTauAnalyze::~TopTauAnalyze()
@@ -372,6 +394,7 @@ void TopTauAnalyze::analyze(const edm::Event& evt, const edm::EventSetup& setup)
   using namespace reco;
   using namespace std;
 
+  std::cout<< inFile << std::endl;
 
   ///////////////////////////
   // Event information
@@ -939,7 +962,28 @@ void TopTauAnalyze::analyze(const edm::Event& evt, const edm::EventSetup& setup)
       }
 
       if(!isData){
+
         value_jet_flavour[value_jet_n] = it->partonFlavour();
+
+        // JEC uncertainties
+        double corrUp = 1.0;
+        double corrDown = 1.0;
+        if( fabs(it->eta()) < 5) jecUnc->setJetEta( it->eta() );
+        else jecUnc->setJetEta( 4.99 );
+        jecUnc->setJetPt( it->pt() );
+        corrUp = (1 + fabs(jecUnc->getUncertainty(1)));
+        if( fabs(it->eta()) < 5) jecUnc->setJetEta( it->eta() );
+        else jecUnc->setJetEta( 4.99 );
+        jecUnc->setJetPt( it->pt() );
+        corrDown = (1 - fabs(jecUnc->getUncertainty(-1)));
+
+        value_jec_up[value_jet_n] = corrUp;
+        value_jec_down[value_jet_n] = corrDown;
+        std::vector<float> jer_factors = getJERFactor(fabs(it->eta())); // returns in order {factor, factor_down, factor_up}
+        value_jer_cent[value_jet_n] = jer_factors[0];
+        value_jer_down[value_jet_n] = jer_factors[1];
+        value_jer_up[value_jet_n] = jer_factors[2];
+
         if(it->genJet() != 0){
           value_jet_genpx[value_jet_n] = it->genJet()->px();
           value_jet_genpy[value_jet_n] = it->genJet()->py();
@@ -952,6 +996,25 @@ void TopTauAnalyze::analyze(const edm::Event& evt, const edm::EventSetup& setup)
           value_jet_genpartonpz[value_jet_n] = it->genParton()->pz();
           value_jet_genpartone[value_jet_n] = it->genParton()->energy();
         }
+
+        // Store the b-tagging info
+        float discriminatorValue = 0.679;
+        if( abs(it->partonFlavour())==5 ){
+            h2_BTaggingEff_Denom_b->Fill(it->pt(), it->eta());
+            if( it->bDiscriminator ("combinedSecondaryVertexBJetTags") >= discriminatorValue )
+                h2_BTaggingEff_Num_b->Fill(it->pt(), it->eta());
+        }
+        else if( abs(it->partonFlavour())==4 ){
+            h2_BTaggingEff_Denom_c->Fill(it->pt(), it->eta());
+            if( it->bDiscriminator ("combinedSecondaryVertexBJetTags") >= discriminatorValue )
+                h2_BTaggingEff_Num_c->Fill(it->pt(), it->eta());
+        }
+        else{
+            h2_BTaggingEff_Denom_udsg->Fill(it->pt(), it->eta());
+            if( it->bDiscriminator ("combinedSecondaryVertexBJetTags") >= discriminatorValue )
+                h2_BTaggingEff_Num_udsg->Fill(it->pt(), it->eta());
+        }
+
 
         //std::cout << std::endl << " pt " << it->pt()  <<" csvDisc " << it->bDiscriminator("combinedSecondaryVertexBJetTags") << " Flavour " << it->partonFlavour() <<  std::endl;
 
@@ -1066,12 +1129,11 @@ void TopTauAnalyze::analyze(const edm::Event& evt, const edm::EventSetup& setup)
 
   }
 
-
   ///////////////////////////
   // Preskimming if selected
   ///////////////////////////
 
-  if( (skim_jets==true) || (skim_tau ==true) ){
+  if( prefilter ){
     if( pass_prefilter() ){
       tree->Fill();
     }
@@ -1081,14 +1143,66 @@ void TopTauAnalyze::analyze(const edm::Event& evt, const edm::EventSetup& setup)
   }
 }
 
+bool TopTauAnalyze::pass_trigger(){
+  if((value_trig[0] == 1) ||  (value_trig[1] == 1)){
+    return true;
+  }else{
+    return false;
+  }
+}
+bool TopTauAnalyze::pass_tau_prefilter(){
+  //  Taus
+  int nGoodTaus = 0;
+  for(UInt_t iTau=0; iTau<value_tau_n; iTau++){
+    // Pt
+    if (!(value_tau_pt[iTau] > 40.)) continue;
+    // Tau ID
+
+    if (!((value_tau_byMediumCombinedIsolationDeltaBetaCorr[iTau] == 1) || \
+        (value_tau_byMediumCombinedIsolationDeltaBetaCorr3Hits[iTau] == 1))) continue;
+    // Electron rejection
+    if (!((value_tau_againstElectronLoose[iTau] == 1) || \
+        (value_tau_againstElectronLooseMVA3[iTau] == 1))) continue;
+    // Muon rejection
+    if (!((value_tau_againstMuonLoose[iTau] == 1) || \
+        (value_tau_againstMuonLoose3[iTau] == 1))) continue;
+    nGoodTaus++;
+  }
+  if (nGoodTaus < 1) return false;
+  return true;
+}
+
 
 bool TopTauAnalyze::pass_prefilter(){
-  if((skim_jets == true) && (value_jet_n < 4)){
-    return false;
+
+  if( isData )
+    if (pass_trigger() == false) return false;
+
+  // Jets
+  int nGoodJets = 0;
+  for(UInt_t iJet=0; iJet<value_jet_n; iJet++){
+    if(value_jet_pt[iJet] > 40.) nGoodJets += 1;
   }
-  if((skim_tau == true) && (value_tau_n < 1)){
-    return false;
+  if ((nGoodJets < 3) || (value_jet_n < 4)) return false;
+  if (!pass_tau_prefilter()) return false;
+
+  return true;
+}
+
+bool TopTauAnalyze::pass_tau_trigger_prefilter(){
+  if (value_jet_n < 4) return false;
+  if (!pass_tau_prefilter()) return false;
+  return true;
+}
+
+bool TopTauAnalyze::pass_jet_trigger_prefilter(){
+  if (value_jet_n < 4) return false;
+  // Jets
+  int nGoodJets = 0;
+  for(UInt_t iJet=0; iJet<3; iJet++){
+    if(value_jet_pt[iJet] > 70.) nGoodJets += 1;
   }
+  if (nGoodJets < 3) return false;
   return true;
 }
 
@@ -1433,6 +1547,15 @@ int TopTauAnalyze::GetTTbarTruth (edm::Handle < reco::GenParticleCollection > ge
 
   return tmeme;
 
+}
+
+std::vector<float> TopTauAnalyze::getJERFactor(float eta) { //used in jet loop for JER factor value
+  //eta input is > 0
+  if(eta > 2.3) return {1.288, 1.089, 1.488};
+  else if(eta > 1.7) return {1.134, 1.042, 1.228};
+  else if(eta > 1.1) return {1.096, 1.032, 1.161};
+  else if(eta > .5) return {1.057, 1.001, 1.114};
+  else return {1.052, 0.990, 1.115};
 }
 
 // ------------ method called when starting to processes a luminosity block  ------------

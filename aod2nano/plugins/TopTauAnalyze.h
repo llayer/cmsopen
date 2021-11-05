@@ -2,6 +2,7 @@
 #define TopTauAnalyze_h
 
 #include "TH1F.h"
+#include "TH2F.h"
 #include "TTree.h"
 
 #include "FWCore/Framework/interface/Event.h"
@@ -10,7 +11,6 @@
 #include "FWCore/ParameterSet/interface/ParameterSet.h"
 #include "FWCore/ServiceRegistry/interface/Service.h"
 #include "CommonTools/UtilAlgos/interface/TFileService.h"
-
 
 class TopTauAnalyze : public edm::EDAnalyzer {
 
@@ -31,10 +31,18 @@ class TopTauAnalyze : public edm::EDAnalyzer {
   int getTauDecay(edm::Handle<reco::GenParticleCollection> particles, const pat::Tau * thePatTau);
   int GetTTbarTruth (edm::Handle < reco::GenParticleCollection > genParticles);
   bool pass_prefilter();
+  bool pass_jet_trigger_prefilter();
+  bool pass_tau_trigger_prefilter();
+  bool pass_trigger();
+  bool pass_tau_prefilter();
+  std::vector<float> getJERFactor(float eta);
+
 
   bool isData;
-  bool skim_jets;
-  bool skim_tau;
+  std::string inFile;
+  bool prefilter;
+  bool prefilter_jet_trigger;
+  bool prefilter_tau_trigger;
   double electron_cut_pt;
   double electron_cut_eta;
   double photon_cut_pt;
@@ -56,10 +64,21 @@ class TopTauAnalyze : public edm::EDAnalyzer {
   float b_csvDisc;
   */
 
+  // Jet uncertainty corrector
+  JetCorrectionUncertainty* jecUnc;
+
   // Tree to store additional informations per analyzed file
   TTree *info;
   int nEventsTotal;
   int nEventsFiltered;
+
+  // Histos for b-tagging info
+  TH2F *h2_BTaggingEff_Denom_b;
+  TH2F *h2_BTaggingEff_Denom_c;
+  TH2F *h2_BTaggingEff_Denom_udsg;
+  TH2F *h2_BTaggingEff_Num_b;
+  TH2F *h2_BTaggingEff_Num_c;
+  TH2F *h2_BTaggingEff_Num_udsg;
 
   // Event information
   Int_t value_run;
@@ -251,7 +270,7 @@ class TopTauAnalyze : public edm::EDAnalyzer {
   int value_tau_againstElectronVTightMVA3[max_tau];
   int value_tau_againstMuonLoose[max_tau];
   int value_tau_againstMuonMedium[max_tau];
-  int value_tau_againstMuonTight[max_tau]; 
+  int value_tau_againstMuonTight[max_tau];
   int value_tau_againstMuonLoose2[max_tau];
   int value_tau_againstMuonMedium2[max_tau];
   int value_tau_againstMuonTight2[max_tau];
@@ -317,6 +336,11 @@ class TopTauAnalyze : public edm::EDAnalyzer {
   float value_jet_hlt45pz[max_jet];
   float value_jet_hlt45e[max_jet];
   int value_jet_flavour[max_jet];
+  float value_jec_up[max_jet];
+  float value_jec_down[max_jet];
+  float value_jer_cent[max_jet];
+  float value_jer_down[max_jet];
+  float value_jer_up[max_jet];
   float value_jet_genpx[max_jet];
   float value_jet_genpy[max_jet];
   float value_jet_genpz[max_jet];

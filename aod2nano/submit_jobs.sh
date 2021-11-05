@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Define path for job directories
-BASE_PATH=/afs/cern.ch/work/l/llayer/CMSSW_5_3_32/src/workspace/pattuples2011/out
+BASE_PATH=$CMSSW_BASE/src/cmsopen
 #BASE_PATH=/path/to/job/directory
 mkdir -p $BASE_PATH
 

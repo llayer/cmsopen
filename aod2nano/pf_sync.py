@@ -18,7 +18,7 @@ else:
   runOnMC = int(sys.argv[2])
 
 print "Run on MC = ", runOnMC
-maxEvents = -1
+maxEvents = 1000
 #skim = False
 ########################################################################
 #################### Setup process #####################################
@@ -362,21 +362,25 @@ if skim_tau:
 
 if runOnMC:
     isData = False
-    skim_jets = False
-    skim_tau = False
+    prefilter = False
+    prefilter_tau_trigger = False
+    prefilter_jet_trigger = False
     jet_cut_pt = 10.
     tau_cut_pt = 10.
 else:
     isData = True
-    skim_jets = False
-    skim_tau = False
+    prefilter = False
+    prefilter_tau_trigger = False
+    prefilter_jet_trigger = False
     jet_cut_pt = 10.
     tau_cut_pt = 10.
 
 process.MyModule = cms.EDAnalyzer('TopTauAnalyze',
     isData = cms.bool(isData),
-    skim_jets = cms.bool(skim_jets),
-    skim_tau = cms.bool(skim_tau),
+    inFile = cms.string(files[0]),
+    prefilter = cms.bool(prefilter),
+    prefilter_jet_trigger = cms.bool(prefilter_jet_trigger),
+    prefilter_tau_trigger = cms.bool(prefilter_tau_trigger),
     electron_cut_pt     = cms.double(10),
     electron_cut_eta    = cms.double(2.5),
     muon_cut_pt         = cms.double(10),
@@ -387,6 +391,8 @@ process.MyModule = cms.EDAnalyzer('TopTauAnalyze',
     jet_cut_eta     = cms.double(2.5),
     verbose = cms.bool(True)
     )
+#jecUncName = cms.FileInPath('PhysObjectExtractorTool/PhysObjectExtractor/JEC/'+JecString+'Uncertainty_AK5PF.txt',
+#jerResName = cms.FileInPath('PhysObjectExtractorTool/PhysObjectExtractor/JEC/JetResolutionInputAK5PF.txt',
 
 ####################################
 #  Output content

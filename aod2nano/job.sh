@@ -20,7 +20,7 @@ echo "EOS home:" $EOS_HOME
 OUTPUT_DIR=${EOS_HOME}/opendata_files/legacy_id/
 echo "Output directory:" $OUTPUT_DIR
 
-CMSSW_BASE=/afs/cern.ch/work/l/llayer/CMSSW_5_3_32
+CMSSW_BASE=/afs/cern.ch/work/l/llayer/legacy/CMSSW_5_3_32
 echo "CMSSW base:" $CMSSW_BASE
 
 CONFIG=${CMSSW_BASE}/src//workspace/pattuples2011/pf_sync.py
