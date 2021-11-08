@@ -1,6 +1,10 @@
 import sys
 import FWCore.ParameterSet.Config as cms
 import FWCore.PythonUtilities.LumiList as LumiList
+import os
+
+cmssw_base = os.environ['CMSSW_BASE']
+print(cmssw_base)
 
 ########################################################################
 #################### Passed arguments ##################################
@@ -8,17 +12,20 @@ import FWCore.PythonUtilities.LumiList as LumiList
 #
 # can be invoked with no parameters passed, in this case use default values
 #
-if len(sys.argv) < 2:
+if len(sys.argv) > 2:
+    runOnMC = int(sys.argv[2])
+else:
   print("Usage: cmsRun analyzer_cfg.py <mc flag> <skim tau flag>")
   runOnMC = 1
   skim = 1
   # do not stop execution at this point, run with default arguments
   #sys.exit("Wrong usage!")
-else:
-  runOnMC = int(sys.argv[2])
+
 
 print "Run on MC = ", runOnMC
-maxEvents = 1000
+maxEvents = -1
+pfMuonIsoConeR03 = True
+pfElectronIsoConeR03 = True
 #skim = False
 ########################################################################
 #################### Setup process #####################################
@@ -51,10 +58,10 @@ process.options = cms.untracked.PSet(wantSummary = cms.untracked.bool(False))
 process.maxEvents = cms.untracked.PSet(input = cms.untracked.int32(maxEvents))
 if runOnMC == 0:
     #files = ["root://eospublic.cern.ch//eos/opendata/cms/Run2011A/MultiJet/AOD/12Oct2013-v1/00000/001D2AFA-8B43-E311-AC56-02163E009EC4.root"]
-    files = ["file:data_test.root"]#  "root://eospublic.cern.ch//eos/opendata/cms/Run2011A/MultiJet/AOD/12Oct2013-v1/20001/BE90B0AD-EF4B-E311-8429-003048F010A2.root"]
+    files = ["file:data.root"]#  "root://eospublic.cern.ch//eos/opendata/cms/Run2011A/MultiJet/AOD/12Oct2013-v1/20001/BE90B0AD-EF4B-E311-8429-003048F010A2.root"]
 else:
     #files = ["root://eospublic.cern.ch//eos/opendata/cms/MonteCarlo2011/Summer11LegDR/TTJets_TuneZ2_7TeV-madgraph-tauola/AODSIM/PU_S13_START53_LV6-v1/00000/0005D1FB-4BCF-E311-9FE4-002590A8312A.root"]
-    files = ["file:tt.root"] # wjets.root"] #
+    files = ["file:TTJets.root"] # wjets.root"] #
 
 process.source = cms.Source(
     "PoolSource", fileNames=cms.untracked.vstring(*files))
@@ -65,10 +72,11 @@ process.MessageLogger.cerr.FwkReport.reportEvery = 10000
 # JSON (good luminosity sections), only if processing data
 if runOnMC == 0:
     print "Load lumi"
-    goodJSON = '/afs/cern.ch/work/l/llayer/CMSSW_5_3_32/src/workspace/pattuples2011/data/Cert_160404-180252_7TeV_ReRecoNov08_Collisions11_JSON.txt'
+    goodJSON = cmssw_base+'/src/cmsopen/aod2nano/data/Cert_160404-180252_7TeV_ReRecoNov08_Collisions11_JSON.txt'
     #goodJSON = '/afs/cern.ch/work/l/llayer/CMSSW_5_3_32/src/workspace/pattuples2011/data/Cert_160404-180252_7TeV_PromptReco_Collisions11_JSON_truncated.txt'
     print goodJSON
     myLumis = LumiList.LumiList(filename = goodJSON).getCMSSWString().split(',')
+    #print myLumis
     process.source.lumisToProcess = cms.untracked.VLuminosityBlockRange()
     process.source.lumisToProcess.extend(myLumis)
 
@@ -96,19 +104,6 @@ process.nEventsFiltered = cms.EDProducer("EventCountProducer")
 ################
 
 #
-# Filter
-#
-
-"""
-if skim:
-    # accept if any path succeeds (explicit)
-    from HLTrigger.HLTfilters.hltHighLevel_cfi import *
-    process.hltSelector = hltHighLevel.clone(
-        HLTPaths = ['HLT_QuadJet40_IsoPFTau40*', 'HLT_QuadJet45_IsoPFTau45*'],
-        throw = False
-        )
-"""
-#
 # Trigger matching
 #
 
@@ -117,28 +112,6 @@ process.load("PhysicsTools.PatAlgos.patSequences_cff")
 process.load("PhysicsTools.PatAlgos.triggerLayer1.triggerProducer_cff")
 from PhysicsTools.PatAlgos.tools.trigTools import *
 switchOnTrigger( process )
-
-"""
-process.tauMatchHLTTaus45 = cms.EDProducer(
-  # matching in DeltaR, sorting by best DeltaR
-  "PATTriggerMatcherDRLessByR"
-  # matcher input collections
-#, src     = cms.InputTag( 'selectedPatJetsPF2PAT' )
-, src     = cms.InputTag( 'selectedPatTausPF' )
-, matched = cms.InputTag( 'patTrigger' )
-  # selections of trigger objects
-, matchedCuts = cms.string( 'type( "TriggerTau" )') #' && path( "HLT_QuadJet45_IsoPFTau45_v*",1 , 0 )')#&& filter( "hltFilterPFTauTrack5TightIsoL1QuadJet20CentralPFTau40" )')
-#, matchedCuts = cms.string( 'type( "TriggerJet" ) && path( "HLT_QuadJet40_IsoPFTau40_v*", 0, 0) && filter( "hltQuadJet40IsoPFTau40" )')
-  # selection of matches
-, maxDPtRel   = cms.double( 0.5 ) # no effect here
-, maxDeltaR   = cms.double( 0.5 )
-, maxDeltaEta = cms.double( 0.2 ) # no effect here
-  # definition of matcher output
-, resolveAmbiguities    = cms.bool( True )
-, resolveByMatchQuality = cms.bool( True )
-)
-switchOnTriggerMatching( process, triggerMatchers = [ 'tauMatchHLTTaus45' ] )
-"""
 
 def set_matcher(inTag, cuts):
     return cms.EDProducer(
@@ -188,33 +161,39 @@ process.goodOfflinePrimaryVertices = cms.EDFilter(
   cut = cms.string("isValid && !isFake && ndof > 4 && abs(z) <= 24 && position.rho < 2")
 )
 
-"""
-process.load('CommonTools.ParticleFlow.goodOfflinePrimaryVertices_cfi')
-process.goodOfflinePrimaryVertices.filter = cms.bool(True)
-"""
-"""
-from PhysicsTools.SelectorUtils.pvSelector_cfi import pvSelector
 
-process.goodOfflinePrimaryVertices = cms.EDFilter(
-    "PrimaryVertexObjectFilter",
-    filterParams = pvSelector.clone( minNdof = cms.double(4.0), maxZ = cms.double(24.0) ),
-    src=cms.InputTag('offlinePrimaryVertices')
-    )
-
-"""
-process.noscraping = cms.EDFilter("FilterOutScraping",
-                                  applyfilter = cms.untracked.bool(True),
-                                  debugOn = cms.untracked.bool(True),
-                                  numtrack = cms.untracked.uint32(10),
-                                  thresh = cms.untracked.double(0.20)
-)
 
 ####################################
-#  HBHE noise filter
+#  Event cleaning
 ####################################
 #Noise filter
 process.load('CommonTools/RecoAlgos/HBHENoiseFilter_cfi')
 
+process.scrapingFilter = cms.EDFilter("FilterOutScraping",
+                                  applyfilter = cms.untracked.bool(True),
+                                  debugOn = cms.untracked.bool(False),
+                                  numtrack = cms.untracked.uint32(10),
+                                  thresh = cms.untracked.double(0.25)
+)
+
+"""
+process.eventCleaningData = cms.Sequence(
+  scrapingFilter
+)
+
+process.eventCleaningMC = cms.Sequence(
+)
+
+process.eventCleaning = cms.Sequence()
+
+  HBHENoiseFilter
++ CSCTightHaloFilter
++ hcalLaserEventFilter
++ EcalDeadCellTriggerPrimitiveFilter
++ eeBadScFilter
++ trackingFailureFilter
+)
+"""
 
 ####################################
 #  Load the PAT config
@@ -261,34 +240,36 @@ getattr(process,"pfNoJet"     +postfix).enable = False
 # For the time being disable all cuts to be consistent with original analysis
 #
 
-#if 'L1FastJet' in jecLevels:
-#    process.pfPileUpIsoPF.checkClosestZVertex = True # new PF isolation with L1Fastjet CHS
-"""
-process.pfMuonsFromVertexPF.d0Cut = 0.2
-process.pfMuonsFromVertexPF.dzCut = 0.5
-process.pfSelectedMuonsPF.cut = 'pt > 5.'
-#process.pfSelectedMuonsPF.cut += ' && ' + muonCut # can use minimal (veto) muon selection on top of base pf cut
-process.pfIsolatedMuonsPF.isolationCut = 0.2
-
-process.pfElectronsFromVertexPF.d0Cut = 0.2
-process.pfElectronsFromVertexPF.dzCut = 0.5
-process.pfSelectedElectronsPF.cut = 'pt > 5. && gsfTrackRef.isNonnull && gsfTrackRef.trackerExpectedHitsInner.numberOfLostHits < 2'
-#process.pfSelectedElectronsPF.cut += ' && ' + electronCut # can use minimal (veto) electron selection cut on top of base pf cut
-process.pfIsolatedElectronsPF.isolationCut = 0.2
-"""
-
 # Additional variables
-process.pfIsolatedElectronsPF.isolationValueMapsCharged   = cms.VInputTag('elPFIsoValueCharged03PFIdPF')
-process.pfIsolatedElectronsPF.deltaBetaIsolationValueMap  = 'elPFIsoValuePU03PFIdPF'
-process.pfIsolatedElectronsPF.isolationValueMapsNeutral   = cms.VInputTag('elPFIsoValueNeutral03PFIdPF', 'elPFIsoValueGamma03PFIdPF')
-process.pfElectronsPF.isolationValueMapsCharged           = cms.VInputTag('elPFIsoValueCharged03PFIdPF')
-process.pfElectronsPF.deltaBetaIsolationValueMap          = 'elPFIsoValuePU03PFIdPF'
-process.pfElectronsPF.isolationValueMapsNeutral           = cms.VInputTag('elPFIsoValueNeutral03PFIdPF', 'elPFIsoValueGamma03PFIdPF')
-process.patElectronsPF.isolationValues.pfNeutralHadrons   = 'elPFIsoValueNeutral03PFIdPF'
-process.patElectronsPF.isolationValues.pfChargedAll       = 'elPFIsoValueChargedAll03PFIdPF'
-process.patElectronsPF.isolationValues.pfPUChargedHadrons = 'elPFIsoValuePU03PFIdPF'
-process.patElectronsPF.isolationValues.pfPhotons          = 'elPFIsoValueGamma03PFIdPF'
-process.patElectronsPF.isolationValues.pfChargedHadrons   = 'elPFIsoValueCharged03PFIdPF'
+if pfMuonIsoConeR03:
+  getattr( process, 'pfIsolatedMuons' + postfix ).isolationValueMapsCharged  = cms.VInputTag( cms.InputTag( 'muPFIsoValueCharged03' + postfix ))
+  getattr( process, 'pfIsolatedMuons' + postfix ).deltaBetaIsolationValueMap = cms.InputTag( 'muPFIsoValuePU03' + postfix )
+  getattr( process, 'pfIsolatedMuons' + postfix ).isolationValueMapsNeutral  = cms.VInputTag( cms.InputTag( 'muPFIsoValueNeutral03' + postfix )
+                                                                                                , cms.InputTag( 'muPFIsoValueGamma03' + postfix ))
+  getattr( process, 'pfMuons' + postfix ).isolationValueMapsCharged  = cms.VInputTag( cms.InputTag( 'muPFIsoValueCharged03' + postfix ))
+  getattr( process, 'pfMuons' + postfix ).deltaBetaIsolationValueMap = cms.InputTag( 'muPFIsoValuePU03' + postfix )
+  getattr( process, 'pfMuons' + postfix ).isolationValueMapsNeutral  = cms.VInputTag( cms.InputTag( 'muPFIsoValueNeutral03' + postfix )
+                                                                                        , cms.InputTag( 'muPFIsoValueGamma03' + postfix ))
+  getattr( process, 'patMuons' + postfix ).isolationValues.pfNeutralHadrons   = cms.InputTag( 'muPFIsoValueNeutral03' + postfix )
+  getattr( process, 'patMuons' + postfix ).isolationValues.pfChargedAll       = cms.InputTag( 'muPFIsoValueChargedAll03' + postfix )
+  getattr( process, 'patMuons' + postfix ).isolationValues.pfPUChargedHadrons = cms.InputTag( 'muPFIsoValuePU03' + postfix )
+  getattr( process, 'patMuons' + postfix ).isolationValues.pfPhotons          = cms.InputTag( 'muPFIsoValueGamma03' + postfix )
+  getattr( process, 'patMuons' + postfix ).isolationValues.pfChargedHadrons   = cms.InputTag( 'muPFIsoValueCharged03' + postfix )
+
+if pfElectronIsoConeR03:
+  getattr( process, 'pfIsolatedElectrons' + postfix ).isolationValueMapsCharged  = cms.VInputTag( cms.InputTag( 'elPFIsoValueCharged03PFId' + postfix ))
+  getattr( process, 'pfIsolatedElectrons' + postfix ).deltaBetaIsolationValueMap = cms.InputTag( 'elPFIsoValuePU03PFId' + postfix )
+  getattr( process, 'pfIsolatedElectrons' + postfix ).isolationValueMapsNeutral  = cms.VInputTag( cms.InputTag( 'elPFIsoValueNeutral03PFId' + postfix )
+                                                                                                    , cms.InputTag( 'elPFIsoValueGamma03PFId'   + postfix ))
+  getattr( process, 'pfElectrons' + postfix ).isolationValueMapsCharged  = cms.VInputTag( cms.InputTag( 'elPFIsoValueCharged03PFId' + postfix ))
+  getattr( process, 'pfElectrons' + postfix ).deltaBetaIsolationValueMap = cms.InputTag( 'elPFIsoValuePU03PFId' + postfix )
+  getattr( process, 'pfElectrons' + postfix ).isolationValueMapsNeutral  = cms.VInputTag( cms.InputTag( 'elPFIsoValueNeutral03PFId' + postfix )
+                                                                                            , cms.InputTag( 'elPFIsoValueGamma03PFId'   + postfix ))
+  getattr( process, 'patElectrons' + postfix ).isolationValues.pfNeutralHadrons   = cms.InputTag( 'elPFIsoValueNeutral03PFId' + postfix )
+  getattr( process, 'patElectrons' + postfix ).isolationValues.pfChargedAll       = cms.InputTag( 'elPFIsoValueChargedAll03PFId' + postfix )
+  getattr( process, 'patElectrons' + postfix ).isolationValues.pfPUChargedHadrons = cms.InputTag( 'elPFIsoValuePU03PFId' + postfix )
+  getattr( process, 'patElectrons' + postfix ).isolationValues.pfPhotons          = cms.InputTag( 'elPFIsoValueGamma03PFId' + postfix )
+  getattr( process, 'patElectrons' + postfix ).isolationValues.pfChargedHadrons   = cms.InputTag( 'elPFIsoValueCharged03PFId' + postfix )
 
 process.patMuonsPF.embedTrack = True
 
@@ -331,38 +312,12 @@ if runOnMC:
 """
 
 ####################################
-#  Basic object selections
-####################################
-
-# Basic cuts - apply in analyzer
-"""
-process.selectedPatMuonsPF.cut = 'pt > 10. && abs(eta) < 2.5'
-process.selectedPatElectronsPF.cut = 'pt > 10. && abs(eta) < 2.5'
-process.selectedPatTausPF.cut = 'pt > 10. && abs(eta) < 2.5'
-process.selectedPatJetsPF.cut = 'pt > 10. && abs(eta) < 2.5'
-"""
-
-"""
-# 4 Jets are always needed
-process.countJets = cms.EDFilter("CandViewCountFilter",
-     src = cms.InputTag('selectedPatJetsPF'),
-     minNumber = cms.uint32(4)
-)
-
-# Except for the jet trigger measurement also a Tau is needed
-if skim_tau:
-    process.countTaus = cms.EDFilter("CandViewCountFilter",
-         src = cms.InputTag('selectedPatTausPF'),
-         minNumber = cms.uint32(1)
-    )
-"""
-####################################
 ##########  NanoAOD ################
 ####################################
 
 if runOnMC:
     isData = False
-    prefilter = False
+    prefilter = True
     prefilter_tau_trigger = False
     prefilter_jet_trigger = False
     jet_cut_pt = 10.
@@ -378,6 +333,7 @@ else:
 process.MyModule = cms.EDAnalyzer('TopTauAnalyze',
     isData = cms.bool(isData),
     inFile = cms.string(files[0]),
+    jecUncName = cms.string(cmssw_base + '/src/cmsopen/aod2nano/JEC/START53_LV6A1_Uncertainty_AK5PF.txt'),
     prefilter = cms.bool(prefilter),
     prefilter_jet_trigger = cms.bool(prefilter_jet_trigger),
     prefilter_tau_trigger = cms.bool(prefilter_tau_trigger),
@@ -407,80 +363,31 @@ if not runOnMC:
 from PhysicsTools.PatAlgos.tools.coreTools import removeSpecificPATObjects
 removeSpecificPATObjects(process, names = ['Photons'], postfix = 'PF')
 
-#cms.ignore(process.mvaTrigV0) + \
-#cms.ignore(process.mvaNonTrigV0) + \
+process.taujet = cms.Path()
+process.taujet += process.nEventsTotal
+process.taujet += process.goodOfflinePrimaryVertices
 
-"""
-if skim_tau:
-    base_path = process.nEventsTotal * \
-                process.goodOfflinePrimaryVertices * \
-                process.patPF2PATSequencePF * \
-                process.countJets * \
-                process.countTaus * \
-                process.nEventsFiltered
-else:
-    base_path = process.nEventsTotal * \
-                process.goodOfflinePrimaryVertices * \
-                process.patPF2PATSequencePF * \
-                process.countJets * \
-                process.nEventsFiltered
-"""
+event_cleaning = True
+if event_cleaning:
+    process.taujet += process.HBHENoiseFilter
+    if runOnMC == False:
+        print "add scraping filter for data"
+        process.taujet += process.scrapingFilter
+process.taujet += process.patPF2PATSequencePF
+process.taujet += process.nEventsFiltered
 
-
-base_path = process.nEventsTotal * \
-            process.goodOfflinePrimaryVertices * \
-            process.patPF2PATSequencePF * \
-            process.nEventsFiltered
-
-if runOnMC == 1:
+if "TTJets" in files[0]:
     process.load("TopQuarkAnalysis.TopEventProducers.sequences.ttGenEvent_cff")
-    #process.taujet = cms.Path( process.pdfWeights + base_path + process.makeGenEvt + process.MyModule)
-    process.taujet = cms.Path(  base_path + process.makeGenEvt + process.MyModule)
+    process.taujet += process.makeGenEvt
     print "Create gen event"
-else:
-    process.taujet = cms.Path(base_path + process.MyModule) #+ process.makeGenEvt)
 
+process.taujet += process.MyModule
 
 #cms.Path(process.taujet)
 process.out.SelectEvents = cms.untracked.PSet(SelectEvents = cms.vstring('taujet'))
 process.out.outputCommands = cms.untracked.vstring(
     'drop *'
     )
-    #'drop *',
-    #'keep *_nEventsTotal_*_*',
-    #'keep *_nEventsFiltered_*_*')
 
 process.TFileService = cms.Service("TFileService", fileName = cms.string("nano.root") )
-
-"""
-process.out.outputCommands = cms.untracked.vstring(
-    'drop *',
-    'keep *_selectedPatElectrons*_*_*',
-    'keep *_selectedPatMuons*_*_*',
-    'keep *_semilepMuons*_*_*',
-    'keep *_selectedPatTaus*_*_*',
-    'keep *_semilepElectrons*_*_*',
-    'keep *_selectedPatJets*_*_*',
-    'keep *_selectedPatJets*_genJets_*',
-    'drop *_selectedPatJets*_pfCandidates_*',
-    'drop *_selectedPatJetsForMETtype1p2CorrPF_*_*',
-    'drop *_selectedPatJetsForMETtype2CorrPF_*_*',
-    'drop CaloTowers_*_*_*',
-    'keep *_patMETs*_*_*',
-    'keep recoGenParticles_genParticles_*_*',
-    'keep GenEventInfoProduct_*_*_*',
-    'keep GenRunInfoProduct_*_*_*',
-    'keep *_offlineBeamSpot_*_*',
-    'keep *_goodOfflinePrimaryVertices_*_*',
-    'keep edmTriggerResults_TriggerResults__HLT*',
-    'keep edmTriggerResults_TriggerResults__REDIGI*',
-    'keep edmTriggerResults_TriggerResults__PAT', # for post-tuple filtering on the goodData paths
-    'keep *_hltTriggerSummaryAOD__HLT*',
-    'keep *_hltTriggerSummaryAOD__REDIGI*',
-      ## genEvt
-    'keep *_decaySubset_*_*',
-    'keep *_initSubset_*_*',
-    'keep *_genEvt_*_*',
-    'keep *_patTrigger*_*_*',
-    )"""
 process.outp = cms.EndPath(process.out)

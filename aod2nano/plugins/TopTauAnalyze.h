@@ -66,6 +66,7 @@ class TopTauAnalyze : public edm::EDAnalyzer {
 
   // Jet uncertainty corrector
   JetCorrectionUncertainty* jecUnc;
+  std::string              jecUncName;
 
   // Tree to store additional informations per analyzed file
   TTree *info;
@@ -139,6 +140,9 @@ class TopTauAnalyze : public edm::EDAnalyzer {
   float value_hlttau_py[max_hlttau];
   float value_hlttau_pz[max_hlttau];
   float value_hlttau_e[max_hlttau];
+  float value_hlttau_eta[max_hlttau];
+  float value_hlttau_phi[max_hlttau];
+  float value_hlttau_mass[max_hlttau];
 
   // HLT jets
   const static int max_hltjet = 1000;
@@ -148,6 +152,9 @@ class TopTauAnalyze : public edm::EDAnalyzer {
   float value_hltjet_py[max_hltjet];
   float value_hltjet_pz[max_hltjet];
   float value_hltjet_e[max_hltjet];
+  float value_hltjet_eta[max_hltjet];
+  float value_hltjet_phi[max_hltjet];
+  float value_hltjet_mass[max_hltjet];
 
   // Muons
   const static int max_mu = 1000;
@@ -232,15 +239,29 @@ class TopTauAnalyze : public edm::EDAnalyzer {
   float value_met_py;
   float value_met_pz;
   float value_met_e;
-  float value_met_uncorrectedPt;
   float value_met_phi;
-  float value_met_sumet;
-  float value_met_corEx;
-  float value_met_corEy;
-  float value_met_significance;
-  float value_met_covxx;
-  float value_met_covxy;
-  float value_met_covyy;
+  float value_met_eta;
+  float value_met_mass;
+
+  // PFMET
+  float value_metpf_pt;
+  float value_metpf_px;
+  float value_metpf_py;
+  float value_metpf_pz;
+  float value_metpf_e;
+  float value_metpf_phi;
+  float value_metpf_eta;
+  float value_metpf_mass;
+
+  // PFMET Type1 corrected
+  float value_metpf1corr_pt;
+  float value_metpf1corr_px;
+  float value_metpf1corr_py;
+  float value_metpf1corr_pz;
+  float value_metpf1corr_e;
+  float value_metpf1corr_phi;
+  float value_metpf1corr_eta;
+  float value_metpf1corr_mass;
 
   // Taus
   const static int max_tau = 1000;
@@ -322,6 +343,12 @@ class TopTauAnalyze : public edm::EDAnalyzer {
   float value_jet_scale[max_jet];
   float value_jet_emEnergyFraction[max_jet];
   float value_jet_n90[max_jet];
+  float value_jet_ndaus[max_jet];
+  float value_jet_nhf[max_jet];
+  float value_jet_nef[max_jet];
+  float value_jet_cef[max_jet];
+  float value_jet_chf[max_jet];
+  float value_jet_nch[max_jet];
   float value_jet_csvDisc[max_jet];
   float value_jet_tcDisc[max_jet];
   //float value_jet_svDisc[max_jet];

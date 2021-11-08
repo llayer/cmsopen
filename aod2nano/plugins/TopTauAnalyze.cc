@@ -33,6 +33,7 @@ TopTauAnalyze::TopTauAnalyze(const edm::ParameterSet& cfg)
 
   isData            = cfg.getParameter < bool >      ("isData");
   inFile            = cfg.getParameter < std::string >("inFile");
+  jecUncName        = cfg.getParameter <std::string>("jecUncName"); // JEC uncertainties
   prefilter         = cfg.getParameter < bool >      ("prefilter");
   prefilter_jet_trigger          = cfg.getParameter < bool >      ("prefilter_jet_trigger");
   prefilter_tau_trigger          = cfg.getParameter < bool >      ("prefilter_tau_trigger");
@@ -45,8 +46,8 @@ TopTauAnalyze::TopTauAnalyze(const edm::ParameterSet& cfg)
   jet_cut_pt        = cfg.getParameter < double >    ("jet_cut_pt");
   jet_cut_eta       = cfg.getParameter < double >    ("jet_cut_eta");
 
-
-  jecUnc = new JetCorrectionUncertainty("JEC/START53_LV6A1_Uncertainty_AK5PF.txt");
+  std::cout<<jecUncName<<std::endl;
+  jecUnc = new JetCorrectionUncertainty(jecUncName);
 
   tree = fs->make<TTree>("Events", "Events");
 
@@ -124,6 +125,9 @@ TopTauAnalyze::TopTauAnalyze(const edm::ParameterSet& cfg)
   tree->Branch("TauHLT_py", value_hlttau_py, "TauHLT_py[nTauHLT]/F");
   tree->Branch("TauHLT_pz", value_hlttau_pz, "TauHLT_pz[nTauHLT]/F");
   tree->Branch("TauHLT_e", value_hlttau_e, "TauHLT_e[nTauHLT]/F");
+  tree->Branch("TauHLT_eta", value_hlttau_eta, "TauHLT_eta[nTauHLT]/F");
+  tree->Branch("TauHLT_phi", value_hlttau_phi, "TauHLT_phi[nTauHLT]/F");
+  tree->Branch("TauHLT_mass", value_hlttau_mass, "TauHLT_mass[nTauHLT]/F");
 
   // HLT jets
   tree->Branch("nJetHLT", &value_hltjet_n, "nJetHLT/i");
@@ -132,6 +136,9 @@ TopTauAnalyze::TopTauAnalyze(const edm::ParameterSet& cfg)
   tree->Branch("JetHLT_py", value_hltjet_py, "JetHLT_py[nJetHLT]/F");
   tree->Branch("JetHLT_pz", value_hltjet_pz, "JetHLT_pz[nJetHLT]/F");
   tree->Branch("JetHLT_e", value_hltjet_e, "JetHLT_e[nJetHLT]/F");
+  tree->Branch("JetHLT_eta", value_hltjet_eta, "JetHLT_eta[nJetHLT]/F");
+  tree->Branch("JetHLT_phi", value_hltjet_phi, "JetHLT_phi[nJetHLT]/F");
+  tree->Branch("JetHLT_mass", value_hltjet_mass, "JetHLT_massnJetHLT]/F");
 
   // Muons
   tree->Branch("nMuon", &value_mu_n, "nMuon/i");
@@ -276,7 +283,29 @@ TopTauAnalyze::TopTauAnalyze(const edm::ParameterSet& cfg)
   tree->Branch("MET_pz", &value_met_pz, "MET_pz/F");
   tree->Branch("MET_e", &value_met_e, "MET_e/F");
   tree->Branch("MET_phi", &value_met_phi, "MET_phi/F");
-  tree->Branch("MET_sumet", &value_met_sumet, "MET_sumet/F");
+  tree->Branch("MET_eta", &value_met_eta, "MET_eta/F");
+  tree->Branch("MET_mass", &value_met_mass, "MET_mass/F");
+
+  // PFMET
+  tree->Branch("METPF_pt", &value_metpf_pt, "METPF_pt/F");
+  tree->Branch("METPF_px", &value_metpf_px, "METPF_px/F");
+  tree->Branch("METPF_py", &value_metpf_py, "METPF_py/F");
+  tree->Branch("METPF_pz", &value_metpf_pz, "METPF_pz/F");
+  tree->Branch("METPF_e", &value_metpf_e, "METPF_e/F");
+  tree->Branch("METPF_phi", &value_metpf_phi, "METPF_phi/F");
+  tree->Branch("METPF_eta", &value_metpf_eta, "METPF_eta/F");
+  tree->Branch("METPF_mass", &value_metpf_mass, "METPF_mass/F");
+
+  // PFMET Type 1 corrected
+  tree->Branch("METPF1Corr_pt", &value_metpf1corr_pt, "METPF1Corr_pt/F");
+  tree->Branch("METPF1Corr_px", &value_metpf1corr_px, "METPF1Corr_px/F");
+  tree->Branch("METPF1Corr_py", &value_metpf1corr_py, "METPF1Corr_py/F");
+  tree->Branch("METPF1Corr_pz", &value_metpf1corr_pz, "METPF1Corr_pz/F");
+  tree->Branch("METPF1Corr_e", &value_metpf1corr_e, "METPF1Corr_e/F");
+  tree->Branch("METPF1Corr_phi", &value_metpf1corr_phi, "METPF1Corr_phi/F");
+  tree->Branch("METPF1Corr_eta", &value_metpf1corr_eta, "METPF1Corr_eta/F");
+  tree->Branch("METPF1Corr_mass", &value_metpf1corr_mass, "METPF1Corr_mass/F");
+
 
   // Jets
   tree->Branch("nJet", &value_jet_n, "nJet/i");
@@ -293,6 +322,12 @@ TopTauAnalyze::TopTauAnalyze(const edm::ParameterSet& cfg)
   tree->Branch("Jet_y", value_jet_y, "Jet_y[nJet]/F");
   tree->Branch("Jet_z", value_jet_z, "Jet_z[nJet]/F");
   tree->Branch("Jet_scale", value_jet_scale, "Jet_scale[nJet]/F");
+  tree->Branch("Jet_ndaus", value_jet_ndaus, "Jet_ndaus[nJet]/F");
+  tree->Branch("Jet_nhf", value_jet_nhf, "Jet_nhf[nJet]/F");
+  tree->Branch("Jet_nef", value_jet_nef, "Jet_nef[nJet]/F");
+  tree->Branch("Jet_cef", value_jet_cef, "Jet_cef[nJet]/F");
+  tree->Branch("Jet_chf", value_jet_chf, "Jet_chf[nJet]/F");
+  tree->Branch("Jet_nch", value_jet_nch, "Jet_nch[nJet]/F");
   tree->Branch("Jet_csvDisc", value_jet_csvDisc, "Jet_csvDisc[nJet]/F");
   tree->Branch("Jet_tcDisc", value_jet_tcDisc, "Jet_tcDisc[nJet]/F");
   //tree->Branch("Jet_svDisc", value_jet_svDisc, "Jet_svDisc[nJet]/F");
@@ -394,7 +429,7 @@ void TopTauAnalyze::analyze(const edm::Event& evt, const edm::EventSetup& setup)
   using namespace reco;
   using namespace std;
 
-  std::cout<< inFile << std::endl;
+  //std::cout<< inFile << " File " << std::endl;
 
   ///////////////////////////
   // Event information
@@ -536,6 +571,9 @@ void TopTauAnalyze::analyze(const edm::Event& evt, const edm::EventSetup& setup)
       value_hltjet_py[value_hltjet_n] = (*it)->py();
       value_hltjet_pz[value_hltjet_n] = (*it)->pz();
       value_hltjet_e[value_hltjet_n] = (*it)->energy();
+      value_hltjet_eta[value_hltjet_n] = (*it)->eta();
+      value_hltjet_phi[value_hltjet_n] = (*it)->phi();
+      value_hltjet_mass[value_hltjet_n] = (*it)->mass();
       value_hltjet_n++;
 
 
@@ -557,6 +595,9 @@ void TopTauAnalyze::analyze(const edm::Event& evt, const edm::EventSetup& setup)
       value_hlttau_py[value_hlttau_n] = (*it)->py();
       value_hlttau_pz[value_hlttau_n] = (*it)->pz();
       value_hlttau_e[value_hlttau_n] = (*it)->energy();
+      value_hlttau_eta[value_hlttau_n] = (*it)->eta();
+      value_hlttau_phi[value_hlttau_n] = (*it)->phi();
+      value_hlttau_mass[value_hlttau_n] = (*it)->mass();
       value_hlttau_n++;
     }
   }
@@ -622,7 +663,7 @@ void TopTauAnalyze::analyze(const edm::Event& evt, const edm::EventSetup& setup)
       value_mu_TrkIso03[value_mu_n] = it->trackIso();
       value_mu_CaloIso03[value_mu_n] = it->caloIso();
       value_mu_ECaloIso03[value_mu_n] = it->ecalIso();
-      value_mu_HCaloIso03[value_mu_n] = it->trackIso();
+      value_mu_HCaloIso03[value_mu_n] = it->hcalIso();
       value_mu_neutralHadronIso[value_mu_n] = it->neutralHadronIso();
       value_mu_chargedHadronIso[value_mu_n] = it->chargedHadronIso();
       value_mu_puChargedHadronIso[value_mu_n] = it->puChargedHadronIso();
@@ -677,7 +718,7 @@ void TopTauAnalyze::analyze(const edm::Event& evt, const edm::EventSetup& setup)
       value_el_TrkIso03[value_el_n] = it->trackIso();
       value_el_CaloIso03[value_el_n] = it->caloIso();
       value_el_ECaloIso03[value_el_n] = it->ecalIso();
-      value_el_HCaloIso03[value_el_n] = it->trackIso();
+      value_el_HCaloIso03[value_el_n] = it->hcalIso();
       value_el_neutralHadronIso[value_el_n] = it->neutralHadronIso();
       value_el_chargedHadronIso[value_el_n] = it->chargedHadronIso();
       value_el_puChargedHadronIso[value_el_n] = it->puChargedHadronIso();
@@ -874,12 +915,31 @@ void TopTauAnalyze::analyze(const edm::Event& evt, const edm::EventSetup& setup)
   value_met_pz = met->begin()->pz();
   value_met_e = met->begin()->energy();
   value_met_phi = met->begin()->phi();
-  value_met_sumet = met->begin()->sumEt();
-  value_met_significance = met->begin()->significance();
-  auto cov = met->begin()->getSignificanceMatrix();
-  value_met_covxx = cov[0][0];
-  value_met_covxy = cov[0][1];
-  value_met_covyy = cov[1][1];
+  value_met_eta = met->begin()->eta();
+  value_met_mass = met->begin()->mass();
+
+  edm::Handle<std::vector<pat::MET> > metpf;
+  evt.getByLabel(InputTag("patPFMetPF"), metpf);
+  value_metpf_pt = metpf->begin()->pt();
+  value_metpf_px = metpf->begin()->px();
+  value_metpf_py = metpf->begin()->py();
+  value_metpf_pz = metpf->begin()->pz();
+  value_metpf_e = metpf->begin()->energy();
+  value_metpf_phi = metpf->begin()->phi();
+  value_metpf_eta = metpf->begin()->eta();
+  value_metpf_mass = metpf->begin()->mass();
+
+  edm::Handle<std::vector<pat::MET> > metpf1corr;
+  evt.getByLabel(InputTag("patType1CorrectedPFMetPF"), metpf1corr);
+  value_metpf1corr_pt = metpf1corr->begin()->pt();
+  value_metpf1corr_px = metpf1corr->begin()->px();
+  value_metpf1corr_py = metpf1corr->begin()->py();
+  value_metpf1corr_pz = metpf1corr->begin()->pz();
+  value_metpf1corr_e = metpf1corr->begin()->energy();
+  value_metpf1corr_phi = metpf1corr->begin()->phi();
+  value_metpf1corr_eta = metpf1corr->begin()->eta();
+  value_metpf1corr_mass = metpf1corr->begin()->mass();
+
 
   ///////////////////////////
   // Jets
@@ -911,6 +971,15 @@ void TopTauAnalyze::analyze(const edm::Event& evt, const edm::EventSetup& setup)
       value_jet_y[value_jet_n] = it->vy();
       value_jet_z[value_jet_n] = it->vz();
       value_jet_scale[value_jet_n] = it->jecFactor("Uncorrected");
+
+      // JET ID
+      value_jet_ndaus[value_jet_n] = it->numberOfDaughters();
+      value_jet_nhf[value_jet_n] =  it->neutralHadronEnergyFraction();
+      value_jet_nef[value_jet_n] = it->neutralEmEnergyFraction();
+      value_jet_cef[value_jet_n] = it->chargedEmEnergyFraction();
+      value_jet_chf[value_jet_n] = it->chargedHadronEnergyFraction();
+      value_jet_nch[value_jet_n] = it->chargedMultiplicity();
+
       // New b-taggers
       value_jet_tcDisc[value_jet_n] = it->bDiscriminator ("trackCountingHighPurBJetTags");
       value_jet_csvDisc[value_jet_n] = it->bDiscriminator ("combinedSecondaryVertexBJetTags");

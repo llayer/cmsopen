@@ -17,13 +17,13 @@ echo "File:" $FILE
 EOS_HOME=/eos/user/l/llayer
 echo "EOS home:" $EOS_HOME
 
-OUTPUT_DIR=${EOS_HOME}/opendata_files/legacy_id/
+OUTPUT_DIR=${EOS_HOME}/cmsopen/legacy
 echo "Output directory:" $OUTPUT_DIR
 
 CMSSW_BASE=/afs/cern.ch/work/l/llayer/legacy/CMSSW_5_3_32
 echo "CMSSW base:" $CMSSW_BASE
 
-CONFIG=${CMSSW_BASE}/src//workspace/pattuples2011/pf_sync.py
+CONFIG=${CMSSW_BASE}/src/cmsopen/aod2nano/pf_sync.py
 
 echo "CMSSW config:" $CONFIG
 
