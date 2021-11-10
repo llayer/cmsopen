@@ -5,7 +5,7 @@ data = ['Run2011A_MultiJet', 'Run2011B_MultiJet', 'Run2011A_SingleMu', 'Run2011B
 mc = ['TTJets', 'WJetsToLNu', 'DYJetsToLL', 'T_TuneZ2_s', 'T_TuneZ2_tW', 'T_TuneZ2_t-channel',
        'Tbar_TuneZ2_s', 'Tbar_TuneZ2_tW', 'Tbar_TuneZ2_t-channel']
 
-in_path = "/afs/cern.ch/work/l/llayer/CMSSW_5_3_32/src/workspace/pattuples2011/data/CMS_"
+in_path = "data/CMS_"
 
 def inhash(file):
     return file.split("/")[-1][:-5]
@@ -41,7 +41,7 @@ def check_sample(sample_name = "Run2011A_MultiJet", nano = True, isData = True):
 
     df_in["hash"] = df_in["infile"].apply(inhash)
 
-    outfiles = glob.glob("/eos/user/l/llayer/opendata_files/legacy_id/" + sample_name + "/*.root")
+    outfiles = glob.glob("/eos/user/l/llayer/cmsopen/legacy/" + sample_name + "/*.root")
     df_out = pd.DataFrame(outfiles)
     df_out.columns = ["outfile"]
 
@@ -50,7 +50,7 @@ def check_sample(sample_name = "Run2011A_MultiJet", nano = True, isData = True):
     df_out["jobid"] = df_out["outfile"].apply(out_jobid)
 
     df = pd.merge(df_in, df_out, on="hash", how="outer")
-
+    """
     if nano:
         nano_path = "/afs/cern.ch/work/l/llayer/CMSSW_10_2_18/src/out/" + sample_name
         nano_files = glob.glob(nano_path + "/files/*.root")
@@ -59,7 +59,7 @@ def check_sample(sample_name = "Run2011A_MultiJet", nano = True, isData = True):
         df_nano['hash'] = df_nano["nano_file"].apply(nano_hash)
         #print df_nano.head()
         df = pd.merge(df, df_nano, on="hash", how="outer")
-
+    """
     if len(df_in) == len(df_out):
         print "All AOD jobs finished succesfully"
     else:
@@ -87,6 +87,7 @@ def check_sample(sample_name = "Run2011A_MultiJet", nano = True, isData = True):
         print missing
         #print "IDs of the missing jobs", missing_ids
 
+    """
     if nano:
         if len(df_in) == len(df_nano):
             print "All nano jobs finished succesfully"
@@ -95,14 +96,16 @@ def check_sample(sample_name = "Run2011A_MultiJet", nano = True, isData = True):
             print "Number of input files", len(df_in), "Number of output files", len(df_nano)
             print missing
             #print "IDs of the missing jobs", missing_ids
+    """
 
 if __name__ == "__main__":
 
+    """
     for d in data:
         print d
         check_sample(sample_name = d, nano = False, isData = True)
+    """
 
-
-    for m in mc:
+    for m in ["TTJets"]:#mc:
         print m
         check_sample(sample_name = m, nano = False, isData = False)

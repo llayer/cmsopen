@@ -1204,6 +1204,7 @@ void TopTauAnalyze::analyze(const edm::Event& evt, const edm::EventSetup& setup)
 
   if( prefilter ){
     if( pass_prefilter() ){
+      //cout<< "Passes filter" <<std::endl;
       tree->Fill();
     }
   }
@@ -1221,21 +1222,33 @@ bool TopTauAnalyze::pass_trigger(){
 }
 bool TopTauAnalyze::pass_tau_prefilter(){
   //  Taus
+
+
+  using namespace std;
+
   int nGoodTaus = 0;
   for(UInt_t iTau=0; iTau<value_tau_n; iTau++){
     // Pt
+    //cout<< "Tau pt:" << value_tau_pt[iTau] <<std::endl;
     if (!(value_tau_pt[iTau] > 40.)) continue;
     // Tau ID
-
-    if (!((value_tau_byMediumCombinedIsolationDeltaBetaCorr[iTau] == 1) || \
-        (value_tau_byMediumCombinedIsolationDeltaBetaCorr3Hits[iTau] == 1))) continue;
+    //cout<< "Tau byMediumCombinedIsolationDeltaBetaCorr:" << value_tau_byMediumCombinedIsolationDeltaBetaCorr[iTau] <<std::endl;
+    //cout<< "Tau byMediumCombinedIsolationDeltaBetaCorr3Hits:" << value_tau_byMediumCombinedIsolationDeltaBetaCorr3Hits[iTau] <<std::endl;
+    if (!((value_tau_byLooseCombinedIsolationDeltaBetaCorr[iTau] == 1) || \
+        (value_tau_byLooseCombinedIsolationDeltaBetaCorr3Hits[iTau] == 1))) continue;
     // Electron rejection
+    //cout<< "Tau againstElectronLoose:" << value_tau_againstElectronLoose[iTau] <<std::endl;
+    //cout<< "Tau againstElectronLooseMVA3:" << value_tau_againstElectronLooseMVA3[iTau] <<std::endl;
     if (!((value_tau_againstElectronLoose[iTau] == 1) || \
         (value_tau_againstElectronLooseMVA3[iTau] == 1))) continue;
     // Muon rejection
+    //cout<< "Tau againstMuonLoose:" << value_tau_againstMuonLoose[iTau] <<std::endl;
+    //cout<< "Tau againstMuonLoose3:" << value_tau_againstMuonLoose3[iTau] <<std::endl;
     if (!((value_tau_againstMuonLoose[iTau] == 1) || \
         (value_tau_againstMuonLoose3[iTau] == 1))) continue;
+    //cout<< "is a good tau" <<std::endl;
     nGoodTaus++;
+
   }
   if (nGoodTaus < 1) return false;
   return true;
@@ -1244,17 +1257,31 @@ bool TopTauAnalyze::pass_tau_prefilter(){
 
 bool TopTauAnalyze::pass_prefilter(){
 
+  using namespace std;
+
+  //cout<< "Start prefilter" <<std::endl;
+
   if( isData )
-    if (pass_trigger() == false) return false;
+    if (pass_trigger() == false){
+      cout<< "Does not pass trigger" <<std::endl;
+      return false;
+    }
 
   // Jets
   int nGoodJets = 0;
   for(UInt_t iJet=0; iJet<value_jet_n; iJet++){
     if(value_jet_pt[iJet] > 40.) nGoodJets += 1;
+    //cout<< "Jet pt:" << value_jet_pt[iJet] <<std::endl;
   }
-  if ((nGoodJets < 3) || (value_jet_n < 4)) return false;
-  if (!pass_tau_prefilter()) return false;
-
+  if ((nGoodJets < 3) || (value_jet_n < 4)){
+    //cout<< "Does not pass jet filter" <<std::endl;
+    //cout<< "nGoodJets:" << nGoodJets << "value_jet_n:" << value_jet_n <<  std::endl;
+    return false;
+  }
+  if (!pass_tau_prefilter()){
+     //cout<< "Does not pass tau filter" <<std::endl;
+     return false;
+  }
   return true;
 }
 
