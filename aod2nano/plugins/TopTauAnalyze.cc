@@ -429,7 +429,6 @@ void TopTauAnalyze::analyze(const edm::Event& evt, const edm::EventSetup& setup)
   using namespace reco;
   using namespace std;
 
-  //std::cout<< inFile << " File " << std::endl;
 
   ///////////////////////////
   // Event information
@@ -439,58 +438,6 @@ void TopTauAnalyze::analyze(const edm::Event& evt, const edm::EventSetup& setup)
   value_event = evt.id().event();
   value_isData = isData;
 
-  //cout<< endl << "analyze" << endl;
-
-  /*
-  auto const& run = evt.getRun();
-  edm::Handle<GenRunInfoProduct> genRunInfo;
-  run.getByLabel( "generator", genRunInfo );
-
-  double crossSection = genRunInfo->crossSection();
-
-  std::cout << "CrossSection!: " << crossSection << std::endl;
-
-  edm::Handle<LHEEventProduct> EvtHandle ;
-  evt.getByLabel( "source" , EvtHandle ) ;
-  //double w0 = EvtHandle->originalXWGTUP();
-  auto weights = EvtHandle->weights();
-  std::cout<< "Weights " << weights.size() << std::endl;
-  */
-
-  /*
-  for (auto& weight : EvtHandle->weights()) {
-    printf("Weight  %+9.5f   rel %+9.5f   for id %s\n", weight.wgt, weight.wgt / w0, weight.id.c_str());
-  }
-  */
-  //typedef gen::WeightsInfo WGT;
-  //std::vector<WGT> = EvtHandle->weights();
-  //const double& w = EvtHandle->weights()[0];
-  //cout << w << endl;
-  //cout << EvtHandle->weights()[0] << endl;
-  //int whichWeight = XXX;
-  //theWeight *= EvtHandle->weights()[whichWeight].wgt/EvtHandle->originalXWGTUP();
-
-  /*
-  edm::Handle<LHERunInfoProduct> lherun;
-  typedef std::vector<LHERunInfoProduct::Header>::const_iterator headers_const_iterator;
-  run.getByLabel( "source", lherun );
-  LHERunInfoProduct myLHERunInfoProduct = *(lherun.product());
-  typedef std::vector<std::string>::const_iterator const_iterator;
-  */
-  /*
-  for (headers_const_iterator iter=myLHERunInfoProduct.headers_begin(); iter!=myLHERunInfoProduct.headers_end(); iter++){
-    std::cout << iter->tag() << std::endl;
-    std::cout << iter->size() << std::endl;
-
-    //auto lines_begin = iter->begin();
-    //auto lines_end = iter->end();
-
-    for (const_iterator it = iter->begin() ; it != iter->end(); ++it){
-      std::cout << ' ' << *it << std::endl;
-    }
-  }
-  */
-  //std::cout << endl << "Analyzing event with ID: " << value_event << endl;
 
   ///////////////////////////
   // Trigger
@@ -983,19 +930,10 @@ void TopTauAnalyze::analyze(const edm::Event& evt, const edm::EventSetup& setup)
       // New b-taggers
       value_jet_tcDisc[value_jet_n] = it->bDiscriminator ("trackCountingHighPurBJetTags");
       value_jet_csvDisc[value_jet_n] = it->bDiscriminator ("combinedSecondaryVertexBJetTags");
-
-
       //value_jet_tcDisc[value_jet_n] = it->bDiscriminator ("trackCountingHighEffBJetTags");
       //value_jet_svDisc[value_jet_n] = it->bDiscriminator ("simpleSecondaryVertexBJetTags");
       //value_jet_svEffDisc[value_jet_n] = it->bDiscriminator ("simpleSecondaryVertexHighEffBJetTags");
       //value_jet_smDisc[value_jet_n] = it->bDiscriminator ("softMuonBJetTags");
-
-      //cout<< endl << "bTag " << it->bDiscriminator ("simpleSecondaryVertexHighEffBJetTags") <<endl;
-      //cout<< endl << "bTag " << it->bDiscriminator ("trackCountingHighEffBJetTags") <<endl;
-      //cout<< endl << "bTag " << it->bDiscriminator ("simpleSecondaryVertexBJetTags") <<endl;
-      //cout<< endl << "bTag " << it->bDiscriminator ("softMuonBJetTags") <<endl;
-      //cout<< endl << "bTag " << it->bDiscriminator ("combinedSecondaryVertexBJetTags") <<endl;
-
 
       const pat::TriggerObjectRef trigRef40( matchHelper.triggerMatchObject( jets, iJet,
                                               "jetMatchHLTJetsPF", evt, pTrigEvt ) );
@@ -1083,17 +1021,6 @@ void TopTauAnalyze::analyze(const edm::Event& evt, const edm::EventSetup& setup)
             if( it->bDiscriminator ("combinedSecondaryVertexBJetTags") >= discriminatorValue )
                 h2_BTaggingEff_Num_udsg->Fill(it->pt(), it->eta());
         }
-
-
-        //std::cout << std::endl << " pt " << it->pt()  <<" csvDisc " << it->bDiscriminator("combinedSecondaryVertexBJetTags") << " Flavour " << it->partonFlavour() <<  std::endl;
-
-        /*
-        b_flavour = it->partonFlavour();
-        b_pt = it->pt();
-        b_eta = it->eta();
-        b_csvDisc = it->bDiscriminator ("combinedSecondaryVertexBJetTags");
-        btag->Fill();
-        */
       }
 
       value_jet_n++;
@@ -1111,9 +1038,6 @@ void TopTauAnalyze::analyze(const edm::Event& evt, const edm::EventSetup& setup)
 
     edm::Handle<GenEventInfoProduct> genEvtInfo;
     evt.getByLabel( "generator", genEvtInfo );
-    //qScale = genEvtInfo->qScale();  // in case of Pythia6, this will be pypars/pari(23)
-    //const std::vector<double>& binningValues = genEvtInfo->binningValues(); // in case of Pythia6, this will be pypars/pari(17)
-    //std::vector<double>& evtWeights = genEvtInfo->weights();
     genWeight = genEvtInfo->weight();
     partonFlavor1 = genEvtInfo->pdf()->id.first;
     partonFlavor2 = genEvtInfo->pdf()->id.second;
@@ -1121,43 +1045,13 @@ void TopTauAnalyze::analyze(const edm::Event& evt, const edm::EventSetup& setup)
     x2 = genEvtInfo->pdf()->x.second;
     qScale = genEvtInfo->pdf()->scalePDF;
 
-    //typedef gen::PdfInfo PDF;
-    //const PDF *pdf_ev = genEvtInfo->pdf();
-
-    //std::cout << "Scale PDF " << pdf_ev->scalePDF << std::endl;
-
-    //edm::Handle<LHEEventProduct> EvtHandle ;
-    //evt.getByLabel( "source" , EvtHandle ) ;
-
-    /*
-    edm::InputTag pdfWeightTag("pdfWeights:cteq66"); // or any other PDF set
-    edm::Handle<std::vector<double> > weightHandle;
-    evt.getByLabel(pdfWeightTag, weightHandle);
-
-    std::vector<double> weights = (*weightHandle);
-    //std::cout << "Event weight for central PDF:" << weights[0] << " Size: " << weights.size() <<std::endl;
-
-    unsigned int nmembers = weights.size();
-    for (unsigned int i=0; i<nmembers; i++) {
-      cteq66_pdf_weights[i] = weights[i];
-      //std::cout << "Event weight: " << cteq66_pdf_weights[i] <<std::endl;
-    }
-    */
-
     edm::InputTag PileupSrc_("addPileupInfo");
     Handle<std::vector< PileupSummaryInfo > >  PupInfo;
     evt.getByLabel(PileupSrc_, PupInfo);
 
     std::vector<PileupSummaryInfo>::const_iterator PVI;
-
-    //std::cout << "pu summary 189 " << PupInfo->size() << std::endl;
-    // (then, for example, you can do)
     for(PVI = PupInfo->begin(); PVI != PupInfo->end(); ++PVI) {
       n_bc = PVI->getBunchCrossing();
-      //std::cout << " Pileup Information: bunchXing, nvtx, size : " << n_bc << std::endl;
-      //<< PVI->getPU_NumInteractions()  << " "
-      //<< PVI->getPU_zpositions().size() << std::endl;
-
 
       num_pileup_bc0    = PVI->getPU_NumInteractions();
       num_pileup_bcp1   = PVI->getPU_NumInteractions();
@@ -1657,21 +1551,6 @@ std::vector<float> TopTauAnalyze::getJERFactor(float eta) { //used in jet loop f
 // ------------ method called when starting to processes a luminosity block  ------------
 void TopTauAnalyze::beginLuminosityBlock(const edm::LuminosityBlock & lumi, const edm::EventSetup & setup)
 {
-
-  /*
-  edm::Handle<edm::MergeableCounter> nEventsTotalCounter;
-  //nEventsTotalCounter.getByLabel(lumi,"nEventsFiltered");
-  lumi.getByLabel(edm::InputTag("nEventsFiltered"), nEventsTotalCounter);
-  std::cout << "*****************************" << std::endl;
-  std::cout << "NEVENTS " << nEventsTotalCounter->value << std::endl;
-  std::cout << "*****************************" << std::endl;
-  //nEventsTotal += nEventsTotalCounter->value;
-
-  /*
-  edm::Handle<int> nEventsFilteredCounter;
-  lumi.getByLabel("nEventsFiltered", nEventsFilteredCounter);
-  //nEventsFiltered += nEventsFilteredCounter->value;
-  */
 }
 
 
@@ -1692,21 +1571,8 @@ void TopTauAnalyze::endLuminosityBlock(const edm::LuminosityBlock & lumi, const 
 
 }
 
-/*
-void TopTauAnalyze::beginRun(edm::Run& run, edm::EventSetup const& setup)
-{
-}
-*/
 void TopTauAnalyze::endRun(edm::Run& run, edm::EventSetup const& setup)
 {
-  /*
-  edm::Handle<GenRunInfoProduct> genRunInfo;
-  run.getByLabel( "generator", genRunInfo );
-
-  double crossSection = genRunInfo->crossSection();
-
-  std::cout << "CrossSection!: " << crossSection << std::endl;
-  */
 }
 
 

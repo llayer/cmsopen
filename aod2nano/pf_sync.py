@@ -324,7 +324,7 @@ if runOnMC:
     tau_cut_pt = 10.
 else:
     isData = True
-    prefilter = False
+    prefilter = True
     prefilter_tau_trigger = False
     prefilter_jet_trigger = False
     jet_cut_pt = 10.
