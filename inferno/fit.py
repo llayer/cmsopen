@@ -48,13 +48,25 @@ def to_root(samples, systs = ["btag"], path = "/home/centos/data/inferno_cmsopen
             create_tree(path, s, sample)
             if ('up' in s) | ('down' in s): continue
             for syst in systs:
+                                
                 for ud in ["up", "down"]:
                     if syst == "btag":
                         sample["weight"] = sample['norm'] * sample['trigger_weight'] * sample['btag_weight1_' + ud]
                         create_tree(path,  s + "_" + syst + "_" + ud, sample)
-
-
-                        
+                    if syst == "trigger":
+                        sample["weight"] = sample['norm'] * sample['trigger_weight_'+ud] * sample['btag_weight1']
+                        create_tree(path,  s + "_" + syst + "_" + ud, sample)
+    
+                if (s == "TTJets_signal") & (syst == "pdf"):
+                    # PDF Up
+                    sample["pdf_up"] = sample["pdf_up"].fillna(0.)
+                    sample["weight"] = sample['norm'] * sample['trigger_weight'] * sample['btag_weight1'] * (1+sample["pdf_up"])
+                    create_tree(path,  s + "_" + syst + "_up", sample)
+                    # PDF Down
+                    sample["pdf_down"] = sample["pdf_down"].fillna(0.)
+                    sample["weight"] = sample['norm'] * sample['trigger_weight'] * sample['btag_weight1'] * (1-sample["pdf_down"])
+                    create_tree(path,  s + "_" + syst + "_down", sample)
+                                                                                                 
 #
 # Write and fit workspace
 #
@@ -79,7 +91,80 @@ def fit_ws(ws, config, asimov = True):
 #
 # Create config
 #
-def create_config(path, fit_var, bins):
+   
+    
+def add_samples(sample_names):
+    
+    samples = []
+    
+    for s in sample_names:
+        
+        if "Data" in s:
+            samples.append(
+              {
+                 "Name": "Data",
+                 "Tree": "tree",
+                 "SamplePath": "Data.root",
+                 "Data": True                       # observed data is handled differently, need to distinguish
+              }
+            )
+ 
+        else:
+            samples.append(
+            {
+             "Name": s,
+             "Tree": "tree",
+             "SamplePath": s+".root",
+             "Weight": "weight"
+            }
+            )
+        
+    return{"Samples" : samples} 
+    
+def add_syst(corr_shape_systs, uncorr_shape_systs, norm_syst):
+    
+    systs = []
+    for sample in corr_shape_systs:
+        for syst in corr_shape_systs[sample]:
+            systs.append(
+                {
+                "Name": sample+ "_" + syst,
+                    "Up": {"SamplePath": sample + "_" + syst + "_up.root"},
+                    "Down": {"SamplePath": sample + "_" + syst + "_down.root"},
+                    "Type" : "NormPlusShape",
+                    "Samples": sample,
+                    "ModifierName": syst
+                }        
+            )
+            
+    for sample in uncorr_shape_systs:
+        for syst in uncorr_shape_systs[sample]:
+            systs.append(
+                {
+                "Name": sample+ "_" + syst,
+                    "Up": {"SamplePath": sample + "_" + syst + "_up.root"},
+                    "Down": {"SamplePath": sample + "_" + syst + "_down.root"},
+                    "Type" : "NormPlusShape",
+                    "Samples": sample,
+                }        
+            )    
+            
+    for syst in norm_syst:
+        
+            systs.append(
+                {
+                "Name": "Lumi",
+                'Up': {'Normalization': norm_syst[syst]["value"]},
+                'Down': {'Normalization': -norm_syst[syst]["value"]},
+                'Type': 'Normalization',
+                "Samples": norm_syst[syst]["samples"]
+                }        
+            )          
+            
+    return{"Systematics" : systs} 
+
+
+def create_config(path, fit_var, bins, sample_names, corr_shape_systs, uncorr_shape_systs, norm_syst, float_qcd=True):
     
     # General setup
     config = {
@@ -104,104 +189,32 @@ def create_config(path, fit_var, bins):
     })
     
     # Samples
-    config.update({
-       "Samples":[
-          {
-             "Name": "Data",
-             "Tree": "tree",
-             "SamplePath": "Data.root",
-             "Data": True                       # observed data is handled differently, need to distinguish
-          },
-          {
-             "Name": "Signal",
-             "Tree": "tree",
-             "SamplePath": "TTJets_signal.root",
-             "Weight": "weight"
-          },
-          {
-             "Name": "QCD",
-             "Tree": "tree",
-             "SamplePath": "QCD.root",
-             "Weight": "weight"
-          },
-          {
-             "Name": "TTJets_bkg",
-             "Tree": "tree",
-             "SamplePath": "TTJets_bkg.root",
-             "Weight": "weight"
-          },
-          {
-             "Name": "WZJets",
-             "Tree": "tree",
-             "SamplePath": "WZJets.root",
-             "Weight": "weight"
-          },
-          {
-             "Name": "STJets",
-             "Tree": "tree",
-             "SamplePath": "STJets.root",
-             "Weight": "weight"
-          }
-
-       ]
-    })
+    config.update(add_samples(sample_names))
     
     # Shape systematics
-    config.update({"Systematics":[
-        {
-        "Name": "JES",
-            "Up": {"SamplePath": "TTJets_signal_06_jes_up.root", 
-                   #"Tree": "tree", "Weight": "weight"
-                  },
-            "Down": {"SamplePath": "TTJets_signal_06_jes_down.root", 
-                     #"Tree": "tree", "Weight": "weight"
-                    },
-            "Type" : "NormPlusShape",
-            "Samples": "Signal"
-        },
-        {
-        "Name": "btag",
-            "Up": {"SamplePath": "TTJets_signal_btag_up.root", 
-                   #"Tree": "tree",
-                   #"Weight": "btag_up"
-                  },
-            "Down": {"SamplePath": "TTJets_signal_btag_down.root", 
-                     #"Tree": "tree",
-                     #"Weight": "btag_down"
-                    },
-            "Type" : "NormPlusShape",
-            "Samples": "Signal"
-        },
-        
-        #{
-        #    "Name": "Lumi",
-        # 'Up': {'Normalization': 0.05},
-        #  'Down': {'Normalization': -0.05},
-        #  'Type': 'Normalization',
-           #"Samples": ["Signal", "QCD"]
-        #}
-        
-        ]
-        }
-    )
+    config.update(add_syst(corr_shape_systs, uncorr_shape_systs, norm_syst))
     
     # Rate parameters
     config.update({
        "NormFactors":[
           {
              "Name": "Signal_norm",
-             "Samples": "Signal",    # we want this parameter to scale the signal
+             "Samples": "TTJets_signal",    # we want this parameter to scale the signal
              "Nominal": 1,
              "Bounds": [-5, 10]
-          },
-          {
-             "Name": "QCD_norm",
-             "Samples": "QCD",    # we want this parameter to scale the signal
-             "Nominal": 1,
-             "Bounds": [0.5, 1.5]
           }
        ]
     })
+    
+    if float_qcd:
+        config["NormFactors"].append(
+              {
+             "Name": "QCD_norm",
+             "Samples": "QCD",   
+             "Nominal": 1,
+             "Bounds": [0.5, 1.5]
+              }
+        )
 
     if cabinetry.configuration.validate(config):
         return config
