@@ -9,6 +9,7 @@ from torch.distributions import Normal
 from pytorch_inferno.inference import *
 from pytorch_inferno.inferno import *
 from pytorch_inferno.callback import *
+from pytorch_inferno.data import *
 from fastcore.all import partialler
 
 #
@@ -299,14 +300,58 @@ class HEPInferno(AbsCallback):
         if self.ignore_loss == False:
             self.wrapper.loss_val = inferno_loss
 
+#
+# Predict test set
+#
+
+def pred_test(model, test_dl, name="inferno"):
+
+    if name == "inferno":
+        preds = model._predict_dl(test_dl, pred_cb=InfernoPred())
+    else:
+        preds = model._predict_dl(test_dl).squeeze()
+        
+    df = pd.DataFrame({'pred':preds})
+    df['gen_target'] = test_dl.dataset.y
+        
+    if "inferno" in name:
+        
+        #Sort according to signal fraction
+        sig = df[df["gen_target"]==1]["pred"]
+        bkg = df[df["gen_target"]==0]["pred"]
+        sig_h = np.histogram(sig, range=(0,10), density=True)[0]
+        bkg_h = np.histogram(bkg, range=(0,10), density=True)[0]
+        sig_bkg = sig_h/(bkg_h+10e-7)
+        sor = np.argsort(sig_bkg)
+        inv_d = dict(enumerate(np.argsort(sig_bkg)))  
+        order_d = {v: k for k, v in inv_d.items()}
+        df['pred_sorted'] = df["pred"].replace(order_d)
+    else:
+        order_d = {}
+
+    return df, order_d
 
 
+#
+# Predict the nominal samples
+#
 
-
-
-
-
-
+def pred_nominal(samples, features, model, scaler, name, order_d = None):
+    
+    #"TTJets_signal"
+    for s in samples:
+        X = samples[s][features].values
+        X = scaler.transform(X)
+        loader = WeightedDataLoader(DataSet(X, None, None), batch_size=256)
+        if "bce" in name:
+            samples[s][name] = model._predict_dl(loader)
+        else:
+            samples[s][name] = model._predict_dl(loader, pred_cb=InfernoPred())
+            
+        if "inferno" in name:
+            samples[s][name + "_sorted"] = samples[s][name].replace(order_d)
+            
+            
 
 
 

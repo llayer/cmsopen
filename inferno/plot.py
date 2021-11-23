@@ -1,6 +1,43 @@
 import matplotlib.pyplot as plt
 import numpy as np
 
+
+def plot_loss(lt, outpath=".", name="inferno", store=True):
+    
+    plt.plot(lt.losses["trn"], label="train")
+    plt.plot(lt.losses["val"], label="val")
+    if name == "inferno":
+        plt.ylabel(r"$\sigma^2(\mu)$")
+    else:
+        plt.ylabel(r"bce")
+    plt.xlabel(r"epoch")
+    plt.legend(loc="upper right")
+    if store:
+        plt.savefig(outpath + "/loss_" + name + ".png")
+    plt.show()
+
+
+def plot_predictions(df, plot_sorted = False, outpath=".", name="inferno", store=False):
+    
+    if plot_sorted:
+        sig = df[df["gen_target"]==1]["pred_sorted"]
+        bkg = df[df["gen_target"]==0]["pred_sorted"]
+    else:
+        sig = df[df["gen_target"]==1]["pred"]
+        bkg = df[df["gen_target"]==0]["pred"]
+    
+    if name == "inferno":
+        hist_range=(0,10)
+    else:
+        hist_range=(0,1.)
+    plt.hist(sig, density=True, alpha=0.5, bins=10, range=hist_range, label="Signal")
+    plt.hist(bkg, density=True, alpha=0.5, bins=10, range=hist_range, label="Background")
+    plt.legend(loc="upper left")
+    if store:
+        plt.savefig(outpath + "/preds_" + name + ".png")    
+    plt.show()
+
+
 def correlation_from_covariance(covariance):
     v = np.sqrt(np.diag(covariance))
     outer_v = np.outer(v, v)
@@ -43,15 +80,21 @@ def plot_cov_trnval(trn_covs, val_covs, names, stddev=False):
                  transform = col.transAxes, size=15,
                  bbox=dict(facecolor='red', edgecolor=None, alpha=0.2))
                 if i==0:
-                    lims = (500,1500)
+                    lims = np.array([500,1500])
+                    if stddev == True:
+                        lims = np.sqrt(lims)
                 else:
                     lims = (0., 1.5)
             else:
                 trn = get_cov_entry(trn_corrs, i, j)
                 val = get_cov_entry(val_corrs, i, j)
                 lims = (-.5, .5)
-            col.plot(trn)
-            col.plot(val)  
+            col.set_ylim(lims)
+            col.plot(trn, label="train")
+            col.plot(val, label="val")  
+            if (i==0) & (j==2):
+                col.legend(loc="upper right", prop={'size': 16})
+
             
 def plot_cov_infbce(bce_covs, inf_covs, names, stddev=False):
 
