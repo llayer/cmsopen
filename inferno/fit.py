@@ -3,6 +3,11 @@ import pyhf
 import uproot3
 import numpy as np
 
+
+#
+# Convert data to ROOT format
+#
+
 def create_tree(path, s, sample):
     
     file = uproot3.recreate(path + "/root_trees/" + s + ".root")
@@ -24,6 +29,7 @@ def create_tree(path, s, sample):
     })
     file.close()    
 
+    
 def to_root(samples, systs = ["btag"], path = "/home/centos/data/inferno_cmsopen13/root_trees"):
     
     for s in samples:
@@ -40,6 +46,7 @@ def to_root(samples, systs = ["btag"], path = "/home/centos/data/inferno_cmsopen
             
             sample["weight"] = sample['norm'] * sample['trigger_weight'] * sample['btag_weight1']
             create_tree(path, s, sample)
+            if ('up' in s) | ('down' in s): continue
             for syst in systs:
                 for ud in ["up", "down"]:
                     if syst == "btag":
@@ -47,6 +54,31 @@ def to_root(samples, systs = ["btag"], path = "/home/centos/data/inferno_cmsopen
                         create_tree(path,  s + "_" + syst + "_" + ud, sample)
 
 
+                        
+#
+# Write and fit workspace
+#
+
+def create_ws(config, workspace_path = "", postproc=True):
+    cabinetry.templates.build(config, method="uproot")
+    cabinetry.templates.postprocess(config)
+    ws = cabinetry.workspace.build(config)
+    cabinetry.workspace.save(ws, workspace_path)
+    spec = dict(pyhf.Workspace(ws).prune(modifier_types=["staterror"]))
+    return spec
+    
+    
+def fit_ws(ws, config, asimov = True):
+    
+    model, data = cabinetry.model_utils.model_and_data(ws, asimov=asimov)
+    model_pred = cabinetry.model_utils.prediction(model)
+    figures = cabinetry.visualize.data_mc(model_pred, data, config=config, log_scale=True)
+    fit_results = cabinetry.fit.fit(model, data)
+    return fit_results
+                        
+#
+# Create config
+#
 def create_config(path, fit_var, bins):
     
     # General setup
