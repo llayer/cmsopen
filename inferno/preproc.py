@@ -7,6 +7,7 @@ from functools import reduce
 from sklearn import preprocessing
 from pytorch_inferno.data import *
 
+pd.options.mode.chained_assignment = None 
 
 def get_norm(norm_syst, path="/home/centos/data/bdt_rs5/norms.h5"):
     
@@ -75,6 +76,13 @@ def get_cmsopen_data(samples, features, shape_syst, weight_syst, n_sig = 20000, 
             dfs.append(samples["TTJets_signal_" + syst + ud])
     signal = reduce(lambda  left,right: pd.merge(left,right,how="inner", on="event_id"), dfs)
     bkg = samples["QCD"]
+    
+    #Weights
+    signal["weights"] = signal['trigger_weight'] * signal['btag_weight1']
+    signal["weights"] = signal["weights"] * (1. / np.mean(signal["weights"]))
+    bkg["weights"] = bkg['btag_weight2']
+    bkg["weights"] = bkg["weights"] * (1. / np.mean(bkg["weights"]))
+
 
     # Split in training and test
     train_test_split(signal, n_sig)
@@ -87,12 +95,8 @@ def get_cmsopen_data(samples, features, shape_syst, weight_syst, n_sig = 20000, 
     
     # Select test and train and add weights
     signal_train = signal[signal["train_flag"] == "train"]
-    signal_train["weights"] = signal_train['trigger_weight'] * signal_train['btag_weight1']
-    signal_train["weights"] = signal_train["weights"] * (1. / np.mean(signal_train["weights"]))
     signal_test = signal[signal["train_flag"] == "test"]
     bkg_train = bkg[bkg["train_flag"] == "train"]
-    bkg_train["weights"] = bkg_train['btag_weight2']
-    bkg_train["weights"] = bkg_train["weights"] * (1. / np.mean(bkg_train["weights"]))
     bkg_test = bkg[bkg["train_flag"] == "test"]
     
     # Concat the signal and background
@@ -107,31 +111,41 @@ def get_cmsopen_data(samples, features, shape_syst, weight_syst, n_sig = 20000, 
     weights_train = train_data["weights"].values.reshape((-1,1))
     X_test = test_data[features].values
     X_test = scaler.transform(X_test)
-    y_test = test_data["label"].values.reshape((-1,1))    
+    y_test = test_data["label"].values.reshape((-1,1))   
+    weights_test = test_data["weights"].values.reshape((-1,1))
     
     # Add the systematic shape variations
-    signal_train_syst= []
-    signal_test_syst = []
+    train_syst = []
+    test_syst = []
     for syst in shape_syst:
         for ud in ["_up", "_down"]:    
             feat_syst = [x + "_" + syst + ud for x in features]
-            signal_train_syst.append(scaler.transform(train_data[feat_syst].values))
-            signal_test_syst.append(scaler.transform(test_data[feat_syst].values))
+            train_syst.append(scaler.transform(train_data[feat_syst].values))
+            test_syst.append(scaler.transform(test_data[feat_syst].values))
     
     # Add the weights
+    weights_train_syst = []
+    weights_test_syst = []
     for syst in weight_syst:
         for ud in ["_up", "_down"]:
-            signal_train_syst.append(X_train*train_data[syst + ud].values.reshape((-1,1)))
-            signal_test_syst.append(X_test*test_data[syst + ud].values.reshape((-1,1)))
+            w_train = train_data[syst + ud] / train_data[syst]
+            #print(list(zip(train_data[syst+ud], train_data[syst], w_train)))
+            w_test = test_data[syst + ud] / test_data[syst]
+            weights_train_syst.append(  w_train.values.reshape((-1,1)) )
+            weights_test_syst.append( w_test.values.reshape((-1,1)) )
     
-    X_train = np.stack((X_train, *signal_train_syst), axis=2)
-    X_test = np.stack((X_test, *signal_test_syst), axis=2)
+    X_train = np.stack((X_train, *train_syst), axis=2)
+    X_test = np.stack((X_test, *test_syst), axis=2)
     
     if use_weights == True:
-        trn = (X_train, y_train, weights_train)  
+        weights_train = np.stack((weights_train, *weights_train_syst), axis=2)
+        weights_test = np.stack((weights_test, *weights_test_syst), axis=2)
+        #print(weights_train.shape)
+        trn = (X_train, y_train, weights_train) 
+        val = (X_test, y_test, weights_test)
     else:
         trn = (X_train, y_train) 
-    val = (X_test, y_test)
+        val = (X_test, y_test)
         
     #data = DataPair(trn_dl, val_dl)
     #test = DataPair(WeightedDataLoader(DataSet(*trn), batch_size=bs), 
@@ -193,7 +207,10 @@ def load_data(features, shape_syst, weight_syst, norm_syst, path = "/home/centos
     print("batch size", bs)
     print("x", trn_dl.dataset[0][0].shape)
     print("y", trn_dl.dataset[0][1])
-    print("w", trn_dl.dataset[0][2])
+    if trn_dl.dataset[0][2] is not None:
+        print("w", trn_dl.dataset[0][2].shape)
+    else:
+        print("w", trn_dl.dataset[0][2])
     print("*********************")
 
     return data, test_dl, samples, scaler

@@ -20,12 +20,13 @@ def train_inferno(data, epochs=100, inferno_args=None):
 
     """
     lt = LossTracker()
-    shape_norm_sigma = [0.05, 0.02]
-    s_norm_sigma = []#[0.05, 0.1]
     hep_inf = hep_model.HEPInferno(b_true=inferno_args["b_true"], 
                                    mu_true=inferno_args["mu_true"],
-                                   n_shape_alphas=2, shape_norm_sigma=shape_norm_sigma,
-                                     s_norm_sigma=s_norm_sigma, interp_algo="default")
+                                   n_shape_systs=inferno_args["n_shape_systs"],
+                                   n_weight_systs=inferno_args["n_weight_systs"],
+                                   shape_norm_sigma=inferno_args["shape_norm_sigma"],
+                                   #s_norm_sigma=s_norm_sigma, 
+                                   interp_algo="default")
     #init_net(net_inferno)
     model_inferno = ModelWrapper(net_inferno)
 

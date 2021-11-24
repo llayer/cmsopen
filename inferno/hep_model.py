@@ -124,7 +124,8 @@ def hep_nll(s_true:float, b_true:float, mu:Tensor, f_s_nom:Tensor, f_b_nom:Tenso
 
 class HEPInferno(AbsCallback):
     r'''Implementation of INFERNO with HEP like systematics'''
-    def __init__(self, b_true:float, mu_true:float, n_shape_alphas:int=0, interp_algo:str="default", 
+    def __init__(self, b_true:float, mu_true:float, n_shape_systs:int=0, n_weight_systs:int=0,
+                 interp_algo:str="default", 
                  shape_norm_sigma:Optional[List[float]]=None,
                  s_norm_sigma:Optional[List[float]]=None, b_norm_sigma:Optional[List[float]]=None, 
                  b_rate_param:bool=False, use_hist:bool=False, ignore_loss:bool=False, 
@@ -135,7 +136,9 @@ class HEPInferno(AbsCallback):
 
         self.mu_true = mu_true
         self.b_true = b_true
-        self.n_shape_alphas = n_shape_alphas
+        self.n_shape_systs = n_shape_systs
+        self.n_weight_systs = n_weight_systs
+        self.n_shape_alphas = n_shape_systs + n_weight_systs
         self.interp_algo = interp_algo
         self.shape_norm_sigma = shape_norm_sigma #torch.Tensor(shape_norm_sigma)
         self.s_norm_sigma = s_norm_sigma
@@ -246,19 +249,43 @@ class HEPInferno(AbsCallback):
             
     def _get_up_down(self, x_s:Tensor, x_b:Tensor, w_s:Optional[Tensor]=None, w_b:Optional[Tensor]=None) -> Tuple[Tuple[Optional[Tensor],Optional[Tensor]],Tuple[Optional[Tensor],Optional[Tensor]]]:
 
-        if self.n_shape_alphas != ((x_s.shape[-1]-1)/2): 
-            raise ValueError("Number of specified shape nuisances n_shape_alphas", self.n_shape_alphas,
+        if self.n_shape_systs != ((x_s.shape[-1]-1)/2): 
+            raise ValueError("Number of specified shape nuisances n_shape_systs", self.n_shape_systs,
                              "must match the number of systematic variations:", (x_s.shape[-1]-1)/2 )
         
+        if w_s is not None:
+            if self.n_weight_systs != ((w_s.shape[-1]-1)/2): 
+                raise ValueError("Number of specified weight nuisances n_weight_systs", self.n_weight_systs,
+                                 "must match the number of systematic variations:", (w_s.shape[-1]-1)/2 )
+        else:
+            if self.n_weight_systs > 0: 
+                raise ValueError("Specified number of weight nuisances", self.n_weight_systs, "but no weights given")
+                                 
+            
+        
+        # Nominal weights
+        w_s_nom = w_s[:,:,0] if w_s is not None else None
+        w_b_nom = w_s[:,:,0] if w_b is not None else None
+        
         u,d = [],[]
-        # modified template variations
-        for i in range(self.n_shape_alphas):
+        # Loop over shape systematics
+        for i in range(self.n_shape_systs):
             idx_up = 1 + 2*i
             idx_down = 2 + 2*i
-            up_batch = self.to_shape(self.wrapper.model(x_s[:,:,idx_up]))
-            down_batch = self.to_shape(self.wrapper.model(x_s[:,:,idx_down]))
+            up_batch = self.to_shape(self.wrapper.model(x_s[:,:,idx_up]), w_s_nom)
+            down_batch = self.to_shape(self.wrapper.model(x_s[:,:,idx_down]), w_b_nom)
             u.append(up_batch)
             d.append(down_batch)    
+        
+        #Loop over weight systematics
+        for i in range(self.n_weight_systs):
+            idx_up = 1 + 2*i
+            idx_down = 2 + 2*i
+            up_batch = self.to_shape(self.wrapper.model(x_s[:,:,0]), w_s[:,:,idx_up])
+            down_batch = self.to_shape(self.wrapper.model(x_s[:,:,0]), w_s[:,:,idx_down])
+            u.append(up_batch)
+            d.append(down_batch)             
+            
         return (torch.stack(u),torch.stack(d)), (None,None)
 
     def get_ikk(self, f_s_nom:Tensor, f_b_nom:Tensor, f_s_up:Optional[Tensor], f_s_dw:Optional[Tensor], 
@@ -290,10 +317,19 @@ class HEPInferno(AbsCallback):
     def on_forwards_end(self) -> None:
         r'''Compute loss and replace wrapper loss value'''
         b = self.wrapper.y.squeeze() == 0
-        w_s = self.wrapper.w[~b] if self.wrapper.w is not None else None
-        w_b = self.wrapper.w[b] if self.wrapper.w is not None else None
-        f_s = self.to_shape(self.wrapper.y_pred[~b], w_s)
-        f_b = self.to_shape(self.wrapper.y_pred[b], w_b)
+        
+        #print(self.wrapper.w)
+        
+        if self.wrapper.w is not None:
+            w_s = self.wrapper.w[~b]
+            w_b = self.wrapper.w[b]
+            w_s_nom = w_s[:,:,0]
+            w_b_nom = w_b[:,:,0]
+        else:
+            w_s, w_b, w_s_nom, w_b_nom = None, None, None, None
+            
+        f_s = self.to_shape(self.wrapper.y_pred[~b], w_s_nom)
+        f_b = self.to_shape(self.wrapper.y_pred[b], w_b_nom)
         (f_s_up,f_s_dw),(f_b_up,f_b_dw)= self._get_up_down(self.wrapper.x[~b], self.wrapper.x[b], w_s, w_b)
         inferno_loss = self.get_ikk(f_s_nom=f_s, f_b_nom=f_b, f_s_up=f_s_up, f_s_dw=f_s_dw, f_b_up=f_b_up, f_b_dw=f_b_dw)
         
