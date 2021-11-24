@@ -14,6 +14,8 @@ def fit_cmsopen(fitvar, path):
     
     if fitvar == "inferno":
         bins = np.linspace(0,10,10)
+    elif fitvar == "inferno_sorted":
+        bins = np.linspace(0,10,10)
     else:
         bins = np.linspace(0,1,10)
            
@@ -33,7 +35,8 @@ def fit_cmsopen(fitvar, path):
     ws_path = path + "/workspace_bce.json"
     ws = fit.create_ws(config, workspace_path = ws_path)
     
-    fit.fit_ws(ws, config, asimov=True)
+    fit_results, scan_results = fit.fit_ws(ws, config, asimov=True)
+    return fit_results, scan_results
    
         
 
@@ -115,12 +118,13 @@ def run_cmsopen(features, shape_syst = [], weight_syst = [], bs = 1000, n_sig = 
         
         # Fit 
         print( "Fit BCE")
-        fit_cmsopen(fitvar="bce", path=outpath)
+        fit_results_bce, scan_results_bce = fit_cmsopen(fitvar="bce", path=outpath)
         
         # Fit 
         print( "Fit INFERNO")
-        fit_cmsopen(fitvar="inferno", path=outpath)        
+        fit_results_inf, scan_results_inf  = fit_cmsopen(fitvar="inferno_sorted", path=outpath)        
         
+        return fit_results_bce, scan_results_bce, fit_results_inf, scan_results_inf
         
         
         

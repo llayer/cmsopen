@@ -91,7 +91,10 @@ def fit_ws(ws, config, asimov = True):
     model_pred = cabinetry.model_utils.prediction(model)
     figures = cabinetry.visualize.data_mc(model_pred, data, config=config, log_scale=True)
     fit_results = cabinetry.fit.fit(model, data)
-    return fit_results
+    scan_results = cabinetry.fit.scan(model, data, "mu", n_steps=200)
+    #print(scan_results)
+    #cabinetry.visualize.scan(scan_results)
+    return fit_results, scan_results
                         
 #
 # Create config
@@ -175,7 +178,7 @@ def create_config(path, fit_var, bins, sample_names, corr_shape_systs={}, uncorr
     config = {
        "General":{
           "Measurement": "CMSOpenData",
-          "POI": "Signal_norm",               # parameter of interest, which we want to measure 
+          "POI": "mu",               # parameter of interest, which we want to measure 
           "InputPath": path +"/root_trees/{SamplePath}", # where to find input data
           "HistogramFolder": path + "/histograms/"
        }
@@ -203,7 +206,7 @@ def create_config(path, fit_var, bins, sample_names, corr_shape_systs={}, uncorr
     config.update({
        "NormFactors":[
           {
-             "Name": "Signal_norm",
+             "Name": "mu",
              "Samples": "TTJets_signal",    # we want this parameter to scale the signal
              "Nominal": 1,
              "Bounds": [-5, 10]
