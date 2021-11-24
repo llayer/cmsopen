@@ -13,9 +13,9 @@ import fit
 def fit_cmsopen(fitvar, path):
     
     if fitvar == "inferno":
-        bins = np.linspace(0,1,10)
-    else:
         bins = np.linspace(0,10,10)
+    else:
+        bins = np.linspace(0,1,10)
            
     # Create config
     sample_names = ["Data", "QCD", "TTJets_bkg", "WZJets", "STJets", "TTJets_signal"]
@@ -24,7 +24,7 @@ def fit_cmsopen(fitvar, path):
     uncorr_shape_systs = {"TTJets_signal" : ["06_jes"]}
     norm_syst ={}# {"lumi":{ "samples" : mc, "value" : 0.02 }, }
     
-    config = fit.create_config(path, fit_var, bins, sample_names, corr_shape_systs, 
+    config = fit.create_config(path, fitvar, bins, sample_names, corr_shape_systs, 
                                uncorr_shape_systs, norm_syst, float_qcd=True)
     
     print(config)
@@ -73,8 +73,14 @@ def train_cmsopen(opendata, test, inferno_args, epochs, use_softhist):
 
 
 def run_cmsopen(features, shape_syst = [], weight_syst = [], bs = 1000, n_sig = 20000, use_weights = False,
-                inferno_args = None, epochs=1, use_softhist = False, retrain = True, do_fit = False):
+                inferno_args = None, epochs=1, use_softhist = False, retrain = True, do_fit = False, 
+                store=True, outpath="."):
      
+    # Create folder
+    if store == True:
+        if not os.path.exists(outpath):
+            os.makedirs(outpath)
+        
     if retrain == True:
          
         # Load data
@@ -90,23 +96,30 @@ def run_cmsopen(features, shape_syst = [], weight_syst = [], bs = 1000, n_sig = 
         hep_model.pred_nominal(samples, features, inferno_model, scaler, name='inferno', order_d = order_d)
         # Predict BCE
         hep_model.pred_nominal(samples, features, bce_model, scaler, name="bce")
+        if store == True:
+            for s in samples:
+                samples[s].to_hdf(outpath + "/" + s + ".h5", "frame", mode='w')
         
     else:
         
         # Load samples with predictions
-        samples = preproc.load_samples(path)
+        print( "Loading samples from path", outpath)
+        samples = preproc.load_samples(outpath + "/")
         
     
     if do_fit:   
         
         # Convert samples to ROOT trees
-        fit.to_root(samples, path=path, systs = ["btag", "pdf", "trigger"])
+        print( "Create root trees")
+        fit.to_root(samples, path=outpath, systs = ["btag", "pdf", "trigger"])
         
         # Fit 
-        fit_cmsopen(fitvar="bce")
+        print( "Fit BCE")
+        fit_cmsopen(fitvar="bce", path=outpath)
         
         # Fit 
-        fit_cmsopen(fitvar="inferno")        
+        print( "Fit INFERNO")
+        fit_cmsopen(fitvar="inferno", path=outpath)        
         
         
         

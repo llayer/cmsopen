@@ -1,3 +1,4 @@
+import os
 import cabinetry
 import pyhf
 import uproot3
@@ -31,6 +32,10 @@ def create_tree(path, s, sample):
 
     
 def to_root(samples, systs = ["btag"], path = "/home/centos/data/inferno_cmsopen13/root_trees"):
+    
+    # Create directory to contain root trees
+    if not os.path.exists(path + "/root_trees"):
+        os.makedirs(path + "/root_trees")
     
     for s in samples:
         
