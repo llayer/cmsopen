@@ -44,6 +44,32 @@ def fast_vertical(alpha:Tensor, f_nom:Tensor, f_up:Tensor, f_dw:Tensor):
 
 
 #
+# Differentiable histogram
+#
+#https://discuss.pytorch.org/t/differentiable-torch-histc/25865
+# CAREFUL - weights implementation should be checked
+class SoftHistogram(torch.nn.Module):
+    def __init__(self, bins, min, max, sigma, device=None):
+        super(SoftHistogram, self).__init__()
+        self.bins = bins
+        self.min = min
+        self.max = max
+        self.sigma = sigma
+        self.delta = float(max - min) / float(bins)
+        self.centers = float(min) + self.delta * (torch.arange(bins).float() + 0.5)
+        if device is not None:
+            self.centers = self.centers.to(device)
+
+    def forward(self, x, weights=None):
+        x = torch.unsqueeze(torch.squeeze(x), 0) - torch.unsqueeze(self.centers, 1)
+        x = torch.sigmoid(self.sigma * (x + self.delta/2)) - torch.sigmoid(self.sigma * (x - self.delta/2))
+        if weights is not None:
+            x = (x*weights).sum(dim=1)
+        else:
+            x = x.sum(dim=1)
+        return x
+
+#
 # Constraints
 #
 
@@ -229,23 +255,24 @@ class HEPInferno(AbsCallback):
             f = (p*w).sum(0)+1e-7 if w is not None else p.sum(0)+eps
             return f/f.sum()   
         else:
-            h = torch.histc(p, bins=10, min=0., max=1.)
+                        
+            #h = torch.histc(p, bins=10, min=0., max=1.)
+            #h = torch.histogram(p.cpu(), bins=10, range=(0., 1.)).hist
+            #print(h)
+            #h = h.div(h.sum())+eps
+            #return h.to(self.wrapper.device)
+            
+            if self.ignore_loss:
+                if w is not None:
+                    h = torch.histogram(p.cpu(), bins=10, range=(0., 1.), weight=w.cpu()).hist.to(self.wrapper.device)
+                else:
+                    h = torch.histc(p, bins=10, min=0., max=1.)
+            else:
+                hist = SoftHistogram(bins=10, min=0., max=1., sigma=200., device=self.wrapper.device)
+                h = hist(p, w)
             h = h.div(h.sum())+eps
             return h
             
-        #print(torch.unsqueeze(torch.squeeze(p), 0).shape)
-        """
-        h = torch.histc(p, bins=10, min=0., max=1.)
-        hist = SoftHistogram(bins=10, min=0., max=1., sigma=200., device=self.wrapper.device)
-        #print(p.shape)
-        eps=1e-7
-        h = h.div(h.sum())+eps
-        h_soft = hist(p)
-        h_soft = h_soft.div(h_soft.sum())+eps
-        #print("h_soft", h_soft)
-        #print("h", h)
-        return h_soft
-        """
             
     def _get_up_down(self, x_s:Tensor, x_b:Tensor, w_s:Optional[Tensor]=None, w_b:Optional[Tensor]=None) -> Tuple[Tuple[Optional[Tensor],Optional[Tensor]],Tuple[Optional[Tensor],Optional[Tensor]]]:
 
@@ -281,8 +308,8 @@ class HEPInferno(AbsCallback):
         for i in range(self.n_weight_systs):
             idx_up = 1 + 2*i
             idx_down = 2 + 2*i
-            up_batch = self.to_shape(self.wrapper.model(x_s[:,:,0]), w_s[:,:,idx_up])
-            down_batch = self.to_shape(self.wrapper.model(x_s[:,:,0]), w_s[:,:,idx_down])
+            up_batch = self.to_shape(self.wrapper.model(x_s[:,:,0]), w_s_nom * w_s[:,:,idx_up])
+            down_batch = self.to_shape(self.wrapper.model(x_s[:,:,0]), w_s_down * w_s[:,:,idx_down])
             u.append(up_batch)
             d.append(down_batch)             
             
@@ -327,7 +354,7 @@ class HEPInferno(AbsCallback):
             w_b_nom = w_b[:,:,0]
         else:
             w_s, w_b, w_s_nom, w_b_nom = None, None, None, None
-            
+        
         f_s = self.to_shape(self.wrapper.y_pred[~b], w_s_nom)
         f_b = self.to_shape(self.wrapper.y_pred[b], w_b_nom)
         (f_s_up,f_s_dw),(f_b_up,f_b_dw)= self._get_up_down(self.wrapper.x[~b], self.wrapper.x[b], w_s, w_b)
@@ -340,12 +367,12 @@ class HEPInferno(AbsCallback):
 # Predict test set
 #
 
-def pred_test(model, test_dl, name="inferno"):
+def pred_test(model, test_dl, pred_sigmoid=False, name="inferno"):
 
-    if name == "inferno":
-        preds = model._predict_dl(test_dl, pred_cb=InfernoPred())
+    if pred_sigmoid == True:
+        preds = model._predict_dl(test_dl).squeeze()        
     else:
-        preds = model._predict_dl(test_dl).squeeze()
+        preds = model._predict_dl(test_dl, pred_cb=InfernoPred())
         
     df = pd.DataFrame({'pred':preds})
     df['gen_target'] = test_dl.dataset.y
@@ -355,8 +382,9 @@ def pred_test(model, test_dl, name="inferno"):
         #Sort according to signal fraction
         sig = df[df["gen_target"]==1]["pred"]
         bkg = df[df["gen_target"]==0]["pred"]
-        sig_h = np.histogram(sig, range=(0,10), density=True)[0]
-        bkg_h = np.histogram(bkg, range=(0,10), density=True)[0]
+        x_range = (0.,10.) if pred_sigmoid==False else (0.,1.)
+        sig_h = np.histogram(sig, range=x_range, density=True)[0]
+        bkg_h = np.histogram(bkg, range=x_range, density=True)[0]
         sig_bkg = sig_h/(bkg_h+10e-7)
         sor = np.argsort(sig_bkg)
         inv_d = dict(enumerate(np.argsort(sig_bkg)))  

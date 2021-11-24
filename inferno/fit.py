@@ -164,7 +164,7 @@ def add_syst(corr_shape_systs, uncorr_shape_systs, norm_syst):
     return{"Systematics" : systs} 
 
 
-def create_config(path, fit_var, bins, sample_names, corr_shape_systs, uncorr_shape_systs, norm_syst, float_qcd=True):
+def create_config(path, fit_var, bins, sample_names, corr_shape_systs={}, uncorr_shape_systs={}, norm_syst={}, float_qcd=True):
     
     # General setup
     config = {

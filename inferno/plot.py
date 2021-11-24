@@ -2,7 +2,38 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 
-def plot_loss(lt, outpath=".", name="inferno", store=True):
+
+def plot_cov(bce_info, inferno_info, names):
+    
+    inferno_trn_covs, inferno_val_covs = inferno_info["covs"]["trn"], inferno_info["covs"]["val"]
+    bce_trn_covs, bce_val_covs = bce_info["covs"]["trn"], bce_info["covs"]["val"]
+    # Compare train / validation INFERNO
+    plot_cov_trnval(inferno_trn_covs, inferno_val_covs, names, stddev=True)
+    # Compare validation BCE - INFERNO
+    plot_cov_infbce(bce_val_covs, inferno_val_covs, names, stddev=True)
+
+
+def plot_inferno(df_inf, inferno_info, use_softhist=False):
+    
+    # Plot loss
+    plot_loss(inferno_info["loss"])
+    
+    # Plot test predictions
+    if use_softhist == False:
+        plot_predictions(df_inf, plot_sorted=False, name="inferno")
+        plot_predictions(df_inf, plot_sorted=True, name="inferno")
+    else:
+        plot_predictions(df_inf, plot_sorted=False, name="inferno_soft")
+    
+def plot_bce(df_bce, bce_info):
+    
+    # Plot loss
+    plot_loss(bce_info["loss"], name="bce")
+    # Plot predictions
+    plot_predictions(df_bce, plot_sorted=False, name="bce")
+
+
+def plot_loss(lt, outpath=".", name="inferno", store=False):
     
     plt.plot(lt.losses["trn"], label="train")
     plt.plot(lt.losses["val"], label="val")
@@ -110,7 +141,7 @@ def plot_cov_infbce(bce_covs, inf_covs, names, stddev=False):
                 inf = get_cov_entry(inf_covs, i, j)
                 if stddev == True:
                     bce = np.sqrt(bce)
-                    inf = np.sqrt(val)
+                    inf = np.sqrt(inf)
                 plt.text(0.8, 0.8, names[i],
                  horizontalalignment='center',
                  verticalalignment='center',
@@ -118,6 +149,8 @@ def plot_cov_infbce(bce_covs, inf_covs, names, stddev=False):
                  bbox=dict(facecolor='red', edgecolor=None, alpha=0.2))
                 if i==0:
                     lims = (500,1500)
+                    if stddev == True:
+                        lims = np.sqrt(lims)
                 else:
                     lims = (0., 1.5)
             else:

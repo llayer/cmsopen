@@ -179,12 +179,8 @@ def get_cmsopen_data(samples, features, shape_syst, weight_syst, n_sig = 20000, 
         
     return trn, val, scaler
 
-        
-def load_data(features, shape_syst, weight_syst, norm_syst, path = "/home/centos/data/bdt_rs5/", bs=256, 
-              n_sig = 5000, n_bkg = 5000, use_weights = False):
-    
-    #if not os.path.exists(outpath):
-    #    os.makedirs(outpath)
+
+def load_samples(path):
     
     samples = {}
     for s in ["TTJets_bkg", "WZJets", "STJets", "QCD", "TTJets_signal", "Data"]:
@@ -194,6 +190,15 @@ def load_data(features, shape_syst, weight_syst, norm_syst, path = "/home/centos
             for syst in ["06_jes", "05_taue", "jer"]:
                 samples[s + "_" + syst + "_up"] = pd.read_hdf(path + s + "_" + syst + "_up" + ".h5")
                 samples[s + "_" + syst + "_down"] = pd.read_hdf(path + s + "_" + syst + "_down" + ".h5")
+    return samples
+
+        
+def load_data(features, shape_syst, weight_syst, path = "/home/centos/data/bdt_rs5/", bs=256, 
+              n_sig = 5000, n_bkg = 5000, use_weights = False):
+    
+    #if not os.path.exists(outpath):
+    #    os.makedirs(outpath)
+    samples = load_samples(path)
                 
     trn, val, scaler = get_cmsopen_data(samples, features, shape_syst, weight_syst, 
                                         n_sig = n_sig, n_bkg = n_bkg, use_weights = use_weights)    
