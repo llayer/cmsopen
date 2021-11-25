@@ -3,6 +3,7 @@ import cabinetry
 import pyhf
 import uproot3
 import numpy as np
+import json
 
 
 #
@@ -60,21 +61,67 @@ def create_ws(config, workspace_path = "", postproc=True):
     return spec
     
     
-def fit_ws(ws, config, n_steps = 200, asimov = True):
+def fit_ws(ws, config, args, path, asimov = True):
     
     model, data = cabinetry.model_utils.model_and_data(ws, asimov=asimov)
     model_pred = cabinetry.model_utils.prediction(model)
-    figures = cabinetry.visualize.data_mc(model_pred, data, config=config, log_scale=True)
+    figures = cabinetry.visualize.data_mc(model_pred, data, config=config, log_scale=True,
+                                          save_figure=args["store"], figure_folder=path)
     fit_results = cabinetry.fit.fit(model, data)
-    scan_results = cabinetry.fit.scan(model, data, "mu", n_steps=n_steps)
+    cabinetry.visualize.pulls(fit_results, exclude=["mu"], save_figure=args["store"], figure_folder=path)
+    scan_results = cabinetry.fit.scan(model, data, "mu", n_steps=args["n_steps"])
     #print(scan_results)
     #cabinetry.visualize.scan(scan_results)
     return fit_results, scan_results
-                        
+
+#
+# Store fit results
+#
+def store_fitresults(fit_results, path=""):
+    results = {}
+    results["labels"] = fit_results.labels
+    results["bestfit"] = fit_results.bestfit.tolist()
+    results["uncertainty"] = fit_results.uncertainty.tolist()
+    results["corr_mat"] = fit_results.corr_mat.flatten().tolist()
+    with open(path + '/fit_results.json', 'w') as outfile:
+        json.dump(results, outfile)
+        
+def store_scan(scan_results, path=""):
+    
+    results = {}
+    results["name"] = scan_results.name
+    results["bestfit"] = scan_results.bestfit
+    results["uncertainty"] = scan_results.uncertainty
+    results["parameter_values"] = scan_results.parameter_values.tolist()
+    results["delta_nlls"] = scan_results.delta_nlls.tolist()
+    with open(path + '/mu_scan.json', 'w') as outfile:
+        json.dump(results, outfile)
+        
+#
+# Load fit results
+#
+def load_fitresults(path=""):
+    
+    with open(path + '/fit_results.json') as json_file:
+        results = json.load(json_file)
+    results["bestfit"] = np.array(results["bestfit"])
+    results["uncertainty"] = np.array(results["uncertainty"])
+    dim = len(results["corr_mat"])
+    results["corr_mat"] = np.array(results["corr_mat"]).reshape(dim, dim)
+    
+    return results
+
+def load_scan(scan_results, path=""):
+    
+    with open(path + '/mu_scan.json') as json_file:
+        results = json.load(json_file)
+    results["parameter_values"] = np.array(results["parameter_values"])
+    results["delta_nlls"] = np.array(results["delta_nlls"])
+
+    return results                    
 #
 # Create config
 #
-   
     
 def add_samples(sample_names):
     

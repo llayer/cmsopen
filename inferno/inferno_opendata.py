@@ -10,7 +10,7 @@ import plot
 import train
 import fit
 
-def fit_cmsopen(args, fitvar, path):
+def fit_cmsopen(args, fitvar, asimov = True):
     
     if fitvar == "inferno":
         bins = np.linspace(0,args["bins"],args["bins"])
@@ -20,18 +20,23 @@ def fit_cmsopen(args, fitvar, path):
         bins = np.linspace(0,1,args["bins"])
            
     # Create config    
-    config = fit.create_config(path, fitvar, bins, args["sample_names"], args["corr_shape_systs"], 
+    config = fit.create_config(args["outpath"], fitvar, bins, args["sample_names"], args["corr_shape_systs"], 
                                args["uncorr_shape_systs"], args["norm_syst"], float_qcd=args["fit_floatQCD"])
     
     print(config)
     
     # Create workspace
-    ws_path = path + "/workspace_" + fitvar + ".json"
+    postfix = "_asimov" if asimov==True else ""
+    path = args["outpath"] + "/fit/" + fitvar + postfix
+    create_dir(path)
+    ws_path = path + "/workspace.json"
     ws = fit.create_ws(config, workspace_path = ws_path)
+    fit_results, scan_results = fit.fit_ws(ws, config, args, path, asimov=asimov)
+    print(fit_results)
+    if args["store"] == True:
+        fit.store_fitresults(fit_results, path = path)
+        fit.store_scan(scan_results, path)
     
-    fit_results, scan_results = fit.fit_ws(ws, config, n_steps= args["n_steps"], asimov=True)
-    
-    return fit_results, scan_results
    
         
 
@@ -83,7 +88,7 @@ def run_cmsopen( args, epochs=1, retrain = True, do_fit = False):
         create_dir(args["outpath"] + "/samples")
         create_dir(args["outpath"] + "/root_trees")
         create_dir(args["outpath"] + "/train_plots")
-        create_dir(args["outpath"] + "/fit_plots")
+        create_dir(args["outpath"] + "/fit")
         
     if retrain == True:
          
@@ -107,28 +112,32 @@ def run_cmsopen( args, epochs=1, retrain = True, do_fit = False):
     else:
         
         # Load samples with predictions
-        print( "Loading samples from path", outpath)
-        samples = preproc.load_samples(outpath + "/")
+        print( "Loading samples from path", args["outpath"])
+        samples = preproc.load_samples( args["outpath"] + "/samples/")
         
     
     if do_fit:   
         
         # Convert samples to ROOT trees
         print( "Create root trees")
-        fit.to_root(samples, path=outpath, systs = ["btag", "pdf", "trigger"])
+        fit.to_root(samples, path=args["outpath"], systs = ["btag", "pdf", "trigger"])
         
         # Fit 
         print( "Fit BCE")
-        fit_results_bce, scan_results_bce = fit_cmsopen(args, fitvar="bce", path=outpath)
+        # Asimov
+        fit_cmsopen(args, fitvar="bce", asimov=True)
+        # Data
+        #fit_cmsopen(args, fitvar="bce")
         
         # Fit 
         print( "Fit INFERNO")
-        fit_results_inf, scan_results_inf  = fit_cmsopen(args, fitvar="inferno_sorted", path=outpath)        
+        fitvar = "inferno_sorted" if ((args["fit_sorted"] == True) & (args["use_softhist"] == False)) else "inferno"
+        # Asimov
+        fit_cmsopen(args, fitvar="inferno_sorted", asimov=True)
+        # Data
+        #fit_cmsopen(args, fitvar="inferno_sorted")
         
-        return samples, fit_results_bce, scan_results_bce, fit_results_inf, scan_results_inf
-        
-    else:
-        return samples
+    return samples
         
         
         
