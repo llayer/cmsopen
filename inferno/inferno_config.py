@@ -54,6 +54,9 @@ args["bce_neurons"] = 12 # CHECK only affects first layer
 #
 # FIT args
 #
+args["fit_asimov"] = False
+args["fit_data"] = False
+args["print_config"] = False
 args["print_config"] = False
 args["fit_sorted"] = True
 args["fit_floatQCD"] = True

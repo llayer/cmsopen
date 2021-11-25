@@ -16,7 +16,7 @@ def create_tree(path, s, sample):
     file["tree"] = uproot3.newtree(
         {
         "inferno": np.float32,
-        "inferno_sorted": np.float32,
+        #"inferno_sorted": np.float32,
         "bce": np.float32,
         "weight": np.float32,    
         "event": np.float32
@@ -24,7 +24,7 @@ def create_tree(path, s, sample):
     )    
     file["tree"].extend({
         "inferno": sample["inferno"].values ,
-        "inferno_sorted": sample["inferno_sorted"].values ,
+        #"inferno_sorted": sample["inferno_sorted"].values ,
         "bce": sample["bce"].values ,
         "weight": sample["weight"].values,
         "event": sample["event"].values
@@ -69,6 +69,7 @@ def fit_ws(ws, config, args, path, asimov = True):
                                           save_figure=args["store"], figure_folder=path)
     fit_results = cabinetry.fit.fit(model, data)
     cabinetry.visualize.pulls(fit_results, exclude=["mu"], save_figure=args["store"], figure_folder=path)
+    cabinetry.visualize.correlation_matrix(fit_results, save_figure=args["store"], figure_folder=path)
     scan_results = cabinetry.fit.scan(model, data, "mu", n_steps=args["n_steps"])
     #print(scan_results)
     #cabinetry.visualize.scan(scan_results)

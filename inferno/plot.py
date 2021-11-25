@@ -56,10 +56,10 @@ def plot_predictions(df, plot_sorted = False, outpath=".", name="inferno", store
         sig = df[df["gen_target"]==1]["pred"]
         bkg = df[df["gen_target"]==0]["pred"]
     
-    if "inferno" in name:
-        hist_range=(0,10)
+    if ("bce" in name) | ("soft" in name):
+        hist_range=(0.,1.)
     else:
-        hist_range=(0,1.)
+        hist_range=(0.,10.)
     plt.hist(sig, density=True, alpha=0.5, bins=10, range=hist_range, label="Signal")
     plt.hist(bkg, density=True, alpha=0.5, bins=10, range=hist_range, label="Background")
     plt.legend(loc="upper left")
@@ -168,8 +168,7 @@ def plot_cov_infbce(bce_covs, inf_covs, names, stddev=False, outpath=".", store=
                 col.legend(loc="upper right", prop={'size': 16})
             
     if store:
-        postfix = "_asimov" if asimov==True else ""
-        plt.savefig(path + "/mu_scan" + postfix + ".png")
+        plt.savefig(outpath + "/train_plots/cov_infbce.png")
     plt.show()            
             
     

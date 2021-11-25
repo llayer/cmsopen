@@ -372,9 +372,9 @@ class HEPInferno(AbsCallback):
 # Predict test set
 #
 
-def pred_test(model, test_dl, pred_sigmoid=False, name="inferno"):
+def pred_test(model, test_dl, use_hist=False, name="inferno", bins=10.):
 
-    if pred_sigmoid == True:
+    if use_hist == True:
         preds = model._predict_dl(test_dl).squeeze()        
     else:
         preds = model._predict_dl(test_dl, pred_cb=InfernoPred())
@@ -382,14 +382,14 @@ def pred_test(model, test_dl, pred_sigmoid=False, name="inferno"):
     df = pd.DataFrame({'pred':preds})
     df['gen_target'] = test_dl.dataset.y
         
-    if "inferno" in name:
+    if ("inferno" in name) & (use_hist == False):
         
         #Sort according to signal fraction
         sig = df[df["gen_target"]==1]["pred"]
         bkg = df[df["gen_target"]==0]["pred"]
-        x_range = (0.,10.) if pred_sigmoid==False else (0.,1.)
-        sig_h = np.histogram(sig, range=x_range, density=True)[0]
-        bkg_h = np.histogram(bkg, range=x_range, density=True)[0]
+        x_range = (0.,bins)
+        sig_h = np.histogram(sig, bins=bins, range=x_range, density=True)[0]
+        bkg_h = np.histogram(bkg, bins=bins, range=x_range, density=True)[0]
         sig_bkg = sig_h/(bkg_h+10e-7)
         sor = np.argsort(sig_bkg)
         inv_d = dict(enumerate(np.argsort(sig_bkg)))  
@@ -405,20 +405,19 @@ def pred_test(model, test_dl, pred_sigmoid=False, name="inferno"):
 # Predict the nominal samples
 #
 
-def pred_nominal(samples, features, model, scaler, name, order_d = None):
+def pred_nominal(samples, features, model, scaler, name, sort_bins = False, use_hist = False, order_d = None):
     
     #"TTJets_signal"
     for s in samples:
         X = samples[s][features].values
         X = scaler.transform(X)
         loader = WeightedDataLoader(DataSet(X, None, None), batch_size=1000)
-        if "bce" in name:
+        if use_hist == True:
             samples[s][name] = model._predict_dl(loader)
         else:
             samples[s][name] = model._predict_dl(loader, pred_cb=InfernoPred())
-            
-        if "inferno" in name:
-            samples[s][name + "_sorted"] = samples[s][name].replace(order_d)
+            if sort_bins = True:
+                samples[s][name] = samples[s][name].replace(order_d)
             
             
 
