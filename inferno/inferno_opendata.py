@@ -40,25 +40,24 @@ def fit_cmsopen(fitvar, path):
    
         
 
-def train_cmsopen(opendata, test, inferno_args, epochs, use_softhist):
+def train_cmsopen(opendata, test, args, epochs):
     
     #
     # Train INFERNO
     #
-    inferno_model, inferno_info = train.train_inferno(opendata, test, epochs=epochs, inferno_args = inferno_args, 
-                                                      use_softhist=use_softhist)
+    inferno_model, inferno_info = train.train_inferno(opendata, args, epochs = epochs)
     
-        
     # Predict test set - eventually add weights
-    df_inf, order_d = hep_model.pred_test(inferno_model, test, pred_sigmoid=False, name="inferno")
+    pred_sigmoid = True if args["use_softhist"] == True else False
+    df_inf, order_d = hep_model.pred_test(inferno_model, test, pred_sigmoid=pred_sigmoid, name="inferno")
         
     # Plot the results
-    plot.plot_inferno(df_inf, inferno_info, use_softhist  = use_softhist)
+    plot.plot_inferno(df_inf, inferno_info, use_softhist = args["use_softhist"])
         
     #
     # Train BCE
     #
-    bce_model, bce_info = train.train_bce(opendata, epochs=epochs, inferno_args = inferno_args)
+    bce_model, bce_info = train.train_bce(opendata, args, epochs=epochs)
     
     # Predict test set - eventually add weights
     df_bce, _ = hep_model.pred_test(bce_model, test, pred_sigmoid=True, name="bce")
@@ -75,34 +74,32 @@ def train_cmsopen(opendata, test, inferno_args, epochs, use_softhist):
     return bce_model, inferno_model, order_d
 
 
-def run_cmsopen(features, shape_syst = [], weight_syst = [], bs = 1000, n_sig = 20000, use_weights = False,
-                inferno_args = None, epochs=1, use_softhist = False, retrain = True, do_fit = False, 
-                store=True, outpath="."):
+def run_cmsopen( args, epochs=1, retrain = True, do_fit = False, store=True, outpath="."):
      
     # Create folder
-    if store == True:
-        if not os.path.exists(outpath):
-            os.makedirs(outpath)
+    if args["store"] == True:
+        if not os.path.exists(args["outpath"]):
+            os.makedirs(args["outpath"])
         
     if retrain == True:
          
         # Load data
-        opendata, test, samples, scaler = preproc.load_data( features = features, 
-                                                                shape_syst = shape_syst,
-                                                                weight_syst = weight_syst,
-                                                                bs=bs, n_sig=n_sig, 
-                                                                use_weights = use_weights)
+        opendata, test, samples, scaler = preproc.load_data( features = args["features"], 
+                                                             shape_syst = args["shape_syst"],
+                                                             weight_syst = args["weight_syst"],
+                                                             bs = args["bs"], n_sig = args["n_sig"], 
+                                                             n_bkg = args["n_bkg"], 
+                                                             use_weights = args["use_weights"])
         # Train
-        bce_model, inferno_model, order_d = train_cmsopen(opendata, test, inferno_args, epochs, use_softhist)
+        bce_model, inferno_model, order_d = train_cmsopen(opendata, test, args, epochs)
         
         # Predict INFERNO
         hep_model.pred_nominal(samples, features, inferno_model, scaler, name='inferno', order_d = order_d)
         # Predict BCE
         hep_model.pred_nominal(samples, features, bce_model, scaler, name="bce")
-        if store == True:
-            for s in samples:
-                samples[s].to_hdf(outpath + "/" + s + ".h5", "frame", mode='w')
-        
+        if args["store"] == True:
+            preproc.store_samples(samples, args["outpath"])
+            
     else:
         
         # Load samples with predictions
@@ -124,7 +121,7 @@ def run_cmsopen(features, shape_syst = [], weight_syst = [], bs = 1000, n_sig = 
         print( "Fit INFERNO")
         fit_results_inf, scan_results_inf  = fit_cmsopen(fitvar="inferno_sorted", path=outpath)        
         
-        return fit_results_bce, scan_results_bce, fit_results_inf, scan_results_inf
+        return samples, fit_results_bce, scan_results_bce, fit_results_inf, scan_results_inf
         
         
         
