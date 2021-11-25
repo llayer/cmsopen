@@ -154,12 +154,14 @@ class HEPInferno(AbsCallback):
                  interp_algo:str="default", 
                  shape_norm_sigma:Optional[List[float]]=None,
                  s_norm_sigma:Optional[List[float]]=None, b_norm_sigma:Optional[List[float]]=None, 
-                 b_rate_param:bool=False, use_hist:bool=False, ignore_loss:bool=False, 
+                 b_rate_param:bool=False, use_hist:bool=False, bins:int=10, sigmoid_delta:float=200.,
+                 ignore_loss:bool=False, 
                  **kwargs):
         
         self.ignore_loss = ignore_loss
         self.use_hist = use_hist
-
+        self.bins = bins
+        self.sigmoid_delta = sigmoid_delta
         self.mu_true = mu_true
         self.b_true = b_true
         self.n_shape_systs = n_shape_systs
@@ -170,7 +172,7 @@ class HEPInferno(AbsCallback):
         self.s_norm_sigma = s_norm_sigma
         self.b_norm_sigma = b_norm_sigma
         self.b_rate_param = b_rate_param
-        self.shape_aux = None
+        
         # Compute nuisance indeces
         self.poi_idx = [0]
         # Shape + norm
@@ -207,6 +209,8 @@ class HEPInferno(AbsCallback):
         print("Summary INFERNO setup")
         print("b_true", self.b_true)
         print("mu_true", self.mu_true)
+        print("n_shape_systs", self.n_shape_systs)
+        print("n_weight_systs", self.n_weight_systs)
         print("nshape_alphas", self.n_shape_alphas)
         print("shape idx", self.shape_idxs)
         print("shape_norm_sigma", self.shape_norm_sigma)
@@ -215,6 +219,7 @@ class HEPInferno(AbsCallback):
         print("b_norm_sigma", self.b_norm_sigma)
         print("b_norm_idxs", self.b_norm_idxs)
         print("b_rate_param", self.b_rate_param)
+        print("b_rate_param_idx", self.b_rate_param_idx)
         print("n_alpha", self.n_alpha)
         print("interp_algo", self.interp_algo)
         print("use_hist", self.use_hist)
@@ -264,11 +269,11 @@ class HEPInferno(AbsCallback):
             
             if self.ignore_loss:
                 if w is not None:
-                    h = torch.histogram(p.cpu(), bins=10, range=(0., 1.), weight=w.cpu()).hist.to(self.wrapper.device)
+                    h = torch.histogram(p.cpu(), bins=self.bins, range=(0., 1.), weight=w.cpu()).hist.to(self.wrapper.device)
                 else:
-                    h = torch.histc(p, bins=10, min=0., max=1.)
+                    h = torch.histc(p, bins=self.bins, min=0., max=1.)
             else:
-                hist = SoftHistogram(bins=10, min=0., max=1., sigma=200., device=self.wrapper.device)
+                hist = SoftHistogram(bins=self.bins, min=0., max=1., sigma=self.sigmoid_delta, device=self.wrapper.device)
                 h = hist(p, w)
             h = h.div(h.sum())+eps
             return h
@@ -406,7 +411,7 @@ def pred_nominal(samples, features, model, scaler, name, order_d = None):
     for s in samples:
         X = samples[s][features].values
         X = scaler.transform(X)
-        loader = WeightedDataLoader(DataSet(X, None, None), batch_size=256)
+        loader = WeightedDataLoader(DataSet(X, None, None), batch_size=1000)
         if "bce" in name:
             samples[s][name] = model._predict_dl(loader)
         else:

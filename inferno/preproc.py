@@ -2,7 +2,7 @@ import pandas as pd
 import numpy as np
 import random
 import json
-
+import os
 from functools import reduce
 from sklearn import preprocessing
 from pytorch_inferno.data import *
@@ -180,6 +180,34 @@ def get_cmsopen_data(samples, features, shape_syst, weight_syst, n_sig = 20000, 
     return trn, val, scaler
 
 
+def set_weights(samples, systs):
+    
+    for s in samples:
+        
+        sample = samples[s]
+        if s == "Data":
+            sample["weight"] = 1.
+        elif s == "QCD":
+            scale_qcd = 4.
+            sample["weight"]  = sample['btag_weight2'] * scale_qcd
+        else:
+            sample["weight"] = sample['norm'] * sample['trigger_weight'] * sample['btag_weight1']
+            if ('up' in s) | ('down' in s): continue
+            for syst in systs:
+                for ud in ["up", "down"]:
+                    if syst == "btag":
+                        sample["weight"] = sample['norm'] * sample['trigger_weight'] * sample['btag_weight1_' + ud]
+                    if syst == "trigger":
+                        sample["weight"] = sample['norm'] * sample['trigger_weight_'+ud] * sample['btag_weight1']    
+                if (s == "TTJets_signal") & (syst == "pdf"):
+                    # PDF Up
+                    sample["pdf_up"] = sample["pdf_up"].fillna(0.)
+                    sample["weight"] = sample['norm'] * sample['trigger_weight'] * sample['btag_weight1'] * (1+sample["pdf_up"])
+                    # PDF Down
+                    sample["pdf_down"] = sample["pdf_down"].fillna(0.)
+                    sample["weight"] = sample['norm'] * sample['trigger_weight'] * sample['btag_weight1'] * (1-sample["pdf_down"])    
+
+
 def load_samples(path):
     
     samples = {}
@@ -190,6 +218,9 @@ def load_samples(path):
             for syst in ["06_jes", "05_taue", "jer"]:
                 samples[s + "_" + syst + "_up"] = pd.read_hdf(path + s + "_" + syst + "_up" + ".h5")
                 samples[s + "_" + syst + "_down"] = pd.read_hdf(path + s + "_" + syst + "_down" + ".h5")
+                
+        set_weights(samples, systs = ["btag", "pdf", "trigger"])
+        
     return samples
 
         
@@ -221,6 +252,10 @@ def load_data(features, shape_syst, weight_syst, path = "/home/centos/data/bdt_r
     return data, test_dl, samples, scaler
    
 
+def store_samples(samples, outpath):  
+    
+    for s in samples:
+        samples[s].to_hdf(outpath + "/samples/" + s + ".h5", "frame", mode='w')
 
 
 

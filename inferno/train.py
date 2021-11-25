@@ -44,7 +44,7 @@ def train_inferno(data, args, epochs=100 ):
     model_inferno = ModelWrapper(net_inferno)
 
     model_inferno.fit(epochs, data=data, opt=partialler(optim.Adam,lr=lr), loss=None,
-                      cbs=[hep_inf,  lt])
+                      cbs=[hep_inf,  lt, SaveBest(args["outpath"] + "/weights/best_inferno.h5")])
         
     return model_inferno, {"loss":lt, "covs": hep_inf.covs}
 
@@ -59,21 +59,22 @@ def train_bce(data, args, epochs=100):
                         nn.Linear(neurons,8), nn.ReLU(),
                         nn.Linear(8,1),  nn.Sigmoid())
     #init_net(net)    
-    ct = hep_model.HEPInferno(b_true=inferno_args["b_true"], 
-                              mu_true=inferno_args["mu_true"],
-                               n_shape_systs=inferno_args["n_shape_systs"],
-                               n_weight_systs=inferno_args["n_weight_systs"],
-                               shape_norm_sigma=inferno_args["shape_norm_sigma"],
-                               s_norm_sigma = inferno_args["s_norm_sigma"],
-                               b_norm_sigma = inferno_args["b_norm_sigma"],
-                               b_rate_param = inferno_args["b_rate_param"],
+    ct = hep_model.HEPInferno(b_true=args["b_true"], 
+                              mu_true=args["mu_true"],
+                               n_shape_systs=args["n_shape_systs"],
+                               n_weight_systs=args["n_weight_systs"],
+                               shape_norm_sigma=args["shape_norm_sigma"],
+                               s_norm_sigma = args["s_norm_sigma"],
+                               b_norm_sigma = args["b_norm_sigma"],
+                               b_rate_param = args["b_rate_param"],
                                bins = args["bins"],
                                use_hist=True,
-                               interp_algo="default")
+                               ignore_loss=True,
+                               interp_algo=args["interp_algo"])
     lt = LossTracker()
     model_bce = ModelWrapper(net_bce)
     model_bce.fit(epochs, data=data, opt=partialler(optim.Adam, lr=lr), loss=nn.BCELoss(),
-                  cbs=[lt, ct])
+                  cbs=[lt, ct, SaveBest(args["outpath"] + "/weights/best_bce.h5")])
     
     #bce_trn_covs = ct.covs["trn"]
     #bce_val_covs = ct.covs["val"]

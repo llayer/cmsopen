@@ -10,32 +10,27 @@ import plot
 import train
 import fit
 
-def fit_cmsopen(fitvar, path):
+def fit_cmsopen(args, fitvar, path):
     
     if fitvar == "inferno":
-        bins = np.linspace(0,10,10)
+        bins = np.linspace(0,args["bins"],args["bins"])
     elif fitvar == "inferno_sorted":
-        bins = np.linspace(0,10,10)
+        bins = np.linspace(0,args["bins"],args["bins"])
     else:
-        bins = np.linspace(0,1,10)
+        bins = np.linspace(0,1,args["bins"])
            
-    # Create config
-    sample_names = ["Data", "QCD", "TTJets_bkg", "WZJets", "STJets", "TTJets_signal"]
-    mc = ["TTJets_bkg", "WZJets", "STJets", "TTJets_signal"]
-    corr_shape_systs = {"TTJets_signal" : ["btag"], "TTJets_bkg" : ["btag"]}
-    uncorr_shape_systs = {"TTJets_signal" : ["06_jes"]}
-    norm_syst ={}# {"lumi":{ "samples" : mc, "value" : 0.02 }, }
-    
-    config = fit.create_config(path, fitvar, bins, sample_names, corr_shape_systs, 
-                               uncorr_shape_systs, norm_syst, float_qcd=True)
+    # Create config    
+    config = fit.create_config(path, fitvar, bins, args["sample_names"], args["corr_shape_systs"], 
+                               args["uncorr_shape_systs"], args["norm_syst"], float_qcd=args["fit_floatQCD"])
     
     print(config)
     
     # Create workspace
-    ws_path = path + "/workspace_bce.json"
+    ws_path = path + "/workspace_" + fitvar + ".json"
     ws = fit.create_ws(config, workspace_path = ws_path)
     
-    fit_results, scan_results = fit.fit_ws(ws, config, asimov=True)
+    fit_results, scan_results = fit.fit_ws(ws, config, n_steps= args["n_steps"], asimov=True)
+    
     return fit_results, scan_results
    
         
@@ -52,7 +47,7 @@ def train_cmsopen(opendata, test, args, epochs):
     df_inf, order_d = hep_model.pred_test(inferno_model, test, pred_sigmoid=pred_sigmoid, name="inferno")
         
     # Plot the results
-    plot.plot_inferno(df_inf, inferno_info, use_softhist = args["use_softhist"])
+    plot.plot_inferno(df_inf, inferno_info, args)
         
     #
     # Train BCE
@@ -63,23 +58,32 @@ def train_cmsopen(opendata, test, args, epochs):
     df_bce, _ = hep_model.pred_test(bce_model, test, pred_sigmoid=True, name="bce")
     
     # Plot the results
-    plot.plot_bce(df_bce, bce_info)
+    plot.plot_bce(df_bce, bce_info, args)
     
     #
     # Compare the covariance matrices
     #
-    names = ["mu","JES", "JER"]#,'b-tag']
-    plot.plot_cov(bce_info, inferno_info, names)
+    #names = ["mu","JES", "JER"]#,'b-tag']
+    names = ["mu"] + args["shape_syst"] + args["weight_syst"]
+    plot.plot_cov(bce_info, inferno_info, names, args)
     
     return bce_model, inferno_model, order_d
 
 
-def run_cmsopen( args, epochs=1, retrain = True, do_fit = False, store=True, outpath="."):
+def create_dir(path):
+    if not os.path.exists(path):
+        os.makedirs(path)
+
+
+def run_cmsopen( args, epochs=1, retrain = True, do_fit = False):
      
-    # Create folder
+    # Create folders
     if args["store"] == True:
-        if not os.path.exists(args["outpath"]):
-            os.makedirs(args["outpath"])
+        create_dir(args["outpath"])
+        create_dir(args["outpath"] + "/samples")
+        create_dir(args["outpath"] + "/root_trees")
+        create_dir(args["outpath"] + "/train_plots")
+        create_dir(args["outpath"] + "/fit_plots")
         
     if retrain == True:
          
@@ -94,9 +98,9 @@ def run_cmsopen( args, epochs=1, retrain = True, do_fit = False, store=True, out
         bce_model, inferno_model, order_d = train_cmsopen(opendata, test, args, epochs)
         
         # Predict INFERNO
-        hep_model.pred_nominal(samples, features, inferno_model, scaler, name='inferno', order_d = order_d)
+        hep_model.pred_nominal(samples, args["features"], inferno_model, scaler, name='inferno', order_d = order_d)
         # Predict BCE
-        hep_model.pred_nominal(samples, features, bce_model, scaler, name="bce")
+        hep_model.pred_nominal(samples, args["features"], bce_model, scaler, name="bce")
         if args["store"] == True:
             preproc.store_samples(samples, args["outpath"])
             
@@ -115,15 +119,16 @@ def run_cmsopen( args, epochs=1, retrain = True, do_fit = False, store=True, out
         
         # Fit 
         print( "Fit BCE")
-        fit_results_bce, scan_results_bce = fit_cmsopen(fitvar="bce", path=outpath)
+        fit_results_bce, scan_results_bce = fit_cmsopen(args, fitvar="bce", path=outpath)
         
         # Fit 
         print( "Fit INFERNO")
-        fit_results_inf, scan_results_inf  = fit_cmsopen(fitvar="inferno_sorted", path=outpath)        
+        fit_results_inf, scan_results_inf  = fit_cmsopen(args, fitvar="inferno_sorted", path=outpath)        
         
         return samples, fit_results_bce, scan_results_bce, fit_results_inf, scan_results_inf
         
-        
+    else:
+        return samples
         
         
         

@@ -10,7 +10,7 @@ args = {}
 #
 # General args
 #
-args["outpath"] = "/home/centos/data/inferno_cmsopen15"
+args["outpath"] = "/home/centos/data/inferno_cmsopen16"
 args["store"] = True
 args["features"] = ['aplanarity', 'chargeEta', 'MET_met', 'deltaPhiTauMet']
 args["shape_syst"] = ["06_jes", "jer"] #, "taue"]
@@ -50,6 +50,21 @@ args["sigmoid_delta"] = 200.
 # BCE args
 #
 args["bce_lr"] = 1e-3 #CHECK if correct
-args["neurons"] = 12 # CHECK only affects first layer
+args["bce_neurons"] = 12 # CHECK only affects first layer
+#
+# FIT args
+#
+args["fit_floatQCD"] = True
+args["sample_names"] = ["Data", "QCD", "TTJets_bkg", "WZJets", "STJets", "TTJets_signal"]
+args["mc"] = ["TTJets_bkg", "WZJets", "STJets", "TTJets_signal"]
+args["corr_shape_systs"] = {"TTJets_signal" : ["btag"], "TTJets_bkg" : ["btag"]}
+args["uncorr_shape_systs"] = {"TTJets_signal" : ["06_jes"]}
+args["norm_syst"] ={}# {"lumi":{ "samples" : mc, "value" : 0.02 }, }
+args["n_steps"] = 200
+
+
+
+
+
 
 

@@ -32,45 +32,20 @@ def create_tree(path, s, sample):
 
     
 def to_root(samples, systs = ["btag"], path = "/home/centos/data/inferno_cmsopen13/root_trees"):
-    
-    # Create directory to contain root trees
-    if not os.path.exists(path + "/root_trees"):
-        os.makedirs(path + "/root_trees")
-    
-    for s in samples:
         
+    for s in samples:
         sample = samples[s]
-        if s == "Data":
-            sample["weight"] = 1.
-            create_tree(path, s, sample)
-        elif s == "QCD":
-            scale_qcd = 4.
-            sample["weight"]  = sample['btag_weight2'] * scale_qcd
-            create_tree(path, s, sample)
-        else:
-            
-            sample["weight"] = sample['norm'] * sample['trigger_weight'] * sample['btag_weight1']
-            create_tree(path, s, sample)
-            if ('up' in s) | ('down' in s): continue
-            for syst in systs:
-                                
-                for ud in ["up", "down"]:
-                    if syst == "btag":
-                        sample["weight"] = sample['norm'] * sample['trigger_weight'] * sample['btag_weight1_' + ud]
-                        create_tree(path,  s + "_" + syst + "_" + ud, sample)
-                    if syst == "trigger":
-                        sample["weight"] = sample['norm'] * sample['trigger_weight_'+ud] * sample['btag_weight1']
-                        create_tree(path,  s + "_" + syst + "_" + ud, sample)
-    
-                if (s == "TTJets_signal") & (syst == "pdf"):
-                    # PDF Up
-                    sample["pdf_up"] = sample["pdf_up"].fillna(0.)
-                    sample["weight"] = sample['norm'] * sample['trigger_weight'] * sample['btag_weight1'] * (1+sample["pdf_up"])
-                    create_tree(path,  s + "_" + syst + "_up", sample)
-                    # PDF Down
-                    sample["pdf_down"] = sample["pdf_down"].fillna(0.)
-                    sample["weight"] = sample['norm'] * sample['trigger_weight'] * sample['btag_weight1'] * (1-sample["pdf_down"])
-                    create_tree(path,  s + "_" + syst + "_down", sample)
+        create_tree(path, s, sample)
+        if ("Data" in s) | ("QCD" in s): continue
+        if ('up' in s) | ('down' in s): continue
+        for syst in systs:
+            for ud in ["up", "down"]:
+                    create_tree(path,  s + "_" + syst + "_" + ud, sample)
+            if (s == "TTJets_signal") & (syst == "pdf"):
+                # PDF Up
+                create_tree(path,  s + "_" + syst + "_up", sample)
+                # PDF Down
+                create_tree(path,  s + "_" + syst + "_down", sample)
                                                                                                  
 #
 # Write and fit workspace
@@ -85,13 +60,13 @@ def create_ws(config, workspace_path = "", postproc=True):
     return spec
     
     
-def fit_ws(ws, config, asimov = True):
+def fit_ws(ws, config, n_steps = 200, asimov = True):
     
     model, data = cabinetry.model_utils.model_and_data(ws, asimov=asimov)
     model_pred = cabinetry.model_utils.prediction(model)
     figures = cabinetry.visualize.data_mc(model_pred, data, config=config, log_scale=True)
     fit_results = cabinetry.fit.fit(model, data)
-    scan_results = cabinetry.fit.scan(model, data, "mu", n_steps=200)
+    scan_results = cabinetry.fit.scan(model, data, "mu", n_steps=n_steps)
     #print(scan_results)
     #cabinetry.visualize.scan(scan_results)
     return fit_results, scan_results
