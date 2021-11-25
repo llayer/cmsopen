@@ -10,6 +10,28 @@ import plot
 import train
 import fit
 
+
+def compare_results(args):
+    
+    #BCE
+    #bce_res = fit.load_fitresults( args["outpath"] + "/fit/bce" )
+    #fit.print_summary(bce_res, "bce")
+    bce_asimov_res = fit.load_fitresults( args["outpath"] + "/fit/bce_asimov" )
+    bce_asimov_scan = fit.load_scan( args["outpath"] + "/fit/bce_asimov" )
+    fit.print_summary(bce_asimov_res, "bce asimov")
+    
+    # INFERNO
+    fitvar = "inferno_sorted" if ((args["fit_sorted"] == True) & (args["use_softhist"] == False)) else "inferno"
+    #inferno_res = fit.load_fitresults( args["outpath"] + "/fit/" + fitvar )
+    #fit.print_summary(inferno_res, "inferno")
+    inferno_asimov_res = fit.load_fitresults( args["outpath"] + "/fit/" + fitvar +"_asimov")
+    inferno_asimov_scan = fit.load_scan( args["outpath"] + "/fit/" + fitvar +"_asimov")
+    fit.print_summary(inferno_asimov_res, "inferno asimov")
+    
+    # Plot likelihood scans
+    #plot.plot_scan(bce_res, inferno_res, path=args["outpath"] + "/fit", asimov=False, store=args["store"])
+    plot.plot_scan(bce_asimov_scan, inferno_asimov_scan, path=args["outpath"] + "/fit", asimov=True, store=args["store"])
+
 def fit_cmsopen(args, fitvar, asimov = True):
     
     if fitvar == "inferno":
@@ -23,7 +45,7 @@ def fit_cmsopen(args, fitvar, asimov = True):
     config = fit.create_config(args["outpath"], fitvar, bins, args["sample_names"], args["corr_shape_systs"], 
                                args["uncorr_shape_systs"], args["norm_syst"], float_qcd=args["fit_floatQCD"])
     
-    print(config)
+    if args["print_config"]: print(config)
     
     # Create workspace
     postfix = "_asimov" if asimov==True else ""
@@ -36,9 +58,7 @@ def fit_cmsopen(args, fitvar, asimov = True):
     if args["store"] == True:
         fit.store_fitresults(fit_results, path = path)
         fit.store_scan(scan_results, path)
-    
-   
-        
+            
 
 def train_cmsopen(opendata, test, args, epochs):
     
@@ -136,6 +156,10 @@ def run_cmsopen( args, epochs=1, retrain = True, do_fit = False):
         fit_cmsopen(args, fitvar="inferno_sorted", asimov=True)
         # Data
         #fit_cmsopen(args, fitvar="inferno_sorted")
+        
+        # Load results and compare
+        compare_results(args)
+        
         
     return samples
         

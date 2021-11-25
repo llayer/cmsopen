@@ -54,6 +54,7 @@ args["bce_neurons"] = 12 # CHECK only affects first layer
 #
 # FIT args
 #
+args["print_config"] = False
 args["fit_sorted"] = True
 args["fit_floatQCD"] = True
 args["sample_names"] = ["Data", "QCD", "TTJets_bkg", "WZJets", "STJets", "TTJets_signal"]

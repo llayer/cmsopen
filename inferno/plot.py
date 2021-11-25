@@ -2,35 +2,34 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 
-
-def plot_cov(bce_info, inferno_info, names):
+def plot_cov(bce_info, inferno_info, names, args):
     
     inferno_trn_covs, inferno_val_covs = inferno_info["covs"]["trn"], inferno_info["covs"]["val"]
     bce_trn_covs, bce_val_covs = bce_info["covs"]["trn"], bce_info["covs"]["val"]
     # Compare train / validation INFERNO
-    plot_cov_trnval(inferno_trn_covs, inferno_val_covs, names, stddev=True)
+    plot_cov_trnval(inferno_trn_covs, inferno_val_covs, names, stddev=False, outpath=args["outpath"], store=args["store"])
     # Compare validation BCE - INFERNO
-    plot_cov_infbce(bce_val_covs, inferno_val_covs, names, stddev=True)
+    plot_cov_infbce(bce_val_covs, inferno_val_covs, names, stddev=False, outpath=args["outpath"], store=args["store"])
 
 
-def plot_inferno(df_inf, inferno_info, use_softhist=False):
+def plot_inferno(df_inf, inferno_info, args):
     
     # Plot loss
-    plot_loss(inferno_info["loss"])
+    plot_loss(inferno_info["loss"], outpath=args["outpath"], store=args["store"])
     
     # Plot test predictions
-    if use_softhist == False:
-        plot_predictions(df_inf, plot_sorted=False, name="inferno")
-        plot_predictions(df_inf, plot_sorted=True, name="inferno")
+    if args["use_softhist"] == False:
+        plot_predictions(df_inf, plot_sorted=False, name="inferno", outpath=args["outpath"], store=args["store"])
+        plot_predictions(df_inf, plot_sorted=True, name="inferno_sorted", outpath=args["outpath"], store=args["store"])
     else:
-        plot_predictions(df_inf, plot_sorted=False, name="inferno_soft")
+        plot_predictions(df_inf, plot_sorted=False, name="inferno_soft", outpath=args["outpath"], store=args["store"])
     
-def plot_bce(df_bce, bce_info):
+def plot_bce(df_bce, bce_info, args):
     
     # Plot loss
-    plot_loss(bce_info["loss"], name="bce")
+    plot_loss(bce_info["loss"], name="bce", outpath=args["outpath"], store=args["store"])
     # Plot predictions
-    plot_predictions(df_bce, plot_sorted=False, name="bce")
+    plot_predictions(df_bce, plot_sorted=False, name="bce", outpath=args["outpath"], store=args["store"])
 
 
 def plot_loss(lt, outpath=".", name="inferno", store=False):
@@ -44,7 +43,7 @@ def plot_loss(lt, outpath=".", name="inferno", store=False):
     plt.xlabel(r"epoch")
     plt.legend(loc="upper right")
     if store:
-        plt.savefig(outpath + "/loss_" + name + ".png")
+        plt.savefig(outpath + "/train_plots/loss_" + name + ".png")
     plt.show()
 
 
@@ -57,7 +56,7 @@ def plot_predictions(df, plot_sorted = False, outpath=".", name="inferno", store
         sig = df[df["gen_target"]==1]["pred"]
         bkg = df[df["gen_target"]==0]["pred"]
     
-    if name == "inferno":
+    if "inferno" in name:
         hist_range=(0,10)
     else:
         hist_range=(0,1.)
@@ -65,7 +64,7 @@ def plot_predictions(df, plot_sorted = False, outpath=".", name="inferno", store
     plt.hist(bkg, density=True, alpha=0.5, bins=10, range=hist_range, label="Background")
     plt.legend(loc="upper left")
     if store:
-        plt.savefig(outpath + "/preds_" + name + ".png")    
+        plt.savefig(outpath + "/train_plots/preds_" + name + ".png")    
     plt.show()
 
 
@@ -90,12 +89,13 @@ def get_cov_entry(matrix, i, j):
     return np.array(values)
 
 
-def plot_cov_trnval(trn_covs, val_covs, names, stddev=False):
+def plot_cov_trnval(trn_covs, val_covs, names, stddev=False, outpath=".", store=False):
     
     trn_corrs = get_corr(trn_covs)
     val_corrs = get_corr(val_covs)
+    n_par = len(names)
     
-    fig, ax = plt.subplots(nrows=3, ncols=3, figsize=(10,10))
+    fig, ax = plt.subplots(nrows=n_par, ncols=n_par, figsize=(10,10))
 
     for i, row in enumerate(ax):
         for j, col in enumerate(row):
@@ -125,14 +125,18 @@ def plot_cov_trnval(trn_covs, val_covs, names, stddev=False):
             col.plot(val, label="val")  
             if (i==0) & (j==2):
                 col.legend(loc="upper right", prop={'size': 16})
-
+    if store:
+        plt.savefig(outpath + "/train_plots/cov_trnval_inferno.png")    
+    plt.show()
+    
             
-def plot_cov_infbce(bce_covs, inf_covs, names, stddev=False):
+def plot_cov_infbce(bce_covs, inf_covs, names, stddev=False, outpath=".", store=False):
 
     bce_corrs = get_corr(bce_covs)
     inf_corrs = get_corr(inf_covs)    
+    n_par = len(names)
     
-    fig, ax = plt.subplots(nrows=3, ncols=3, figsize=(10,10))
+    fig, ax = plt.subplots(nrows=n_par, ncols=n_par, figsize=(10,10))
 
     for i, row in enumerate(ax):
         for j, col in enumerate(row):
@@ -163,6 +167,25 @@ def plot_cov_infbce(bce_covs, inf_covs, names, stddev=False):
             if (i==0) & (j==2):
                 col.legend(loc="upper right", prop={'size': 16})
             
+    if store:
+        postfix = "_asimov" if asimov==True else ""
+        plt.savefig(path + "/mu_scan" + postfix + ".png")
+    plt.show()            
             
-            
-            
+    
+def plot_scan(bce, inferno, path="", asimov = True, store=False):
+        
+    plt.figure()#dpi=150)
+    plt.plot(bce["parameter_values"], bce["delta_nlls"], label="BCE")
+    plt.plot(inferno["parameter_values"], inferno["delta_nlls"], label="INFERNO")
+    plt.ylim(0,5)
+    plt.legend(loc="upper left")
+    plt.ylabel(r'$2\Delta$ NLL')
+    plt.xlabel(r'$\mu$')
+    plt.title("Comparison INFERNO - BCE")
+    if store==True:
+        postfix = "_asimov" if asimov==True else ""
+        plt.savefig(path + "/mu_scan" + postfix + ".png")
+    plt.show()
+    
+    

@@ -106,19 +106,33 @@ def load_fitresults(path=""):
         results = json.load(json_file)
     results["bestfit"] = np.array(results["bestfit"])
     results["uncertainty"] = np.array(results["uncertainty"])
-    dim = len(results["corr_mat"])
+    dim = int(np.sqrt(len(results["corr_mat"])))
     results["corr_mat"] = np.array(results["corr_mat"]).reshape(dim, dim)
     
     return results
 
-def load_scan(scan_results, path=""):
+def load_scan(path=""):
     
     with open(path + '/mu_scan.json') as json_file:
         results = json.load(json_file)
     results["parameter_values"] = np.array(results["parameter_values"])
     results["delta_nlls"] = np.array(results["delta_nlls"])
 
-    return results                    
+    return results   
+
+
+#
+# Print summary
+#
+def print_summary(results, name):
+    
+    print("*****************")
+    print("Summary", name)
+    for lab, best, std in zip(results["labels"], results["bestfit"], results["uncertainty"]):
+        print(lab, round(best,3), "+-", round(std, 3))
+    print("*****************")
+
+
 #
 # Create config
 #
