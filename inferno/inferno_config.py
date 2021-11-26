@@ -13,7 +13,9 @@ args = {}
 args["outpath"] = "/home/centos/mount_point/data/inferno_cmsopen0" #"/home/centos/data/inferno_cmsopen16"
 args["store"] = True
 args["features"] = ['aplanarity', 'chargeEta', 'MET_met', 'deltaPhiTauMet']
+# Shape systs can be jes, jer, taue
 args["shape_syst"] = ["06_jes", "jer"] #, "taue"]
+# Weight syst can be btag, trigger, pdf
 args["weight_syst"] = []#["btag_weight1"]
 args["systnames"] = adjust_naming(args["shape_syst"] + args["weight_syst"])
 args["shape_norm_sigma"] = [0.05, 0.02] # CHECK adjust for correct values
@@ -27,6 +29,8 @@ args["use_weights"] = False
 #
 # INFERNO args
 #
+#Sort the bins according to signal purity
+args["fit_sorted"] = False
 # Model parameter
 args["inferno_lr"] = 1e-3
 args["inferno_neurons"] = 100
@@ -55,16 +59,15 @@ args["bce_neurons"] = 12 # CHECK only affects first layer
 #
 # FIT args
 #
-args["fit_asimov"] = False
+args["fit_asimov"] = True
 args["fit_data"] = False
-args["print_config"] = False
-args["print_config"] = False
-args["fit_sorted"] = False
-args["fit_floatQCD"] = True
+args["minos"] = ["mu"]
+args["print_config"] = True
+args["fit_floatQCD"] = False
 args["sample_names"] = ["Data", "QCD", "TTJets_bkg", "WZJets", "STJets", "TTJets_signal"]
 args["mc"] = ["TTJets_bkg", "WZJets", "STJets", "TTJets_signal"]
-args["corr_shape_systs"] = {"TTJets_signal" : ["btag"], "TTJets_bkg" : ["btag"]}
-args["uncorr_shape_systs"] = {"TTJets_signal" : ["06_jes"]}
+args["corr_shape_systs"] = {}#{"TTJets_signal" : ["btag"], "TTJets_bkg" : ["btag"]}
+args["uncorr_shape_systs"] = {"TTJets_signal" : args["shape_syst"] + args["weight_syst"]}
 args["norm_syst"] ={}# {"lumi":{ "samples" : mc, "value" : 0.02 }, }
 args["n_steps"] = 200
 

@@ -51,7 +51,7 @@ def adjust_naming(syst_names):
 #
 # Set the weights of the MC samples
 #
-def set_weights(samples, systs):
+def set_weights(samples, weight_systs = []):
     
     for s in samples:
         
@@ -64,19 +64,19 @@ def set_weights(samples, systs):
         else:
             sample["weight"] = sample['norm'] * sample['trigger_weight'] * sample['btag_weight1']
             if ('up' in s) | ('down' in s): continue
-            for syst in systs:
+            for syst in weight_systs:
                 for ud in ["up", "down"]:
                     if syst == "btag":
-                        sample["weight"] = sample['norm'] * sample['trigger_weight'] * sample['btag_weight1_' + ud]
+                        sample["weight_btag_" + ud] = sample['norm'] * sample['trigger_weight'] * sample['btag_weight1_'+ud]
                     if syst == "trigger":
-                        sample["weight"] = sample['norm'] * sample['trigger_weight_'+ud] * sample['btag_weight1']    
+                        sample["weight_trigger_"+ud] = sample['norm'] * sample['trigger_weight_'+ud] * sample['btag_weight1']    
                 if (s == "TTJets_signal") & (syst == "pdf"):
                     # PDF Up
                     sample["pdf_up"] = sample["pdf_up"].fillna(0.)
-                    sample["weight"] = sample['norm'] * sample['trigger_weight'] * sample['btag_weight1'] * (1+sample["pdf_up"])
+                    sample["weight_pdf_up"] = sample["weight"] * (1+sample["pdf_up"])
                     # PDF Down
                     sample["pdf_down"] = sample["pdf_down"].fillna(0.)
-                    sample["weight"] = sample['norm'] * sample['trigger_weight'] * sample['btag_weight1'] * (1-sample["pdf_down"])    
+                    sample["weight_pdf_down"] = sample["weight"] * (1-sample["pdf_down"])    
 
 
 
@@ -127,10 +127,10 @@ def get_train_data(samples, features, shape_syst, weight_syst, n_sig = 20000, n_
     bkg = samples["QCD"]
     
     #Weights
-    signal["weights"] = signal['trigger_weight'] * signal['btag_weight1']
-    signal["weights"] = signal["weights"] * (1. / np.mean(signal["weights"]))
-    bkg["weights"] = bkg['btag_weight2']
-    bkg["weights"] = bkg["weights"] * (1. / np.mean(bkg["weights"]))
+    #signal["weights"] = signal['trigger_weight'] * signal['btag_weight1']
+    signal["weight"] = signal["weight"] * (1. / np.mean(signal["weight"]))
+    #bkg["weights"] = bkg['btag_weight2']
+    bkg["weight"] = bkg["weight"] * (1. / np.mean(bkg["weight"]))
 
 
     # Split in training and test
@@ -157,11 +157,11 @@ def get_train_data(samples, features, shape_syst, weight_syst, n_sig = 20000, n_
     scaler = preprocessing.StandardScaler().fit(X_train)
     X_train = scaler.transform(X_train)
     y_train = train_data["label"].values.reshape((-1,1))
-    weights_train = train_data["weights"].values.reshape((-1,1))
+    weights_train = train_data["weight"].values.reshape((-1,1))
     X_test = test_data[features].values
     X_test = scaler.transform(X_test)
     y_test = test_data["label"].values.reshape((-1,1))   
-    weights_test = test_data["weights"].values.reshape((-1,1))
+    weights_test = test_data["weight"].values.reshape((-1,1))
     
     # Add the systematic shape variations
     train_syst = []
@@ -232,18 +232,30 @@ def get_train_data(samples, features, shape_syst, weight_syst, n_sig = 20000, n_
 #
 # Data loading
 #
-def load_samples(path):
+def assert_weight_syst(weight_syst):
+    
+    allowed_systs = ["btag", "trigger", "pdf"]
+    for syst in weight_syst:
+        if syst not in allowed_systs:
+            raise ValueError("Specified weight sytematic not allowed:", syst)
+            
+def assert_shape_syst(shape_syst):
+    
+    allowed_systs = ["jes", "jer", "taue"]
+    for syst in adjust_naming(shape_syst):
+        if syst not in allowed_systs:
+            raise ValueError("Specified weight sytematic not allowed:", syst)
+
+def load_samples(path, shape_systs=[]):
     
     samples = {}
     for s in ["TTJets_bkg", "WZJets", "STJets", "QCD", "TTJets_signal", "Data"]:
         samples[s] = pd.read_hdf(path + s + ".h5")
         
         if ("Data" not in s) & ("QCD" not in s):
-            for syst in ["06_jes", "05_taue", "jer"]:
+            for syst in shape_systs:
                 samples[s + "_" + syst + "_up"] = pd.read_hdf(path + s + "_" + syst + "_up" + ".h5")
                 samples[s + "_" + syst + "_down"] = pd.read_hdf(path + s + "_" + syst + "_down" + ".h5")
-                
-        set_weights(samples, systs = ["btag", "pdf", "trigger"])
         
     return samples
 
@@ -251,10 +263,17 @@ def load_samples(path):
 def load_data(features, shape_syst, weight_syst, path = "/home/centos/data/bdt_rs5/", bs=256, 
               n_sig = 5000, n_bkg = 5000, use_weights = False):
     
-    #if not os.path.exists(outpath):
-    #    os.makedirs(outpath)
-    samples = load_samples(path)
-                
+    # Check that the specified systematics are allowed:
+    assert_shape_syst(shape_syst)
+    assert_weight_syst(weight_syst)
+    
+    # Load the samples
+    samples = load_samples(path, shape_syst)
+    
+    # Set the weights
+    set_weights(samples, weight_systs = weight_syst)
+    
+    # Get the training data            
     trn, val, scaler = get_train_data(samples, features, shape_syst, weight_syst, 
                                       n_sig = n_sig, n_bkg = n_bkg, use_weights = use_weights)    
     trn_dl = WeightedDataLoader(DataSet(*trn), batch_size=bs, shuffle=True, drop_last=True)

@@ -9,6 +9,8 @@ import hep_model
 import plot
 import train
 import fit
+import json
+
 
 
 def compare_results(args):
@@ -17,11 +19,12 @@ def compare_results(args):
         # BCE
         bce_asimov_res = fit.load_fitresults( args["outpath"] + "/fit/bce_asimov" )
         bce_asimov_scan = fit.load_scan( args["outpath"] + "/fit/bce_asimov" )
-        fit.print_summary(bce_asimov_res, "bce asimov")
+        fit.print_summary(bce_asimov_res, bce_asimov_scan, "bce asimov")
         # INFERNO
         inferno_asimov_res = fit.load_fitresults( args["outpath"] + "/fit/inferno_asimov")
         inferno_asimov_scan = fit.load_scan( args["outpath"] + "/fit/inferno_asimov")
-        fit.print_summary(inferno_asimov_res, "inferno asimov")
+        fit.print_summary(inferno_asimov_res, inferno_asimov_scan, "inferno asimov")
+        # Plot the comparison of the scan
         plot.plot_scan(bce_asimov_scan, inferno_asimov_scan, path=args["outpath"] + "/fit", asimov=True, store=args["store"])
 
     if args["fit_data"]:
@@ -101,6 +104,10 @@ def train_cmsopen(opendata, test, args, epochs):
 def create_dir(path):
     if not os.path.exists(path):
         os.makedirs(path)
+        
+def store_args(args, path):
+    with open(path + '/args.json', 'w') as outfile:
+        json.dump(args, outfile)    
 
 
 def run_cmsopen( args, epochs=1, retrain = True, do_fit = False):
@@ -113,6 +120,9 @@ def run_cmsopen( args, epochs=1, retrain = True, do_fit = False):
         create_dir(args["outpath"] + "/train/bce")
         create_dir(args["outpath"] + "/train/inferno")
         create_dir(args["outpath"] + "/fit")
+        
+        # Store the config file:
+        store_args(args, args["outpath"])
         
     if retrain == True:
          
@@ -134,18 +144,20 @@ def run_cmsopen( args, epochs=1, retrain = True, do_fit = False):
         if args["store"] == True:
             preproc.store_samples(samples, args["outpath"])
             
+        print("Finished training")
+            
     else:
         
         # Load samples with predictions
         print( "Loading samples from path", args["outpath"])
-        samples = preproc.load_samples( args["outpath"] + "/samples/")
+        samples = preproc.load_samples( args["outpath"] + "/samples/", shape_systs = args["shape_syst"])
         
     
     if do_fit:   
         
         # Convert samples to ROOT trees
         print( "Create root trees")
-        fit.to_root(samples, path=args["outpath"], systs = ["btag", "pdf", "trigger"])
+        fit.to_root(samples, path=args["outpath"], systs = args["weight_syst"])
         
         # Asimov
         if args["fit_asimov"]:

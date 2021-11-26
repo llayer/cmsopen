@@ -227,7 +227,7 @@ def plot_cov_infbce(bce_covs, inf_covs, names, stddev=False, outpath=".", store=
             
     
 def plot_scan(bce, inferno, path="", asimov = True, store=False):
-        
+                
     plt.figure()#dpi=150)
     plt.plot(bce["parameter_values"], bce["delta_nlls"], label="BCE")
     plt.plot(inferno["parameter_values"], inferno["delta_nlls"], label="INFERNO")

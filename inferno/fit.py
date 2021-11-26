@@ -5,12 +5,13 @@ import uproot3
 import numpy as np
 import json
 
+#cabinetry.set_logging()
 
 #
 # Convert data to ROOT format
 #
 
-def create_tree(path, s, sample):
+def create_tree(path, s, sample, weight="weight"):
     
     file = uproot3.recreate(path + "/root_trees/" + s + ".root")
     file["tree"] = uproot3.newtree(
@@ -26,13 +27,13 @@ def create_tree(path, s, sample):
         "inferno": sample["inferno"].values ,
         #"inferno_sorted": sample["inferno_sorted"].values ,
         "bce": sample["bce"].values ,
-        "weight": sample["weight"].values,
+        "weight": sample[weight].values,
         "event": sample["event"].values
     })
     file.close()    
 
     
-def to_root(samples, systs = ["btag"], path = "/home/centos/data/inferno_cmsopen13/root_trees"):
+def to_root(samples, systs = [], path = "/home/centos/data/inferno_cmsopen13/root_trees"):
         
     for s in samples:
         sample = samples[s]
@@ -41,12 +42,11 @@ def to_root(samples, systs = ["btag"], path = "/home/centos/data/inferno_cmsopen
         if ('up' in s) | ('down' in s): continue
         for syst in systs:
             for ud in ["up", "down"]:
-                    create_tree(path,  s + "_" + syst + "_" + ud, sample)
-            if (s == "TTJets_signal") & (syst == "pdf"):
-                # PDF Up
-                create_tree(path,  s + "_" + syst + "_up", sample)
-                # PDF Down
-                create_tree(path,  s + "_" + syst + "_down", sample)
+                if (s == "TTJets_signal") & (syst == "pdf"):
+                    create_tree(path,  s + "_" + syst + "_" + ud, sample, weight = "weight_"+ syst + "_" + ud )
+                else:
+                    create_tree(path,  s + "_" + syst + "_" + ud, sample, weight = "weight_"+ syst + "_" + ud )
+
                                                                                                  
 #
 # Write and fit workspace
@@ -67,7 +67,8 @@ def fit_ws(ws, config, args, path, asimov = True):
     model_pred = cabinetry.model_utils.prediction(model)
     figures = cabinetry.visualize.data_mc(model_pred, data, config=config, log_scale=True,
                                           save_figure=args["store"], figure_folder=path)
-    fit_results = cabinetry.fit.fit(model, data)
+    cabinetry.visualize.templates(config, save_figure=args["store"], figure_folder=path)
+    fit_results = cabinetry.fit.fit(model, data, minos=args["minos"])
     cabinetry.visualize.pulls(fit_results, exclude=["mu"], save_figure=args["store"], figure_folder=path)
     cabinetry.visualize.correlation_matrix(fit_results, save_figure=args["store"], figure_folder=path)
     scan_results = cabinetry.fit.scan(model, data, "mu", n_steps=args["n_steps"])
@@ -125,12 +126,14 @@ def load_scan(path=""):
 #
 # Print summary
 #
-def print_summary(results, name):
+def print_summary(results, scan, name):
     
     print("*****************")
     print("Summary", name)
     for lab, best, std in zip(results["labels"], results["bestfit"], results["uncertainty"]):
         print(lab, round(best,3), "+-", round(std, 3))
+    print("Scan bestfit", scan["bestfit"])
+    print("Scan uncertainty", scan["uncertainty"])
     print("*****************")
 
 
