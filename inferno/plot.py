@@ -12,26 +12,38 @@ def plot_cov(bce_info, inferno_info, names, args):
     plot_cov_infbce(bce_val_covs, inferno_val_covs, names, stddev=False, outpath=args["outpath"], store=args["store"])
 
 
-def plot_inferno(df_inf, inferno_info, args):
+def plot_inferno(df_inf, info, args, order_d):
     
     # Plot loss
-    plot_loss(inferno_info["loss"], outpath=args["outpath"], store=args["store"])
+    plot_loss(info["loss"], outpath=args["outpath"], store=args["store"])
     
     # Plot test predictions
-    if args["use_softhist"] == False:
-        plot_predictions(df_inf, plot_sorted=False, name="inferno", outpath=args["outpath"], store=args["store"])
-        plot_predictions(df_inf, plot_sorted=True, name="inferno_sorted", outpath=args["outpath"], store=args["store"])
-    else:
-        plot_predictions(df_inf, plot_sorted=False, name="inferno_soft", outpath=args["outpath"], store=args["store"])
+    plot_predictions(df_inf, bins = args["bins"], use_hist = args["use_softhist"], plot_sorted=args["fit_sorted"], 
+                     name="inferno", outpath=args["outpath"], store=args["store"])
+        
+    # Plot systematic variations
+    shapes = info["shapes"]
+    for i, syst_name in enumerate(args["systnames"]):
+        plot_shapes(shapes["bkg"], shapes["sig"], shapes["sig_up"][i], shapes["sig_down"][i], "inferno", syst_name, 
+                    plot_sorted=args["fit_sorted"], order_d = order_d, use_hist = args["use_softhist"], 
+                    outpath=args["outpath"], store=args["store"])
     
-def plot_bce(df_bce, bce_info, args):
+    
+def plot_bce(df_bce, info, args):
     
     # Plot loss
-    plot_loss(bce_info["loss"], name="bce", outpath=args["outpath"], store=args["store"])
+    plot_loss(info["loss"], name="bce", outpath=args["outpath"], store=args["store"])
+    
     # Plot predictions
-    plot_predictions(df_bce, plot_sorted=False, name="bce", outpath=args["outpath"], store=args["store"])
+    plot_predictions(df_bce, bins = args["bins"], use_hist = True, name="bce", outpath=args["outpath"], store=args["store"])
+    
+    # Plot systematic variations
+    shapes = info["shapes"]
+    for i, syst_name in enumerate(args["systnames"]):
+        plot_shapes(shapes["bkg"], shapes["sig"], shapes["sig_up"][i], shapes["sig_down"][i], "bce", syst_name, 
+                    use_hist = True, outpath=args["outpath"], store=args["store"])
 
-
+        
 def plot_loss(lt, outpath=".", name="inferno", store=False):
     
     plt.plot(lt.losses["trn"], label="train")
@@ -43,11 +55,53 @@ def plot_loss(lt, outpath=".", name="inferno", store=False):
     plt.xlabel(r"epoch")
     plt.legend(loc="upper right")
     if store:
-        plt.savefig(outpath + "/train_plots/loss_" + name + ".png")
+        plt.savefig(outpath + "/train/" + name + "/loss.png")
     plt.show()
 
+    
+def plot_shapes(bkg, sig, sig_up, sig_down, name, syst_name, use_hist = False, plot_sorted = False, order_d = None,
+                outpath=".", store=False):
+                
+    if plot_sorted == True:
+        bkg = bkg[list(order_d.keys())]
+        sig = sig[list(order_d.keys())]
+        sig_up = sig_up[list(order_d.keys())]
+        sig_down  = sig_down[list(order_d.keys())]
+        
+    bins = len(bkg)
+    if use_hist == True:
+        xmax = 1.
+    else:
+        xmax = bins
+    edges = np.linspace(0, xmax, bins + 1)
+    centers = edges[:-1] + (xmax/float(bins))/float(2)
+    
+    fig, (ax1, ax2) = plt.subplots(nrows=2, gridspec_kw={'height_ratios': [3,1]}, figsize=(8,6))
+    ax1.stairs(bkg, edges, label="bkg", color="blue")
+    ax1.stairs(sig, edges, label="sig", color="orange")
+    ax1.stairs(sig_up, edges, label="sig up", color="green")
+    ax1.stairs(sig_down, edges, label="sig down", color="red")
+    ax1.legend(loc="upper right")
+    
+    plt.text(0.05, 0.9,syst_name,
+     horizontalalignment='center',
+     verticalalignment='center',
+     transform = ax1.transAxes, size=15,
+     bbox=dict(facecolor='red', edgecolor=None, alpha=0.2))
 
-def plot_predictions(df, plot_sorted = False, outpath=".", name="inferno", store=False):
+    ax2.scatter(centers, np.array(sig_up) / np.array(sig), color="green")
+    ax2.scatter(centers, np.array(sig_down) / np.array(sig), color="red")
+    ax2.hlines(1., 0, xmax, linestyle="dotted", color="black")
+    ax2.set_ylim((0,2))
+    ax2.set_xlabel(name)
+    
+    if store:
+        plt.savefig(outpath + "/train/" + name + "/shapes_" + syst_name + ".png")    
+    
+    plt.show()
+            
+
+def plot_predictions(df, bins=10, plot_sorted = False, use_hist = False, outpath=".", name="inferno", store=False):
     
     if plot_sorted:
         sig = df[df["gen_target"]==1]["pred_sorted"]
@@ -56,15 +110,15 @@ def plot_predictions(df, plot_sorted = False, outpath=".", name="inferno", store
         sig = df[df["gen_target"]==1]["pred"]
         bkg = df[df["gen_target"]==0]["pred"]
     
-    if ("bce" in name) | ("soft" in name):
+    if use_hist == True:
         hist_range=(0.,1.)
     else:
-        hist_range=(0.,10.)
-    plt.hist(sig, density=True, alpha=0.5, bins=10, range=hist_range, label="Signal")
-    plt.hist(bkg, density=True, alpha=0.5, bins=10, range=hist_range, label="Background")
+        hist_range=(0.,bins)
+    plt.hist(sig, density=True, alpha=0.5, bins=bins, range=hist_range, label="Signal")
+    plt.hist(bkg, density=True, alpha=0.5, bins=bins, range=hist_range, label="Background")
     plt.legend(loc="upper left")
     if store:
-        plt.savefig(outpath + "/train_plots/preds_" + name + ".png")    
+        plt.savefig(outpath + "/train/" + name + "/predictions.png")    
     plt.show()
 
 
@@ -126,7 +180,7 @@ def plot_cov_trnval(trn_covs, val_covs, names, stddev=False, outpath=".", store=
             if (i==0) & (j==2):
                 col.legend(loc="upper right", prop={'size': 16})
     if store:
-        plt.savefig(outpath + "/train_plots/cov_trnval_inferno.png")    
+        plt.savefig(outpath + "/train/inferno/cov_trnval.png")    
     plt.show()
     
             
@@ -168,7 +222,7 @@ def plot_cov_infbce(bce_covs, inf_covs, names, stddev=False, outpath=".", store=
                 col.legend(loc="upper right", prop={'size': 16})
             
     if store:
-        plt.savefig(outpath + "/train_plots/cov_infbce.png")
+        plt.savefig(outpath + "/train/cov_infbce.png")
     plt.show()            
             
     

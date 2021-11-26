@@ -1,4 +1,4 @@
-from preproc import get_norm
+from preproc import get_norm, adjust_naming
 
 # Load norms
 norm_syst = ["jes_06", "taue", "btag_weight1"]
@@ -15,6 +15,7 @@ args["store"] = True
 args["features"] = ['aplanarity', 'chargeEta', 'MET_met', 'deltaPhiTauMet']
 args["shape_syst"] = ["06_jes", "jer"] #, "taue"]
 args["weight_syst"] = []#["btag_weight1"]
+args["systnames"] = adjust_naming(args["shape_syst"] + args["weight_syst"])
 args["shape_norm_sigma"] = [0.05, 0.02] # CHECK adjust for correct values
 # Common training args
 args["bs"] = 1000 
@@ -58,7 +59,7 @@ args["fit_asimov"] = False
 args["fit_data"] = False
 args["print_config"] = False
 args["print_config"] = False
-args["fit_sorted"] = True
+args["fit_sorted"] = False
 args["fit_floatQCD"] = True
 args["sample_names"] = ["Data", "QCD", "TTJets_bkg", "WZJets", "STJets", "TTJets_signal"]
 args["mc"] = ["TTJets_bkg", "WZJets", "STJets", "TTJets_signal"]

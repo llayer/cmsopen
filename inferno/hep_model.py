@@ -323,7 +323,7 @@ class HEPInferno(AbsCallback):
             up_batch = self.to_shape(self.wrapper.model(x_s[:,:,idx_up]), w_s_nom)
             down_batch = self.to_shape(self.wrapper.model(x_s[:,:,idx_down]), w_b_nom)
             
-            print(list(zip(x_s[:,:,0], up_batch, down_batch))
+            #print([list(zip(x_s[:,:,0][0], x_s[:,:,idx_up][0], x_s[:,:,idx_down][0]))])
             
             u.append(up_batch)
             d.append(down_batch)    

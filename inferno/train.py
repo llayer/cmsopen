@@ -5,6 +5,7 @@ from pytorch_inferno.data import *
 from fastcore.all import partialler
 from torch import optim, autograd, nn, Tensor
 import pandas as pd
+import numpy as np
 
 import hep_model
 
@@ -47,12 +48,13 @@ def train_inferno(data, args, epochs=100 ):
     model_inferno.fit(epochs, data=data, opt=partialler(optim.Adam,lr=lr), loss=None,
                       cbs=[hep_inf,  lt, SaveBest(args["outpath"] + "/weights/best_inferno.h5")])
     
-    print("bkg_shape", hep_inf.val_shapes["bkg"][-1])
-    print("sig_shape", hep_inf.val_shapes["sig"][-1])
-    print("sig_shape_up", hep_inf.val_shapes["sig_up"][-1])
-    print("sig_shape_down", hep_inf.val_shapes["sig_down"][-1])
-    
-    return model_inferno, {"loss":lt, "covs": hep_inf.covs}
+    shapes = {"bkg" : hep_inf.val_shapes["bkg"][-1],
+              "sig" : hep_inf.val_shapes["sig"][-1],
+              "sig_up" : hep_inf.val_shapes["sig_up"][-1],
+              "sig_down" : hep_inf.val_shapes["sig_down"][-1]
+             }
+        
+    return model_inferno, {"loss":lt, "covs": hep_inf.covs, "shapes" : shapes}
 
 
 def train_bce(data, args, epochs=100):
@@ -81,10 +83,16 @@ def train_bce(data, args, epochs=100):
     model_bce = ModelWrapper(net_bce)
     model_bce.fit(epochs, data=data, opt=partialler(optim.Adam, lr=lr), loss=nn.BCELoss(),
                   cbs=[lt, ct, SaveBest(args["outpath"] + "/weights/best_bce.h5")])
+
+    shapes = {"bkg" : ct.val_shapes["bkg"][-1],
+              "sig" : ct.val_shapes["sig"][-1],
+              "sig_up" : ct.val_shapes["sig_up"][-1],
+              "sig_down" : ct.val_shapes["sig_down"][-1]
+             }
     
     #bce_trn_covs = ct.covs["trn"]
     #bce_val_covs = ct.covs["val"]
-    return model_bce, {"loss":lt, "covs": ct.covs}
+    return model_bce, {"loss":lt, "covs": ct.covs, "shapes": shapes}
 
 
 

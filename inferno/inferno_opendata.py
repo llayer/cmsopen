@@ -75,7 +75,7 @@ def train_cmsopen(opendata, test, args, epochs):
                                           name="inferno", bins=args["bins"])
         
     # Plot the results
-    plot.plot_inferno(df_inf, inferno_info, args)
+    plot.plot_inferno(df_inf, inferno_info, args, order_d)
         
     #
     # Train BCE
@@ -92,7 +92,7 @@ def train_cmsopen(opendata, test, args, epochs):
     # Compare the covariance matrices
     #
     #names = ["mu","JES", "JER"]#,'b-tag']
-    names = preproc.adjust_naming(["mu"] + args["shape_syst"] + args["weight_syst"])
+    names = preproc.adjust_naming(["mu"] + args["systnames"])
     plot.plot_cov(bce_info, inferno_info, names, args)
     
     return bce_model, inferno_model, order_d
@@ -110,7 +110,8 @@ def run_cmsopen( args, epochs=1, retrain = True, do_fit = False):
         create_dir(args["outpath"])
         create_dir(args["outpath"] + "/samples")
         create_dir(args["outpath"] + "/root_trees")
-        create_dir(args["outpath"] + "/train_plots")
+        create_dir(args["outpath"] + "/train/bce")
+        create_dir(args["outpath"] + "/train/inferno")
         create_dir(args["outpath"] + "/fit")
         
     if retrain == True:
