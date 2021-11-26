@@ -9,7 +9,6 @@ from torch.distributions import Normal
 from pytorch_inferno.inference import *
 from pytorch_inferno.inferno import *
 from pytorch_inferno.callback import *
-from pytorch_inferno.data import *
 from fastcore.all import partialler
 
 #
@@ -203,8 +202,11 @@ class HEPInferno(AbsCallback):
         
         # Store covariance matrix
         self.covs, self.cov, self.cnt = {'trn':[], 'val':[]}, 0, 0
-        self.val_shapes, self.sig_shape, self.bkg_shape  = {'sig':[], 'bkg':[]}, 0, 0
-        
+        self.val_shapes = {'sig':[], 'bkg':[], "sig_up":[], "sig_down":[]}
+        self.sig_shape, self.bkg_shape = 0, 0
+        self.sig_shape_up = [0. for i in range(self.n_shape_alphas)]
+        self.sig_shape_down = [0. for i in range(self.n_shape_alphas)]
+
         print("*********************")
         print("Summary INFERNO setup")
         print("b_true", self.b_true)
@@ -233,14 +235,18 @@ class HEPInferno(AbsCallback):
     def on_epoch_begin(self) -> None: 
         self.cov, self.cnt = 0, 0
         self.sig_shape, self.bkg_shape = 0, 0
+        self.sig_shape_up = [0 for i in range(self.n_shape_alphas)]
+        self.sig_shape_down = [0 for i in range(self.n_shape_alphas)]
         
     def on_epoch_end(self) -> None:
         if self.wrapper.state == 'train':
             self.covs['trn'].append(  self.cov / self.cnt  )
         else:
             self.covs['val'].append(  self.cov / self.cnt  )
-            self.val_shapes['sig'].append( self.sig_shape / self.cnt )
             self.val_shapes['bkg'].append( self.bkg_shape / self.cnt )
+            self.val_shapes['sig'].append( self.sig_shape / self.cnt )            
+            self.val_shapes['sig_up'].append( [shape / self.cnt for shape in self.sig_shape_up] )
+            self.val_shapes['sig_down'].append( [shape / self.cnt for shape in self.sig_shape_down] )
 
     def on_train_begin(self) -> None:
         
@@ -253,6 +259,16 @@ class HEPInferno(AbsCallback):
         if self.s_norm_sigma is not None: self.s_norm_sigma = torch.Tensor(self.s_norm_sigma).to(self.wrapper.device)
         if self.b_norm_sigma is not None: self.b_norm_sigma = torch.Tensor(self.b_norm_sigma).to(self.wrapper.device)
 
+    def store_shapes(self, f_s_nom:Tensor, f_b_nom:Tensor, f_s_up:Optional[Tensor], f_s_dw:Optional[Tensor], 
+                    f_b_up:Optional[Tensor], f_b_dw:Optional[Tensor]) -> None:
+        
+        with torch.no_grad(): 
+            self.sig_shape += f_s_nom.detach().cpu().numpy()
+            self.bkg_shape += f_b_nom.detach().cpu().numpy()   
+            for i in range(self.n_shape_alphas):
+                self.sig_shape_up[i] += f_s_up[i].detach().cpu().numpy()
+                self.sig_shape_down[i] += f_s_dw[i].detach().cpu().numpy()
+            
     def to_shape(self, p:Tensor, w:Optional[Tensor]=None) -> Tensor:
         
         eps=1e-7
@@ -306,6 +322,9 @@ class HEPInferno(AbsCallback):
             idx_down = 2 + 2*i
             up_batch = self.to_shape(self.wrapper.model(x_s[:,:,idx_up]), w_s_nom)
             down_batch = self.to_shape(self.wrapper.model(x_s[:,:,idx_down]), w_b_nom)
+            
+            print(list(zip(x_s[:,:,0], up_batch, down_batch))
+            
             u.append(up_batch)
             d.append(down_batch)    
         
@@ -341,8 +360,6 @@ class HEPInferno(AbsCallback):
         cov = torch.inverse(h)        
         with torch.no_grad(): 
             self.cov += cov.detach().cpu().numpy()
-            self.sig_shape += f_s_nom.detach().cpu().numpy()
-            self.bkg_shape += f_b_nom.detach().cpu().numpy()
         self.cnt += 1
         return cov[self.poi_idx,self.poi_idx]
 
@@ -363,64 +380,11 @@ class HEPInferno(AbsCallback):
         f_s = self.to_shape(self.wrapper.y_pred[~b], w_s_nom)
         f_b = self.to_shape(self.wrapper.y_pred[b], w_b_nom)
         (f_s_up,f_s_dw),(f_b_up,f_b_dw)= self._get_up_down(self.wrapper.x[~b], self.wrapper.x[b], w_s, w_b)
+        self.store_shapes(f_s_nom=f_s, f_b_nom=f_b, f_s_up=f_s_up, f_s_dw=f_s_dw, f_b_up=f_b_up, f_b_dw=f_b_dw)
         inferno_loss = self.get_ikk(f_s_nom=f_s, f_b_nom=f_b, f_s_up=f_s_up, f_s_dw=f_s_dw, f_b_up=f_b_up, f_b_dw=f_b_dw)
         
         if self.ignore_loss == False:
             self.wrapper.loss_val = inferno_loss
 
-#
-# Predict test set
-#
-
-def pred_test(model, test_dl, use_hist=False, name="inferno", bins=10.):
-
-    if use_hist == True:
-        preds = model._predict_dl(test_dl).squeeze()        
-    else:
-        preds = model._predict_dl(test_dl, pred_cb=InfernoPred())
-        
-    df = pd.DataFrame({'pred':preds})
-    df['gen_target'] = test_dl.dataset.y
-        
-    if ("inferno" in name) & (use_hist == False):
-        
-        #Sort according to signal fraction
-        sig = df[df["gen_target"]==1]["pred"]
-        bkg = df[df["gen_target"]==0]["pred"]
-        x_range = (0.,bins)
-        sig_h = np.histogram(sig, bins=bins, range=x_range, density=True)[0]
-        bkg_h = np.histogram(bkg, bins=bins, range=x_range, density=True)[0]
-        sig_bkg = sig_h/(bkg_h+10e-7)
-        sor = np.argsort(sig_bkg)
-        inv_d = dict(enumerate(np.argsort(sig_bkg)))  
-        order_d = {v: k for k, v in inv_d.items()}
-        df['pred_sorted'] = df["pred"].replace(order_d)
-    else:
-        order_d = {}
-
-    return df, order_d
-
-
-#
-# Predict the nominal samples
-#
-
-def pred_nominal(samples, features, model, scaler, name, sort_bins = False, use_hist = False, order_d = None):
-    
-    #"TTJets_signal"
-    for s in samples:
-        X = samples[s][features].values
-        X = scaler.transform(X)
-        loader = WeightedDataLoader(DataSet(X, None, None), batch_size=1000)
-        if use_hist == True:
-            samples[s][name] = model._predict_dl(loader)
-        else:
-            samples[s][name] = model._predict_dl(loader, pred_cb=InfernoPred())
-            if sort_bins = True:
-                samples[s][name] = samples[s][name].replace(order_d)
             
             
-
-
-
-

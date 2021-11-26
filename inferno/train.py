@@ -1,11 +1,12 @@
 from pytorch_inferno.inferno import *
 from pytorch_inferno.callback import *
 from pytorch_inferno.model_wrapper import *
+from pytorch_inferno.data import *
 from fastcore.all import partialler
 from torch import optim, autograd, nn, Tensor
+import pandas as pd
 
 import hep_model
-import plot
 
 def train_inferno(data, args, epochs=100 ):
     
@@ -45,7 +46,12 @@ def train_inferno(data, args, epochs=100 ):
 
     model_inferno.fit(epochs, data=data, opt=partialler(optim.Adam,lr=lr), loss=None,
                       cbs=[hep_inf,  lt, SaveBest(args["outpath"] + "/weights/best_inferno.h5")])
-        
+    
+    print("bkg_shape", hep_inf.val_shapes["bkg"][-1])
+    print("sig_shape", hep_inf.val_shapes["sig"][-1])
+    print("sig_shape_up", hep_inf.val_shapes["sig_up"][-1])
+    print("sig_shape_down", hep_inf.val_shapes["sig_down"][-1])
+    
     return model_inferno, {"loss":lt, "covs": hep_inf.covs}
 
 
@@ -81,4 +87,62 @@ def train_bce(data, args, epochs=100):
     return model_bce, {"loss":lt, "covs": ct.covs}
 
 
+
+#
+# Predict test set
+#
+
+def pred_test(model, test_dl, use_hist=False, name="inferno", bins=10.):
+
+    if use_hist == True:
+        preds = model._predict_dl(test_dl).squeeze()        
+    else:
+        preds = model._predict_dl(test_dl, pred_cb=InfernoPred())
+        
+    df = pd.DataFrame({'pred':preds})
+    df['gen_target'] = test_dl.dataset.y
+        
+    if ("inferno" in name) & (use_hist == False):
+        
+        #Sort according to signal fraction
+        sig = df[df["gen_target"]==1]["pred"]
+        bkg = df[df["gen_target"]==0]["pred"]
+        x_range = (0.,bins)
+        sig_h = np.histogram(sig, bins=bins, range=x_range, density=True)[0]
+        bkg_h = np.histogram(bkg, bins=bins, range=x_range, density=True)[0]
+        sig_bkg = sig_h/(bkg_h+10e-7)
+        sor = np.argsort(sig_bkg)
+        inv_d = dict(enumerate(np.argsort(sig_bkg)))  
+        order_d = {v: k for k, v in inv_d.items()}
+        df['pred_sorted'] = df["pred"].replace(order_d)
+    else:
+        order_d = {}
+
+    return df, order_d
+
+
+#
+# Predict the nominal samples
+#
+
+def pred_nominal(samples, features, model, scaler, name, sort_bins = False, use_hist = False, order_d = None):
     
+    print("Predicting", name, "samples")
+    
+    #"TTJets_signal"
+    for s in samples:
+        X = samples[s][features].values
+        X = scaler.transform(X)
+        loader = WeightedDataLoader(DataSet(X, None, None), batch_size=1000)
+        if use_hist == True:
+            samples[s][name] = model._predict_dl(loader)
+        else:
+            samples[s][name] = model._predict_dl(loader, pred_cb=InfernoPred())
+            if sort_bins == True:
+                samples[s][name] = samples[s][name].replace(order_d)
+            
+            
+
+
+
+

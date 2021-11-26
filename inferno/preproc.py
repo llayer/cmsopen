@@ -9,6 +9,9 @@ from pytorch_inferno.data import *
 
 pd.options.mode.chained_assignment = None 
 
+#
+# Load norms and set names for INFERNO training
+#
 def get_norm(norm_syst, path="/home/centos/data/bdt_rs5/norms.h5"):
     
     df_norm = pd.read_hdf( path )
@@ -33,7 +36,53 @@ def get_norm(norm_syst, path="/home/centos/data/bdt_rs5/norms.h5"):
         sig_norm.append(std)
     return mu, qcd, sig_norm
 
+def adjust_naming(syst_names):
+    syst = []
+    # Adjust the naming for combine
+    for s in syst_names:
+        if "jes" in s:
+            syst.append('jes')
+        elif "taue" in s:
+            syst.append('taue')
+        else:
+            syst.append(s)
+    return syst
 
+#
+# Set the weights of the MC samples
+#
+def set_weights(samples, systs):
+    
+    for s in samples:
+        
+        sample = samples[s]
+        if s == "Data":
+            sample["weight"] = 1.
+        elif s == "QCD":
+            scale_qcd = 4.
+            sample["weight"]  = sample['btag_weight2'] * scale_qcd
+        else:
+            sample["weight"] = sample['norm'] * sample['trigger_weight'] * sample['btag_weight1']
+            if ('up' in s) | ('down' in s): continue
+            for syst in systs:
+                for ud in ["up", "down"]:
+                    if syst == "btag":
+                        sample["weight"] = sample['norm'] * sample['trigger_weight'] * sample['btag_weight1_' + ud]
+                    if syst == "trigger":
+                        sample["weight"] = sample['norm'] * sample['trigger_weight_'+ud] * sample['btag_weight1']    
+                if (s == "TTJets_signal") & (syst == "pdf"):
+                    # PDF Up
+                    sample["pdf_up"] = sample["pdf_up"].fillna(0.)
+                    sample["weight"] = sample['norm'] * sample['trigger_weight'] * sample['btag_weight1'] * (1+sample["pdf_up"])
+                    # PDF Down
+                    sample["pdf_down"] = sample["pdf_down"].fillna(0.)
+                    sample["weight"] = sample['norm'] * sample['trigger_weight'] * sample['btag_weight1'] * (1-sample["pdf_down"])    
+
+
+
+#
+# Preparation of training data
+#
 def add_key(df):
     df["event_id"] = df["event"].astype(str) + df["luminosityBlock"].astype(str)
 
@@ -55,7 +104,7 @@ def get_train_evts(sample):
     return sample[sample["train_flag"]=="train"]["event_id"]    
     
     
-def get_cmsopen_data(samples, features, shape_syst, weight_syst, n_sig = 20000, n_bkg = 10000, use_weights = False):
+def get_train_data(samples, features, shape_syst, weight_syst, n_sig = 20000, n_bkg = 10000, use_weights = False):
     
     # Add a unique event key
     for s in samples:
@@ -180,34 +229,9 @@ def get_cmsopen_data(samples, features, shape_syst, weight_syst, n_sig = 20000, 
     return trn, val, scaler
 
 
-def set_weights(samples, systs):
-    
-    for s in samples:
-        
-        sample = samples[s]
-        if s == "Data":
-            sample["weight"] = 1.
-        elif s == "QCD":
-            scale_qcd = 4.
-            sample["weight"]  = sample['btag_weight2'] * scale_qcd
-        else:
-            sample["weight"] = sample['norm'] * sample['trigger_weight'] * sample['btag_weight1']
-            if ('up' in s) | ('down' in s): continue
-            for syst in systs:
-                for ud in ["up", "down"]:
-                    if syst == "btag":
-                        sample["weight"] = sample['norm'] * sample['trigger_weight'] * sample['btag_weight1_' + ud]
-                    if syst == "trigger":
-                        sample["weight"] = sample['norm'] * sample['trigger_weight_'+ud] * sample['btag_weight1']    
-                if (s == "TTJets_signal") & (syst == "pdf"):
-                    # PDF Up
-                    sample["pdf_up"] = sample["pdf_up"].fillna(0.)
-                    sample["weight"] = sample['norm'] * sample['trigger_weight'] * sample['btag_weight1'] * (1+sample["pdf_up"])
-                    # PDF Down
-                    sample["pdf_down"] = sample["pdf_down"].fillna(0.)
-                    sample["weight"] = sample['norm'] * sample['trigger_weight'] * sample['btag_weight1'] * (1-sample["pdf_down"])    
-
-
+#
+# Data loading
+#
 def load_samples(path):
     
     samples = {}
@@ -231,8 +255,8 @@ def load_data(features, shape_syst, weight_syst, path = "/home/centos/data/bdt_r
     #    os.makedirs(outpath)
     samples = load_samples(path)
                 
-    trn, val, scaler = get_cmsopen_data(samples, features, shape_syst, weight_syst, 
-                                        n_sig = n_sig, n_bkg = n_bkg, use_weights = use_weights)    
+    trn, val, scaler = get_train_data(samples, features, shape_syst, weight_syst, 
+                                      n_sig = n_sig, n_bkg = n_bkg, use_weights = use_weights)    
     trn_dl = WeightedDataLoader(DataSet(*trn), batch_size=bs, shuffle=True, drop_last=True)
     val_dl = WeightedDataLoader(DataSet(*val), batch_size=bs, shuffle=True)
     test_dl = WeightedDataLoader(DataSet(*val), batch_size=bs)
@@ -251,13 +275,15 @@ def load_data(features, shape_syst, weight_syst, path = "/home/centos/data/bdt_r
 
     return data, test_dl, samples, scaler
    
-
+#
+# Data storing
+#
 def store_samples(samples, outpath):  
     
     for s in samples:
         samples[s].to_hdf(outpath + "/samples/" + s + ".h5", "frame", mode='w')
 
-
+       
 
 
 

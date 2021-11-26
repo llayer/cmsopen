@@ -25,6 +25,7 @@ def compare_results(args):
         plot.plot_scan(bce_asimov_scan, inferno_asimov_scan, path=args["outpath"] + "/fit", asimov=True, store=args["store"])
 
     if args["fit_data"]:
+        pass
         #BCE
         #bce_res = fit.load_fitresults( args["outpath"] + "/fit/bce" )
         #fit.print_summary(bce_res, "bce")
@@ -70,7 +71,7 @@ def train_cmsopen(opendata, test, args, epochs):
     inferno_model, inferno_info = train.train_inferno(opendata, args, epochs = epochs)
     
     # Predict test set - eventually add weights
-    df_inf, order_d = hep_model.pred_test(inferno_model, test, use_hist = args["use_softhist"], 
+    df_inf, order_d = train.pred_test(inferno_model, test, use_hist = args["use_softhist"], 
                                           name="inferno", bins=args["bins"])
         
     # Plot the results
@@ -82,7 +83,7 @@ def train_cmsopen(opendata, test, args, epochs):
     bce_model, bce_info = train.train_bce(opendata, args, epochs=epochs)
     
     # Predict test set - eventually add weights
-    df_bce, _ = hep_model.pred_test(bce_model, test, use_hist=True, name="bce")
+    df_bce, _ = train.pred_test(bce_model, test, use_hist=True, name="bce")
     
     # Plot the results
     plot.plot_bce(df_bce, bce_info, args)
@@ -91,7 +92,7 @@ def train_cmsopen(opendata, test, args, epochs):
     # Compare the covariance matrices
     #
     #names = ["mu","JES", "JER"]#,'b-tag']
-    names = ["mu"] + args["shape_syst"] + args["weight_syst"]
+    names = preproc.adjust_naming(["mu"] + args["shape_syst"] + args["weight_syst"])
     plot.plot_cov(bce_info, inferno_info, names, args)
     
     return bce_model, inferno_model, order_d
@@ -125,10 +126,10 @@ def run_cmsopen( args, epochs=1, retrain = True, do_fit = False):
         bce_model, inferno_model, order_d = train_cmsopen(opendata, test, args, epochs)
         
         # Predict INFERNO
-        hep_model.pred_nominal(samples, args["features"], inferno_model, scaler, sort_bins = args["fit_sorted"],
+        train.pred_nominal(samples, args["features"], inferno_model, scaler, sort_bins = args["fit_sorted"],
                                use_hist = args["use_softhist"], name='inferno', order_d = order_d)
         # Predict BCE
-        hep_model.pred_nominal(samples, args["features"], bce_model, scaler, use_hist = True, name="bce")
+        train.pred_nominal(samples, args["features"], bce_model, scaler, use_hist = True, name="bce")
         if args["store"] == True:
             preproc.store_samples(samples, args["outpath"])
             

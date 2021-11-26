@@ -10,7 +10,7 @@ args = {}
 #
 # General args
 #
-args["outpath"] = "/home/centos/data/inferno_cmsopen16"
+args["outpath"] = "/home/centos/mount_point/data/inferno_cmsopen0" #"/home/centos/data/inferno_cmsopen16"
 args["store"] = True
 args["features"] = ['aplanarity', 'chargeEta', 'MET_met', 'deltaPhiTauMet']
 args["shape_syst"] = ["06_jes", "jer"] #, "taue"]
