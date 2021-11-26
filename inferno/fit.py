@@ -4,7 +4,10 @@ import pyhf
 import uproot3
 import numpy as np
 import json
+import logging
 
+    
+logging.basicConfig(format="%(levelname)s - %(name)s - %(message)s")
 #cabinetry.set_logging()
 
 #
@@ -68,7 +71,9 @@ def fit_ws(ws, config, args, path, asimov = True):
     figures = cabinetry.visualize.data_mc(model_pred, data, config=config, log_scale=True,
                                           save_figure=args["store"], figure_folder=path)
     cabinetry.visualize.templates(config, save_figure=args["store"], figure_folder=path)
+    logging.getLogger("cabinetry").setLevel(logging.INFO)
     fit_results = cabinetry.fit.fit(model, data, minos=args["minos"])
+    logging.getLogger("cabinetry").setLevel(logging.WARNING)
     cabinetry.visualize.pulls(fit_results, exclude=["mu"], save_figure=args["store"], figure_folder=path)
     cabinetry.visualize.correlation_matrix(fit_results, save_figure=args["store"], figure_folder=path)
     scan_results = cabinetry.fit.scan(model, data, "mu", n_steps=args["n_steps"])
