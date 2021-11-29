@@ -90,11 +90,12 @@ def exclude_train(samples):
     for s in samples:
         if ( "QCD" in s) | ("TTJets_signal" in s):
             n_samples_pre = len(samples[s])
+            norm_pre = samples[s]["weight"].sum()
             samples[s] = samples[s][samples[s]["is_train"] == False]
-            n_samples_post = len(samples[s])
-            reweight_factor = n_samples_pre / float(n_samples_post)
+            norm_post = samples[s]["weight"].sum()
+            reweight_factor = norm_pre / float(norm_post)
             set_normalization(samples[s], reweight_factor) 
-            print("Reweight sample", s, "by", reweight_factor)
+            assert(norm_pre - samples[s]["weight"].sum() < 0.0001)
     
 def downsample_data(samples, sample_factor):
     
@@ -106,7 +107,8 @@ def downsample_data(samples, sample_factor):
             print("Downsampled data from", n_samples_pre, "to", n_samples_post)
         else:
             set_normalization(samples[s], sample_factor)
-
+       
+    
 #
 # Preparation of training data
 #
@@ -252,6 +254,34 @@ def get_train_data(samples, features, shape_syst, weight_syst, n_sig = 20000, n_
     return trn, val, scaler
 
 
+
+#
+# Generate artificial systematic variation
+#
+def shift_var(X, col, shift = 0.5):
+          
+    X_up = X.copy()
+    X_up[col] += shift
+    X_down = X.copy()
+    X_down[col] -= shift
+    return X_up, X_down
+
+def gen_artificial_systs(samples, artificial_syst):
+    
+    for s in artificial_syst:
+        for var in artificial_syst[s]:
+            col = var['name']
+            shift = var['shift']
+            norm = var['norm']
+            print(col, shift, norm)
+            X_up, X_down = shift_var(samples[s], col, shift)
+            set_normalization(X_up, factor = 1. + norm)
+            set_normalization(X_down, factor = 1. - norm)
+            samples[s + "_art_" + col + "_up"] = X_up
+            samples[s + "_art_" + col + "_down"] = X_down
+            
+            #print(list(zip(samples[s][col], samples[s + "_art_" + col + "_up"][col], samples[s + "_art_" + col + "_down"][col])))
+
 #
 # Data loading
 #
@@ -284,7 +314,7 @@ def load_samples(path, shape_systs=[]):
 
         
 def load_data(features, shape_syst, weight_syst, path = "/home/centos/data/bdt_rs5/", bs=256, 
-              n_sig = 5000, n_bkg = 5000, use_weights = False):
+              n_sig = 5000, n_bkg = 5000, use_weights = False, art_syst=None):
     
     # Check that the specified systematics are allowed:
     assert_shape_syst(shape_syst)
@@ -295,6 +325,11 @@ def load_data(features, shape_syst, weight_syst, path = "/home/centos/data/bdt_r
     
     # Set the weights
     set_weights(samples, weight_systs = weight_syst)
+    
+    # Create artificial systs
+    if art_syst is not None:
+        gen_artificial_systs(samples, art_syst)
+        print(list(samples))
     
     # Get the training data            
     trn, val, scaler = get_train_data(samples, features, shape_syst, weight_syst, 

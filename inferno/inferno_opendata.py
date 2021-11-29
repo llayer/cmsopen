@@ -9,6 +9,7 @@ import hep_model
 import train
 import fit
 import json
+import plot
 
 
 def fit_cmsopen(args, fitvar, asimov = True):
@@ -101,7 +102,8 @@ def run_cmsopen( args, epochs=1, retrain = True, do_fit = False):
                                                              weight_syst = args["weight_syst"],
                                                              bs = args["bs"], n_sig = args["n_sig"], 
                                                              n_bkg = args["n_bkg"], 
-                                                             use_weights = args["use_weights"])
+                                                             use_weights = args["use_weights"], 
+                                                             art_syst = args["artificial_syst"])
         # Downsample data
         if args["downsample_factor"] is not None:
             preproc.downsample_data(samples, args["downsample_factor"])

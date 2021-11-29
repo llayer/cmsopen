@@ -19,6 +19,8 @@ args["shape_syst"] = ["06_jes", "jer"] #, "taue"]
 # Weight syst can be btag, trigger, pdf
 args["weight_syst"] = []#["btag_weight1"]
 args["shape_norm_sigma"] = [0.05, 0.02] # CHECK adjust for correct values
+# Artificial systs
+args["artificial_syst"] = {"TTJets_signal": [{'name':"aplanarity", 'shift':0.5, 'norm':0.05}]}
 # Common training args
 args["bs"] = 1000 
 args["n_sig"] = 20000
