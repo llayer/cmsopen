@@ -17,15 +17,17 @@ args["features"] = ['aplanarity', 'chargeEta', 'MET_met', 'deltaPhiTauMet']
 args["shape_syst"] = ["06_jes", "jer"] #, "taue"]
 # Weight syst can be btag, trigger, pdf
 args["weight_syst"] = []#["btag_weight1"]
-args["systnames"] = adjust_naming(args["shape_syst"] + args["weight_syst"])
 args["shape_norm_sigma"] = [0.05, 0.02] # CHECK adjust for correct values
 # Common training args
 args["bs"] = 1000 
 args["n_sig"] = 20000
 args["n_bkg"] = 5000
-args["nfeat"] = len(args["features"])
 args["bins"] = 10
 args["use_weights"] = False
+# Downsampling
+args["downsample_factor"] = None
+# Do gif
+args["create_gifs"] = True
 #
 # INFERNO args
 #
@@ -38,9 +40,6 @@ args["temperature"] = 0.1
 # Signal and bkg
 args["b_true"] = qcd
 args["mu_true"] = mu
-# Number of shape and weight nuisances
-args["n_shape_systs"] = len(args["shape_syst"] )
-args["n_weight_systs"] = len(args["weight_syst"])
 # Normalization standard error on the nuisance parameters 
 args["s_norm_sigma"] = []
 args["b_norm_sigma"] = []
@@ -62,12 +61,13 @@ args["bce_neurons"] = 12 # CHECK only affects first layer
 args["fit_asimov"] = True
 args["fit_data"] = False
 args["minos"] = ["mu"]
+args["fit_sig_lim"] = False
 args["print_config"] = True
 args["fit_floatQCD"] = False
 args["sample_names"] = ["Data", "QCD", "TTJets_bkg", "WZJets", "STJets", "TTJets_signal"]
 args["mc"] = ["TTJets_bkg", "WZJets", "STJets", "TTJets_signal"]
 args["corr_shape_systs"] = {}#{"TTJets_signal" : ["btag"], "TTJets_bkg" : ["btag"]}
-args["uncorr_shape_systs"] = {"TTJets_signal" : args["shape_syst"] + args["weight_syst"]}
+args["uncorr_shape_systs"] = {}# Set inside the main function - change in a smarter way
 args["norm_syst"] ={}# {"lumi":{ "samples" : mc, "value" : 0.02 }, }
 args["n_steps"] = 200
 

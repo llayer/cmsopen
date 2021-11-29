@@ -61,9 +61,11 @@ def fit_cmsopen(args, fitvar, asimov = True):
     ws = fit.create_ws(config, workspace_path = ws_path)
     fit_results, scan_results = fit.fit_ws(ws, config, args, path, asimov=asimov)
     print(fit_results)
+        
     if args["store"] == True:
         fit.store_fitresults(fit_results, path = path)
         fit.store_scan(scan_results, path)
+    
             
 
 def train_cmsopen(opendata, test, args, epochs):
@@ -123,7 +125,10 @@ def run_cmsopen( args, epochs=1, retrain = True, do_fit = False):
         
         # Store the config file:
         store_args(args, args["outpath"])
-        
+    
+    # Set names
+    args["systnames"] = preproc.adjust_naming(args["shape_syst"] + args["weight_syst"])
+    
     if retrain == True:
          
         # Load data
@@ -133,6 +138,12 @@ def run_cmsopen( args, epochs=1, retrain = True, do_fit = False):
                                                              bs = args["bs"], n_sig = args["n_sig"], 
                                                              n_bkg = args["n_bkg"], 
                                                              use_weights = args["use_weights"])
+        # Downsample data
+        if args["downsample_factor"] is not None:
+            preproc.downsample_data(samples, args["downsample_factor"])
+            args["b_true"] *= args["downsample_factor"]
+            args["mu_true"] *= args["downsample_factor"]
+        
         # Train
         bce_model, inferno_model, order_d = train_cmsopen(opendata, test, args, epochs)
         
@@ -158,6 +169,9 @@ def run_cmsopen( args, epochs=1, retrain = True, do_fit = False):
         # Convert samples to ROOT trees
         print( "Create root trees")
         fit.to_root(samples, path=args["outpath"], systs = args["weight_syst"])
+        
+        # Set nuisances:
+        args["uncorr_shape_systs"] = {"TTJets_signal" : args["shape_syst"] + args["weight_syst"]}
         
         # Asimov
         if args["fit_asimov"]:

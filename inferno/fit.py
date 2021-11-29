@@ -68,6 +68,7 @@ def fit_ws(ws, config, args, path, asimov = True):
     
     model, data = cabinetry.model_utils.model_and_data(ws, asimov=asimov)
     model_pred = cabinetry.model_utils.prediction(model)
+    print(cabinetry.tabulate.yields(model_pred, data))
     figures = cabinetry.visualize.data_mc(model_pred, data, config=config, log_scale=True,
                                           save_figure=args["store"], figure_folder=path)
     cabinetry.visualize.templates(config, save_figure=args["store"], figure_folder=path)
@@ -79,6 +80,13 @@ def fit_ws(ws, config, args, path, asimov = True):
     scan_results = cabinetry.fit.scan(model, data, "mu", n_steps=args["n_steps"])
     #print(scan_results)
     #cabinetry.visualize.scan(scan_results)
+    if args["fit_sig_lim"] == True:
+        limit_result = cabinetry.fit.limit(model, data)
+        cabinetry.visualize.limit(limit_result ,save_figure=args["store"], figure_folder=path)
+        #print(limit_result)
+        significance_result = cabinetry.fit.significance(model, data)
+        print(significance_result)
+        
     return fit_results, scan_results
 
 #

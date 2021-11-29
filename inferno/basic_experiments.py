@@ -3,7 +3,7 @@ import inferno_config
 
 # Load the default config of the training
 args = inferno_config.args
-path = "/home/centos/mount_point/data/"
+path = "/home/centos/mount_point/data/basic_experiments/"
 epochs = 100
 experiments = []
 
@@ -29,7 +29,7 @@ ex3["use_weights"] = True
 experiments.append(ex3)
 
 # Experiment 4 - no systematics
-name = "weights"
+name = "no_syst"
 ex4 = args.copy()
 ex4["outpath"] = path + name
 ex4["shape_syst"] = []
@@ -71,14 +71,18 @@ ex8["outpath"] = path + name
 ex8["interp_algo"] = "fast_vertical"
 experiments.append(ex8)
 
-if __name__ == "main":
+if __name__ == "__main__":
     
-    for i, ex in enumerate(experiments):
+    """
+    for i, ex in enumerate(experiments[4]):
+        print(ex)
         try:
-            inferno_opendata.run_cmsopen(args, epochs = epochs)
+            inferno_opendata.run_cmsopen(ex, epochs = epochs, do_fit = True)
         except:
-            print("Experiment", i, "failed")
-    
+            print("Ex", str(i), "failed")
+    """
+    print(experiments[4])
+    inferno_opendata.run_cmsopen(experiments[4], epochs = epochs, do_fit = True)
 
 
 

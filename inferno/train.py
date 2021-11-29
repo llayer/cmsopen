@@ -16,7 +16,7 @@ def train_inferno(data, args, epochs=100 ):
     temp = args["temperature"]
     neurons = args["inferno_neurons"]
     bins = args["bins"]
-    nfeat = args["nfeat"]
+    nfeat = len(args["features"])
     if args["use_softhist"] == False:
         
         net_inferno = nn.Sequential(nn.Linear(nfeat,neurons),  nn.ReLU(),
@@ -32,8 +32,8 @@ def train_inferno(data, args, epochs=100 ):
     lt = LossTracker()
     hep_inf = hep_model.HEPInferno(b_true=args["b_true"], 
                                    mu_true=args["mu_true"],
-                                   n_shape_systs=args["n_shape_systs"],
-                                   n_weight_systs=args["n_weight_systs"],
+                                   n_shape_systs=len(args["shape_syst"]),
+                                   n_weight_systs=len(args["weight_syst"]),
                                    shape_norm_sigma=args["shape_norm_sigma"],
                                    s_norm_sigma = args["s_norm_sigma"],
                                    b_norm_sigma = args["b_norm_sigma"],
@@ -48,10 +48,10 @@ def train_inferno(data, args, epochs=100 ):
     model_inferno.fit(epochs, data=data, opt=partialler(optim.Adam,lr=lr), loss=None,
                       cbs=[hep_inf,  lt, SaveBest(args["outpath"] + "/weights/best_inferno.h5")])
     
-    shapes = {"bkg" : hep_inf.val_shapes["bkg"][-1],
-              "sig" : hep_inf.val_shapes["sig"][-1],
-              "sig_up" : hep_inf.val_shapes["sig_up"][-1],
-              "sig_down" : hep_inf.val_shapes["sig_down"][-1]
+    shapes = {"bkg" : hep_inf.val_shapes["bkg"],
+              "sig" : hep_inf.val_shapes["sig"],
+              "sig_up" : hep_inf.val_shapes["sig_up"],
+              "sig_down" : hep_inf.val_shapes["sig_down"]
              }
         
     return model_inferno, {"loss":lt, "covs": hep_inf.covs, "shapes" : shapes}
@@ -61,7 +61,7 @@ def train_bce(data, args, epochs=100):
     
     lr = args["bce_lr"]
     neurons = args["bce_neurons"]
-    nfeat = args["nfeat"]   
+    nfeat = len(args["features"])  
     neurons = args["bce_neurons"]
     net_bce = nn.Sequential(nn.Linear(nfeat,neurons),  nn.ReLU(),
                         nn.Linear(neurons,8), nn.ReLU(),
@@ -69,8 +69,8 @@ def train_bce(data, args, epochs=100):
     #init_net(net)    
     ct = hep_model.HEPInferno(b_true=args["b_true"], 
                               mu_true=args["mu_true"],
-                               n_shape_systs=args["n_shape_systs"],
-                               n_weight_systs=args["n_weight_systs"],
+                               n_shape_systs=len(args["shape_syst"]),
+                               n_weight_systs=len(args["weight_syst"]),
                                shape_norm_sigma=args["shape_norm_sigma"],
                                s_norm_sigma = args["s_norm_sigma"],
                                b_norm_sigma = args["b_norm_sigma"],
@@ -84,10 +84,10 @@ def train_bce(data, args, epochs=100):
     model_bce.fit(epochs, data=data, opt=partialler(optim.Adam, lr=lr), loss=nn.BCELoss(),
                   cbs=[lt, ct, SaveBest(args["outpath"] + "/weights/best_bce.h5")])
 
-    shapes = {"bkg" : ct.val_shapes["bkg"][-1],
-              "sig" : ct.val_shapes["sig"][-1],
-              "sig_up" : ct.val_shapes["sig_up"][-1],
-              "sig_down" : ct.val_shapes["sig_down"][-1]
+    shapes = {"bkg" : ct.val_shapes["bkg"],
+              "sig" : ct.val_shapes["sig"],
+              "sig_up" : ct.val_shapes["sig_up"],
+              "sig_down" : ct.val_shapes["sig_down"]
              }
     
     #bce_trn_covs = ct.covs["trn"]
