@@ -139,9 +139,6 @@ def run_cmsopen( args, epochs=1, retrain = True, do_fit = False):
         print( "Create root trees")
         fit.to_root(samples, path=args["outpath"], systs = args["weight_syst"])
         
-        # Set nuisances:
-        args["uncorr_shape_systs"] = {"TTJets_signal" : args["shape_syst"] + args["weight_syst"]}
-        
         # Asimov
         if args["fit_asimov"]:
             print( "Fit BCE Asimov")
