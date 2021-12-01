@@ -6,39 +6,10 @@ import numpy as np
 import pandas as pd
 import preproc
 import hep_model
-import plot
 import train
 import fit
 import json
 
-
-
-def compare_results(args):
-    
-    if args["fit_asimov"]:
-        # BCE
-        bce_asimov_res = fit.load_fitresults( args["outpath"] + "/fit/bce_asimov" )
-        bce_asimov_scan = fit.load_scan( args["outpath"] + "/fit/bce_asimov" )
-        fit.print_summary(bce_asimov_res, bce_asimov_scan, "bce asimov")
-        # INFERNO
-        inferno_asimov_res = fit.load_fitresults( args["outpath"] + "/fit/inferno_asimov")
-        inferno_asimov_scan = fit.load_scan( args["outpath"] + "/fit/inferno_asimov")
-        fit.print_summary(inferno_asimov_res, inferno_asimov_scan, "inferno asimov")
-        # Plot the comparison of the scan
-        plot.plot_scan(bce_asimov_scan, inferno_asimov_scan, path=args["outpath"] + "/fit", asimov=True, store=args["store"])
-
-    if args["fit_data"]:
-        pass
-        #BCE
-        #bce_res = fit.load_fitresults( args["outpath"] + "/fit/bce" )
-        #fit.print_summary(bce_res, "bce")
-
-        # INFERNO
-        #inferno_res = fit.load_fitresults( args["outpath"] + "/fit/inferno" )
-        #fit.print_summary(inferno_res, "inferno")
-
-        # Plot likelihood scans
-        #plot.plot_scan(bce_res, inferno_res, path=args["outpath"] + "/fit", asimov=False, store=args["store"])
 
 def fit_cmsopen(args, fitvar, asimov = True):
     
@@ -50,24 +21,17 @@ def fit_cmsopen(args, fitvar, asimov = True):
     # Create config    
     config = fit.create_config(args["outpath"], fitvar, bins, args["sample_names"], args["corr_shape_systs"], 
                                args["uncorr_shape_systs"], args["norm_syst"], float_qcd=args["fit_floatQCD"])
-    
-    if args["print_config"]: print(config)
-    
+        
     # Create workspace
     postfix = "_asimov" if asimov==True else ""
     path = args["outpath"] + "/fit/" + fitvar + postfix
     create_dir(path)
     ws_path = path + "/workspace.json"
     ws = fit.create_ws(config, workspace_path = ws_path)
-    fit_results, scan_results = fit.fit_ws(ws, config, args, path, asimov=asimov)
-    print(fit_results)
-        
-    if args["store"] == True:
-        fit.store_fitresults(fit_results, path = path)
-        fit.store_scan(scan_results, path)
-    
+    if args["print_ws"]: print(ws)
+    fit_results, scan_results = fit.fit_ws(ws, config, args, path, asimov=asimov)   
+    return ws
             
-
 def train_cmsopen(opendata, test, args, epochs):
     
     #
@@ -143,6 +107,9 @@ def run_cmsopen( args, epochs=1, retrain = True, do_fit = False):
             preproc.downsample_data(samples, args["downsample_factor"])
             args["b_true"] *= args["downsample_factor"]
             args["mu_true"] *= args["downsample_factor"]
+        # Exclude the events used in the training from further processing   
+        if args["exclude_train"] is True:
+            preproc.exclude_train(samples)
         
         # Train
         bce_model, inferno_model, order_d = train_cmsopen(opendata, test, args, epochs)
@@ -188,7 +155,7 @@ def run_cmsopen( args, epochs=1, retrain = True, do_fit = False):
             #fit_cmsopen(args, fitvar="inferno")
         
         # Load results and compare
-        compare_results(args)
+        fit.compare_results(args)
         
         
     return samples

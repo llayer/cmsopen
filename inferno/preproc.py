@@ -76,9 +76,36 @@ def set_weights(samples, weight_systs = []):
                     sample["weight_pdf_up"] = sample["weight"] * (1+sample["pdf_up"])
                     # PDF Down
                     sample["pdf_down"] = sample["pdf_down"].fillna(0.)
-                    sample["weight_pdf_down"] = sample["weight"] * (1-sample["pdf_down"])    
+                    sample["weight_pdf_down"] = sample["weight"] * (1-sample["pdf_down"]) 
+                    
+        print("Normalization", s, sample["weight"].sum())
 
+                    
+def set_normalization(sample, factor):
+    
+    sample["weight"] *= factor                     
 
+def exclude_train(samples):
+    
+    for s in samples:
+        if ( "QCD" in s) | ("TTJets_signal" in s):
+            n_samples_pre = len(samples[s])
+            samples[s] = samples[s][samples[s]["is_train"] == False]
+            n_samples_post = len(samples[s])
+            reweight_factor = n_samples_pre / float(n_samples_post)
+            set_normalization(samples[s], reweight_factor) 
+            print("Reweight sample", s, "by", reweight_factor)
+    
+def downsample_data(samples, sample_factor):
+    
+    for s in samples:
+        if s == "Data":
+            n_samples_pre = len(samples[s])
+            samples[s] = samples[s].sample(frac=sample_factor)
+            n_samples_post = len(samples[s])
+            print("Downsampled data from", n_samples_pre, "to", n_samples_post)
+        else:
+            set_normalization(samples[s], sample_factor)
 
 #
 # Preparation of training data
@@ -124,19 +151,17 @@ def get_train_data(samples, features, shape_syst, weight_syst, n_sig = 20000, n_
         for ud in ["_up", "_down"]:    
             dfs.append(samples["TTJets_signal_" + syst + ud])
     signal = reduce(lambda  left,right: pd.merge(left,right,how="inner", on="event_id"), dfs)
-    bkg = samples["QCD"]
+    # Split in training and test
+    train_test_split(signal, n_sig)
+    train_idx = get_train_evts(signal) 
+    train_test_split(samples["QCD"], n_bkg)
+    bkg = samples["QCD"].copy()
     
     #Weights
     #signal["weights"] = signal['trigger_weight'] * signal['btag_weight1']
     signal["weight"] = signal["weight"] * (1. / np.mean(signal["weight"]))
     #bkg["weights"] = bkg['btag_weight2']
-    bkg["weight"] = bkg["weight"] * (1. / np.mean(bkg["weight"]))
-
-
-    # Split in training and test
-    train_test_split(signal, n_sig)
-    train_test_split(bkg, n_bkg)
-    train_idx = get_train_evts(signal)  
+    bkg["weight"] = bkg["weight"] * (1. / np.mean(bkg["weight"])) 
     
     # Add labels
     signal["label"] = 1
@@ -196,10 +221,6 @@ def get_train_data(samples, features, shape_syst, weight_syst, n_sig = 20000, n_
         trn = (X_train, y_train) 
         val = (X_test, y_test)
         
-    #data = DataPair(trn_dl, val_dl)
-    #test = DataPair(WeightedDataLoader(DataSet(*trn), batch_size=bs), 
-    #                WeightedDataLoader(DataSet(*val), batch_size=bs))
-
     # rename the syst frames:
     for syst in shape_syst:
         for ud in ["_up", "_down"]:
@@ -213,6 +234,8 @@ def get_train_data(samples, features, shape_syst, weight_syst, n_sig = 20000, n_
             #print(s)
             #print(list(samples[s]))
             samples[s]["is_train"] = samples[s].event_id.isin(train_idx)
+        if "QCD" in s:
+            samples[s]["is_train"] = samples[s]["train_flag"] == "train"
     
     print("*********************")
     print("Summary training data")
@@ -222,7 +245,7 @@ def get_train_data(samples, features, shape_syst, weight_syst, n_sig = 20000, n_
     print("Use weights", use_weights)
     n_sig_train = sum(samples["TTJets_signal"]["is_train"]==1)
     print("Number of signal training / test events:", n_sig_train, len(samples["TTJets_signal"]) - n_sig_train)
-    n_bkg_train = sum(samples["QCD"]["train_flag"]=="train")
+    n_bkg_train = sum(samples["QCD"]["is_train"]==1)
     print("Number of bkg training / test events:", n_bkg_train, len(samples["QCD"]) - n_bkg_train)
     print("*********************")
         

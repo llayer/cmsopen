@@ -13,6 +13,7 @@ args = {}
 args["outpath"] = "/home/centos/mount_point/data/inferno_cmsopen0" #"/home/centos/data/inferno_cmsopen16"
 args["store"] = True
 args["features"] = ['aplanarity', 'chargeEta', 'MET_met', 'deltaPhiTauMet']
+args["exclude_train"] = True
 # Shape systs can be jes, jer, taue
 args["shape_syst"] = ["06_jes", "jer"] #, "taue"]
 # Weight syst can be btag, trigger, pdf
@@ -62,7 +63,8 @@ args["fit_asimov"] = True
 args["fit_data"] = False
 args["minos"] = ["mu"]
 args["fit_sig_lim"] = False
-args["print_config"] = True
+args["print_ws"] = True
+args["print_yields"] = True
 args["fit_floatQCD"] = False
 args["sample_names"] = ["Data", "QCD", "TTJets_bkg", "WZJets", "STJets", "TTJets_signal"]
 args["mc"] = ["TTJets_bkg", "WZJets", "STJets", "TTJets_signal"]

@@ -5,6 +5,7 @@ import uproot3
 import numpy as np
 import json
 import logging
+import plot
 
     
 logging.basicConfig(format="%(levelname)s - %(name)s - %(message)s")
@@ -14,7 +15,10 @@ logging.basicConfig(format="%(levelname)s - %(name)s - %(message)s")
 # Convert data to ROOT format
 #
 
+
 def create_tree(path, s, sample, weight="weight"):
+    
+    print("Normalization", s, sample["weight"].sum())
     
     file = uproot3.recreate(path + "/root_trees/" + s + ".root")
     file["tree"] = uproot3.newtree(
@@ -68,24 +72,31 @@ def fit_ws(ws, config, args, path, asimov = True):
     
     model, data = cabinetry.model_utils.model_and_data(ws, asimov=asimov)
     model_pred = cabinetry.model_utils.prediction(model)
-    print(cabinetry.tabulate.yields(model_pred, data))
     figures = cabinetry.visualize.data_mc(model_pred, data, config=config, log_scale=True,
                                           save_figure=args["store"], figure_folder=path)
-    cabinetry.visualize.templates(config, save_figure=args["store"], figure_folder=path)
+    cabinetry.visualize.templates(config, save_figure=args["store"], close_figure = True, figure_folder=path)
     logging.getLogger("cabinetry").setLevel(logging.INFO)
+    if args["print_yields"]: cabinetry.tabulate.yields(model_pred, data, per_bin=False, per_channel=True)
     fit_results = cabinetry.fit.fit(model, data, minos=args["minos"])
     logging.getLogger("cabinetry").setLevel(logging.WARNING)
-    cabinetry.visualize.pulls(fit_results, exclude=["mu"], save_figure=args["store"], figure_folder=path)
-    cabinetry.visualize.correlation_matrix(fit_results, save_figure=args["store"], figure_folder=path)
+    cabinetry.visualize.pulls(fit_results, exclude=["mu"], save_figure=args["store"], close_figure = False, figure_folder=path)
+    cabinetry.visualize.correlation_matrix(fit_results, save_figure=args["store"], close_figure = True, figure_folder=path)
     scan_results = cabinetry.fit.scan(model, data, "mu", n_steps=args["n_steps"])
     #print(scan_results)
     #cabinetry.visualize.scan(scan_results)
     if args["fit_sig_lim"] == True:
-        limit_result = cabinetry.fit.limit(model, data)
-        cabinetry.visualize.limit(limit_result ,save_figure=args["store"], figure_folder=path)
+        #limit_result = cabinetry.fit.limit(model, data, bracket=(0.5, 1.5))
+        #cabinetry.visualize.limit(limit_result ,save_figure=args["store"], figure_folder=path)
         #print(limit_result)
         significance_result = cabinetry.fit.significance(model, data)
-        print(significance_result)
+        #print(significance_result)
+        
+    if args["store"] == True:
+        store_fitresults(fit_results, path = path)
+        store_scan(scan_results, path = path)
+        if args["fit_sig_lim"] == True:
+            store_sig_lim_results(significance_result, lim_results=None, path = path)
+        
         
     return fit_results, scan_results
 
@@ -112,6 +123,16 @@ def store_scan(scan_results, path=""):
     with open(path + '/mu_scan.json', 'w') as outfile:
         json.dump(results, outfile)
         
+def store_sig_lim_results(sig_results, lim_results=None, path=""):
+
+    results = {}
+    results["observed_p_value"] = sig_results.observed_p_value
+    results["observed_significance"] = sig_results.observed_significance
+    results["expected_p_value"] = sig_results.expected_p_value
+    results["expected_significance"] = sig_results.expected_significance
+    with open(path + '/sig_lim.json', 'w') as outfile:
+        json.dump(results, outfile)    
+        
 #
 # Load fit results
 #
@@ -135,21 +156,57 @@ def load_scan(path=""):
 
     return results   
 
+def load_sig_lim(path=""):
+    
+    with open(path + '/sig_lim.json') as json_file:
+        results = json.load(json_file)
+    return results 
 
 #
-# Print summary
+# Print summary and compare results
 #
-def print_summary(results, scan, name):
+def print_summary(results, sig_lim, name):
     
     print("*****************")
     print("Summary", name)
     for lab, best, std in zip(results["labels"], results["bestfit"], results["uncertainty"]):
         print(lab, round(best,3), "+-", round(std, 3))
-    print("Scan bestfit", scan["bestfit"])
-    print("Scan uncertainty", scan["uncertainty"])
+    print("Correlation matrix", results["corr_mat"])
+    print("Significance expected", sig_lim["expected_significance"])
+    print("Significance observed", sig_lim["observed_significance"])
     print("*****************")
 
+def compare_results(args):
+    
+    if args["fit_asimov"]:
+        # BCE
+        bce_asimov_res = load_fitresults( args["outpath"] + "/fit/bce_asimov" )
+        bce_asimov_scan = load_scan( args["outpath"] + "/fit/bce_asimov" )
+        bce_sig_lim = load_sig_lim( args["outpath"] + "/fit/bce_asimov" )
+        print_summary(bce_asimov_res, bce_sig_lim, "bce asimov")
+        # INFERNO
+        inferno_asimov_res = load_fitresults( args["outpath"] + "/fit/inferno_asimov")
+        inferno_asimov_scan = load_scan( args["outpath"] + "/fit/inferno_asimov")
+        inferno_sig_lim = load_sig_lim( args["outpath"] + "/fit/inferno_asimov" )
+        print_summary(inferno_asimov_res, inferno_sig_lim, "inferno asimov")
+        # Plot the comparison of the scan
+        plot.plot_scan(bce_asimov_scan, inferno_asimov_scan, path=args["outpath"] + "/fit", asimov=True, store=args["store"])
 
+    if args["fit_data"]:
+        pass
+        #BCE
+        #bce_res = fit.load_fitresults( args["outpath"] + "/fit/bce" )
+        #fit.print_summary(bce_res, "bce")
+
+        # INFERNO
+        #inferno_res = fit.load_fitresults( args["outpath"] + "/fit/inferno" )
+        #fit.print_summary(inferno_res, "inferno")
+
+        # Plot likelihood scans
+        #plot.plot_scan(bce_res, inferno_res, path=args["outpath"] + "/fit", asimov=False, store=args["store"])
+
+    
+    
 #
 # Create config
 #
