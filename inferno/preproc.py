@@ -12,29 +12,40 @@ pd.options.mode.chained_assignment = None
 #
 # Load norms and set names for INFERNO training
 #
-def get_norm(norm_syst, path="/home/centos/data/bdt_rs5/norms.h5"):
+
+def get_shape_norm(samples, shape_syst, weight_syst, sample="TTJets_signal"):
     
-    df_norm = pd.read_hdf( path )
-    mu = df_norm["TTJets_signal"][0]
-    print("mu", mu)
-    qcd = df_norm["QCD"][0] 
-    print("QCD", qcd)
-    sig_norm = []
-    for s in norm_syst:
-        if s == "btag_weight1":
-            syst_name = "btag"
-        else:
-            syst_name = s
-        up = df_norm["TTJets_signal_" + syst_name + "Up"][0] 
-        nominal = df_norm["TTJets_signal"][0] 
-        down = df_norm["TTJets_signal_" + syst_name + "Down"][0]
-        print("up", up)
-        print("nominal", nominal)
-        print("down", down)  
-        std = 0.5*(abs(up - nominal) + abs(nominal-down)) #CHECK!!
-        print(syst_name, std)
-        sig_norm.append(std)
-    return mu, qcd, sig_norm
+    norm = []
+    for syst in shape_syst:
+        nominal = samples[sample]["weight"].sum()
+        up = samples[sample + "_" + syst + "_up"]["weight"].sum()
+        down = samples[sample + "_" + syst + "_down"]["weight"].sum()
+        std = (0.5*(abs(up - nominal) + abs(nominal-down))) / nominal
+        norm.append(std)
+    
+    weight_norm = []
+    for syst in weight_syst:
+        nominal = samples[sample]["weight"].sum()
+        up = samples[sample]["weight_" + syst + "_up"].sum()
+        down = samples[sample]["weight_" + syst + "_down"].sum()
+        std = (0.5*(abs(up - nominal) + abs(nominal-down))) / nominal
+        norm.append(std)
+        
+    return norm
+
+
+def get_norm_nuisance(norm_syst):
+       
+    norms = {"lumi": 0.02,
+            "mistag":0.05,
+            "tau_trigger":0.05,
+            "tau_id":0.06,
+            "ttmass":0.03,
+            "ttq2":0.02,
+            "ttparton":0.03
+            }
+    return {k: norms[k] for k in norm_syst}
+
 
 def adjust_naming(syst_names):
     syst = []
@@ -77,14 +88,44 @@ def set_weights(samples, weight_systs = []):
                     # PDF Down
                     sample["pdf_down"] = sample["pdf_down"].fillna(0.)
                     sample["weight_pdf_down"] = sample["weight"] * (1-sample["pdf_down"]) 
-                    
-        print("Normalization", s, sample["weight"].sum())
-
+        print("Normalization", s, samples[s]["weight"].sum())
                     
 def set_normalization(sample, factor):
     
     sample["weight"] *= factor                     
 
+def print_normalization(samples):
+    
+    for s in samples:
+        print("Normalization", s, samples[s]["weight"].sum())
+    
+def scale_nuisance(samples, nuisance, value, args):
+    
+    renamed_nuis = adjust_naming([nuisance])[0]
+    if renamed_nuis in ["jes", "jer", "taue"]:
+        for s in samples:
+            if renamed_nuis in s:
+                pre_norm = samples[s]["weight"].sum()
+                if "up" in s:
+                    set_normalization(samples[s], factor=1+value)
+                if "down" in s:
+                    set_normalization(samples[s], factor=1-value)
+                post_norm = samples[s]["weight"].sum()
+                print("Scaling", s, "from", pre_norm, "to", post_norm)
+    elif renamed_nuis in ["trigger", "btag", "pdf"]: 
+        for s in samples:
+            if s in args["mc"]:
+                if renamed_nuis == "pdf":
+                    if s == "TTJets_signal":
+                        samples[s]["weight_" + renamed_nuis + "_up"] *= 1+values
+                        samples[s]["weight_" + renamed_nuis + "_down"] *= 1-values
+                else:
+                        samples[s]["weight_" + renamed_nuis + "_up"] *= 1+values
+                        samples[s]["weight_" + renamed_nuis + "_down"] *= 1-values
+    else:
+        args["s_norm_sigma"][renamed_nuis] *= value
+        print("Scale", renamed_nuis, "to", args["s_norm_sigma"][renamed_nuis])
+    
 def exclude_train(samples):
     
     for s in samples:
@@ -107,7 +148,16 @@ def downsample_data(samples, sample_factor):
             print("Downsampled data from", n_samples_pre, "to", n_samples_post)
         else:
             set_normalization(samples[s], sample_factor)
-       
+
+def set_true_values(samples, args):
+    
+    # Set the normalizations for the training:
+    args["shape_norm_sigma"] = get_shape_norm(samples, args["shape_syst"], args["weight_syst"]) 
+    print( args["shape_norm_sigma"] )
+    #[0.05, 0.02] # CHECK adjust for correct values
+    # Signal and bkg
+    args["b_true"] = samples["TTJets_signal"]["weight"].sum()
+    args["mu_true"] = samples["QCD"]["weight"].sum()    
     
 #
 # Preparation of training data
@@ -330,7 +380,10 @@ def load_data(features, shape_syst, weight_syst, path = "/home/centos/data/bdt_r
     if art_syst is not None:
         gen_artificial_systs(samples, art_syst)
         print(list(samples))
-    
+        
+    # Print the normalizations
+    # print_normalization(samples)
+
     # Get the training data            
     trn, val, scaler = get_train_data(samples, features, shape_syst, weight_syst, 
                                       n_sig = n_sig, n_bkg = n_bkg, use_weights = use_weights)    

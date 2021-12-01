@@ -104,6 +104,17 @@ def run_cmsopen( args, epochs=1, retrain = True, do_fit = False):
                                                              n_bkg = args["n_bkg"], 
                                                              use_weights = args["use_weights"], 
                                                              art_syst = args["artificial_syst"])
+
+        # Set the norm nuisances:
+        args["s_norm_sigma"] = preproc.get_norm_nuisance(args["norm_syst"])
+        print(args["s_norm_sigma"])
+        args["b_norm_sigma"] = []
+        # Scale the nuisance norm if specified
+        if args["scale_norms"] is not None:
+            for nuis in args["scale_norms"]:
+                preproc.scale_nuisance(samples, nuis[0], nuis[1], args)
+        # Set the true values for the training:
+        preproc.set_true_values(samples, args)            
         # Downsample data
         if args["downsample_factor"] is not None:
             preproc.downsample_data(samples, args["downsample_factor"])
@@ -112,6 +123,8 @@ def run_cmsopen( args, epochs=1, retrain = True, do_fit = False):
         # Exclude the events used in the training from further processing   
         if args["exclude_train"] is True:
             preproc.exclude_train(samples)
+        
+        stop
         
         # Train
         bce_model, inferno_model, order_d = train_cmsopen(opendata, test, args, epochs)

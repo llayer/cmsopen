@@ -205,12 +205,48 @@ def compare_results(args):
         # Plot likelihood scans
         #plot.plot_scan(bce_res, inferno_res, path=args["outpath"] + "/fit", asimov=False, store=args["store"])
 
+        
+#
+# Config setup
+#
+def get_fit_model(args):
     
+    corr_shape_systs = {}
+    uncorr_shape_systs = {}
+    
+    if args["fit_model"] == "signal_only":
+        # Set nuisances:
+        uncorr_shape_systs = {"TTJets_signal" : args["shape_syst"] + args["weight_syst"]}
+        norm_syst = args["norm_syst"]
+    elif args["fit_model"] == "sig_bkg":
+        for s in args["mc"]: 
+            systs = []        
+            for syst in args["shape_syst"] + args["weight_syst"]:
+                if ("pdf" in syst):
+                    if (s == "TTJets_signal"):
+                        uncorr_shape_systs["TTJets_signal"] = syst
+                else:
+                    systs.append(syst)
+            corr_shape_systs[s] = systs
+        norm_syst = args["norm_syst"]
+    elif args["fit_model"] == "full":
+        for s in args["mc"]: 
+            systs = []        
+            for syst in ["jes_06", "jer", "taue" ,"btag", "trigger", "pdf"]:
+                if ("pdf" in syst):
+                    if (s == "TTJets_signal"):
+                        uncorr_shape_systs["TTJets_signal"] = syst
+                else:
+                    systs.append(syst)
+            corr_shape_systs[s] = systs            
+        norm_syst = {"lumi":{ "samples" : mc, "value" : 0.02 }, }   
+    else:
+        raise ValueError("No valid fit model")
+        
     
 #
 # Create config
-#
-    
+# 
 def add_samples(sample_names):
     
     samples = []
