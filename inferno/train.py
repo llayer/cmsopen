@@ -35,7 +35,7 @@ def train_inferno(data, args, epochs=100 ):
                                    n_shape_systs=len(args["shape_syst"]),
                                    n_weight_systs=len(args["weight_syst"]),
                                    shape_norm_sigma=args["shape_norm_sigma"],
-                                   s_norm_sigma = args["s_norm_sigma"],
+                                   s_norm_sigma = list(args["s_norm_sigma"].values()),
                                    b_norm_sigma = args["b_norm_sigma"],
                                    b_rate_param = args["b_rate_param"],
                                    use_hist=args["use_softhist"],
@@ -72,7 +72,7 @@ def train_bce(data, args, epochs=100):
                                n_shape_systs=len(args["shape_syst"]),
                                n_weight_systs=len(args["weight_syst"]),
                                shape_norm_sigma=args["shape_norm_sigma"],
-                               s_norm_sigma = args["s_norm_sigma"],
+                               s_norm_sigma = list(args["s_norm_sigma"].values()),
                                b_norm_sigma = args["b_norm_sigma"],
                                b_rate_param = args["b_rate_param"],
                                bins = args["bins"],
@@ -87,7 +87,7 @@ def train_bce(data, args, epochs=100):
     shapes = {"bkg" : ct.val_shapes["bkg"],
               "sig" : ct.val_shapes["sig"],
               "sig_up" : ct.val_shapes["sig_up"],
-              "sig_down" : ct.val_shapes["sig_down"]
+              "sig_down" : ct.val_shapes["sig_down"],
              }
     
     #bce_trn_covs = ct.covs["trn"]

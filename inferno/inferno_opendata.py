@@ -12,16 +12,19 @@ import json
 import plot
 
 
-def fit_cmsopen(args, fitvar, asimov = True):
+def fit_cmsopen(args, fitvar, asimov = False):
     
     if (fitvar == "bce") or (args["use_softhist"] == True):
-        bins = np.linspace(0,1,args["bins"])
+        bins = np.linspace(0,1,args["bins"]+1)
     else:
-        bins = np.linspace(0,args["bins"],args["bins"])
-           
+        bins = np.linspace(0,args["bins"],args["bins"]+1)
+    
+    # Get fit model
+    corr_shape_systs, uncorr_shape_systs, norm_syst = fit.get_fit_model(args)
+            
     # Create config    
-    config = fit.create_config(args["outpath"], fitvar, bins, args["sample_names"], args["corr_shape_systs"], 
-                               args["uncorr_shape_systs"], args["norm_syst"], float_qcd=args["fit_floatQCD"])
+    config = fit.create_config(args["outpath"], fitvar, bins, args["sample_names"], corr_shape_systs, 
+                               uncorr_shape_systs, norm_syst, float_qcd=args["fit_floatQCD"])
         
     # Create workspace
     postfix = "_asimov" if asimov==True else ""
@@ -62,7 +65,7 @@ def train_cmsopen(opendata, test, args, epochs):
     # Compare the covariance matrices
     #
     #names = ["mu","JES", "JER"]#,'b-tag']
-    names = preproc.adjust_naming(["mu"] + args["systnames"])
+    names = preproc.adjust_naming(["mu"] + args["systnames"] + args["norm_syst"])
     plot.plot_cov(bce_info, inferno_info, names, args)
     
     return bce_model, inferno_model, order_d
@@ -94,6 +97,20 @@ def run_cmsopen( args, epochs=1, retrain = True, do_fit = False):
     # Set names
     args["systnames"] = preproc.adjust_naming(args["shape_syst"] + args["weight_syst"])
     
+    # Set the norm only nuisances
+    args["s_norm_sigma"] = preproc.get_norm_nuisance(args["norm_syst"])
+    args["b_norm_sigma"] = []
+    print(args["s_norm_sigma"])
+    # Scale the nuisance norm if specified
+    if args["scale_norms_only"] is not None:
+        for nuis in args["scale_norms_only"]:
+            preproc.scale_norm_only(nuis[0], nuis[1], args)
+    args["fit_norm_sigma"] = preproc.set_fit_norm_nuis(args)
+    print(args["fit_norm_sigma"])
+    # Set the fit nuisances
+    args["fit_shape_systs"] = list(dict.fromkeys(args["fit_shape_systs"] + args["shape_syst"]))
+    print(args["fit_shape_systs"])
+    
     if retrain == True:
          
         # Load data
@@ -105,14 +122,10 @@ def run_cmsopen( args, epochs=1, retrain = True, do_fit = False):
                                                              use_weights = args["use_weights"], 
                                                              art_syst = args["artificial_syst"])
 
-        # Set the norm nuisances:
-        args["s_norm_sigma"] = preproc.get_norm_nuisance(args["norm_syst"])
-        print(args["s_norm_sigma"])
-        args["b_norm_sigma"] = []
-        # Scale the nuisance norm if specified
-        if args["scale_norms"] is not None:
-            for nuis in args["scale_norms"]:
-                preproc.scale_nuisance(samples, nuis[0], nuis[1], args)
+        # Scale the norms of the shape nuisances if specified
+        if args["scale_shape_norms"] is not None:
+            for nuis in args["scale_shape_norms"]:
+                preproc.scale_shape_norm(samples, nuis[0], nuis[1], args)
         # Set the true values for the training:
         preproc.set_true_values(samples, args)            
         # Downsample data
@@ -124,7 +137,9 @@ def run_cmsopen( args, epochs=1, retrain = True, do_fit = False):
         if args["exclude_train"] is True:
             preproc.exclude_train(samples)
         
-        stop
+        #args["shape_norm_sigma"] = [0.05, 0.02]
+        
+        preproc.print_normalization(samples)
         
         # Train
         bce_model, inferno_model, order_d = train_cmsopen(opendata, test, args, epochs)
@@ -151,7 +166,7 @@ def run_cmsopen( args, epochs=1, retrain = True, do_fit = False):
         # Convert samples to ROOT trees
         print( "Create root trees")
         fit.to_root(samples, path=args["outpath"], systs = args["weight_syst"])
-        
+                
         # Asimov
         if args["fit_asimov"]:
             print( "Fit BCE Asimov")
@@ -162,9 +177,9 @@ def run_cmsopen( args, epochs=1, retrain = True, do_fit = False):
         # Data 
         if args["fit_data"]:
             print( "Fit BCE Data")
-            #fit_cmsopen(args, fitvar="bce")
+            fit_cmsopen(args, fitvar="bce")
             print( "Fit INFERNO Data")
-            #fit_cmsopen(args, fitvar="inferno")
+            fit_cmsopen(args, fitvar="inferno")
         
         # Load results and compare
         fit.compare_results(args)

@@ -7,15 +7,18 @@ args = {}
 args["outpath"] = "/home/centos/mount_point/data/inferno_cmsopen0" #"/home/centos/data/inferno_cmsopen16"
 args["store"] = True
 args["features"] = ['aplanarity', 'chargeEta', 'MET_met', 'deltaPhiTauMet']
-args["exclude_train"] = True
+args["sample_names"] = ["Data", "QCD", "TTJets_bkg", "WZJets", "STJets", "TTJets_signal"]
+args["mc"] = ["TTJets_bkg", "WZJets", "STJets", "TTJets_signal"]
+args["exclude_train"] = False
 # Shape systs can be jes, jer, taue
-args["shape_syst"] = ["06_jes", "jer"] #, "taue"]
+args["shape_syst"] = []#["06_jes", "07_taue"] #jer
 # Weight syst can be btag, trigger, pdf
 args["weight_syst"] = []#["btag_weight1"]
 # Norm syst can be lumi, mistag, tau_trigger, tau_id, ttmass, ttq2, ttparton
 args["norm_syst"] = ["lumi"]
 # Scale syst
-args["scale_norms"] =[("jes", 0.05), ("lumi", 2.)]# None
+args["scale_norms_only"] = None #[("lumi", 2.)] #Pure norm syst
+args["scale_shape_norms"] = None #[("jes", 0.05)]# None
 # Artificial systs
 args["artificial_syst"] = None#{"TTJets_signal": [{'name':"aplanarity", 'shift':0.5, 'norm':0.05}]}
 # Downsampling
@@ -46,7 +49,7 @@ args["sigmoid_delta"] = 200.
 # BCE args
 #
 args["bce_lr"] = 1e-3 #CHECK if correct
-args["bce_neurons"] = 12 # CHECK only affects first layer
+args["bce_neurons"] = 20 # CHECK only affects first layer
 #
 # FIT args
 #
@@ -57,11 +60,9 @@ args["fit_sig_lim"] = False
 args["print_ws"] = True
 args["print_yields"] = True
 args["fit_floatQCD"] = False
-args["sample_names"] = ["Data", "QCD", "TTJets_bkg", "WZJets", "STJets", "TTJets_signal"]
-args["mc"] = ["TTJets_bkg", "WZJets", "STJets", "TTJets_signal"]
-args["corr_shape_systs"] = {}#{"TTJets_signal" : ["btag"], "TTJets_bkg" : ["btag"]}
-args["uncorr_shape_systs"] = {}# Set inside the main function - change in a smarter way
-args["fit_norm_syst"] ={}# {"lumi":{ "samples" : mc, "value" : 0.02 }, }
+args["fit_model"] = "signal_only"
+args["fit_shape_systs"] = []#{"TTJets_signal" : ["btag"], "TTJets_bkg" : ["btag"]}
+args["fit_norm_syst"] = [] #["tau_trigger"]# {"lumi":{ "samples" : mc, "value" : 0.02 }, }
 args["n_steps"] = 200
 #
 # Plotting style

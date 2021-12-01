@@ -99,7 +99,7 @@ def print_normalization(samples):
     for s in samples:
         print("Normalization", s, samples[s]["weight"].sum())
     
-def scale_nuisance(samples, nuisance, value, args):
+def scale_shape_norm(samples, nuisance, value, args):
     
     renamed_nuis = adjust_naming([nuisance])[0]
     if renamed_nuis in ["jes", "jer", "taue"]:
@@ -123,8 +123,18 @@ def scale_nuisance(samples, nuisance, value, args):
                         samples[s]["weight_" + renamed_nuis + "_up"] *= 1+values
                         samples[s]["weight_" + renamed_nuis + "_down"] *= 1-values
     else:
-        args["s_norm_sigma"][renamed_nuis] *= value
-        print("Scale", renamed_nuis, "to", args["s_norm_sigma"][renamed_nuis])
+        raise ValueError("Specified NP", nuisance, "can't be scaled")
+    
+def scale_norm_only(nuis, value, args):
+    args["s_norm_sigma"][nuis] *= value
+    print("Scale", nuis, "to", args["s_norm_sigma"][nuis])
+    
+def set_fit_norm_nuis(args):
+    fit_norm_syst = get_norm_nuisance(args["fit_norm_syst"])
+    for nuis in args["s_norm_sigma"]:
+        fit_norm_syst[nuis] = args["s_norm_sigma"][nuis]
+    return fit_norm_syst
+            
     
 def exclude_train(samples):
     
@@ -156,8 +166,10 @@ def set_true_values(samples, args):
     print( args["shape_norm_sigma"] )
     #[0.05, 0.02] # CHECK adjust for correct values
     # Signal and bkg
-    args["b_true"] = samples["TTJets_signal"]["weight"].sum()
-    args["mu_true"] = samples["QCD"]["weight"].sum()    
+    mu_true = samples["TTJets_signal"]["weight"].sum()
+    print(mu_true)
+    args["b_true"] = samples["QCD"]["weight"].sum() 
+    args["mu_true"] = mu_true   
     
 #
 # Preparation of training data
@@ -198,10 +210,10 @@ def get_train_data(samples, features, shape_syst, weight_syst, n_sig = 20000, n_
     
     # Merge the nominal and systematic frames
     dfs = []
-    dfs.append(samples["TTJets_signal"])
+    dfs.append(samples["TTJets_signal"].copy())
     for syst in shape_syst:
         for ud in ["_up", "_down"]:    
-            dfs.append(samples["TTJets_signal_" + syst + ud])
+            dfs.append(samples["TTJets_signal_" + syst + ud].copy())
     signal = reduce(lambda  left,right: pd.merge(left,right,how="inner", on="event_id"), dfs)
     # Split in training and test
     train_test_split(signal, n_sig)
@@ -286,6 +298,7 @@ def get_train_data(samples, features, shape_syst, weight_syst, n_sig = 20000, n_
             #print(s)
             #print(list(samples[s]))
             samples[s]["is_train"] = samples[s].event_id.isin(train_idx)
+            print("DDDDD", samples[s]["weight"].sum())
         if "QCD" in s:
             samples[s]["is_train"] = samples[s]["train_flag"] == "train"
     
@@ -386,7 +399,7 @@ def load_data(features, shape_syst, weight_syst, path = "/home/centos/data/bdt_r
 
     # Get the training data            
     trn, val, scaler = get_train_data(samples, features, shape_syst, weight_syst, 
-                                      n_sig = n_sig, n_bkg = n_bkg, use_weights = use_weights)    
+                                      n_sig = n_sig, n_bkg = n_bkg, use_weights = use_weights)   
     trn_dl = WeightedDataLoader(DataSet(*trn), batch_size=bs, shuffle=True, drop_last=True)
     val_dl = WeightedDataLoader(DataSet(*val), batch_size=bs, shuffle=True)
     test_dl = WeightedDataLoader(DataSet(*val), batch_size=bs)

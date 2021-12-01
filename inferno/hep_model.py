@@ -134,6 +134,7 @@ def hep_nll(s_true:float, b_true:float, mu:Tensor, f_s_nom:Tensor, f_b_nom:Tenso
     #  Compute NLL
     t_exp = (s_exp*f_s)+(b_exp*f_b)
     asimov = (s_true*f_s_nom)+(b_true*f_b_nom)
+        
     nll = -torch.distributions.Poisson(t_exp, False).log_prob(asimov).sum()
 
     # Constrain shape +norm nuisances
@@ -174,12 +175,13 @@ class HEPInferno(AbsCallback):
         
         # Compute nuisance indeces
         self.poi_idx = [0]
+        self.n_alpha = 1
         # Shape + norm
         if self.shape_norm_sigma is not None and len(self.shape_norm_sigma) != self.n_shape_alphas: raise \
             ValueError("Number of norm uncertainties on shape nuisances must match the number of shape nuisance parameters")
         if self.n_shape_alphas > 0:
             self.shape_idxs = list(range(1,self.n_shape_alphas+1))
-            self.n_alpha = 1+self.n_shape_alphas
+            self.n_alpha += self.n_shape_alphas
         else:
             self.shape_idxs = []
         # Signal norms
@@ -379,7 +381,11 @@ class HEPInferno(AbsCallback):
         
         f_s = self.to_shape(self.wrapper.y_pred[~b], w_s_nom)
         f_b = self.to_shape(self.wrapper.y_pred[b], w_b_nom)
-        (f_s_up,f_s_dw),(f_b_up,f_b_dw)= self._get_up_down(self.wrapper.x[~b], self.wrapper.x[b], w_s, w_b)
+        
+        if len(self.shape_idxs) > 0:
+            (f_s_up,f_s_dw),(f_b_up,f_b_dw)= self._get_up_down(self.wrapper.x[~b], self.wrapper.x[b], w_s, w_b)
+        else:
+            (f_s_up,f_s_dw),(f_b_up,f_b_dw)=(None,None), (None,None)
         self.store_shapes(f_s_nom=f_s, f_b_nom=f_b, f_s_up=f_s_up, f_s_dw=f_s_dw, f_b_up=f_b_up, f_b_dw=f_b_dw)
         inferno_loss = self.get_ikk(f_s_nom=f_s, f_b_nom=f_b, f_s_up=f_s_up, f_s_dw=f_s_dw, f_b_up=f_b_up, f_b_dw=f_b_dw)
         

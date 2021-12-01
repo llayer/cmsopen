@@ -232,7 +232,8 @@ def plot_cov_trnval(trn_covs, val_covs, names, stddev=False, outpath=".", store=
     n_par = len(names)
     
     fig, ax = plt.subplots(nrows=n_par, ncols=n_par, figsize=(10,10))
-
+    if n_par == 1: ax = [[ax]]
+        
     for i, row in enumerate(ax):
         for j, col in enumerate(row):
             if i == j:
@@ -263,7 +264,7 @@ def plot_cov_trnval(trn_covs, val_covs, names, stddev=False, outpath=".", store=
                 col.legend(loc="upper right", prop={'size': 16})
     if store:
         plt.savefig(outpath + "/train/inferno/cov_trnval.png")    
-    plt.show()
+    plt.close()
     
             
 def plot_cov_infbce(bce_covs, inf_covs, names, stddev=False, outpath=".", store=False):
@@ -273,7 +274,8 @@ def plot_cov_infbce(bce_covs, inf_covs, names, stddev=False, outpath=".", store=
     n_par = len(names)
     
     fig, ax = plt.subplots(nrows=n_par, ncols=n_par, figsize=(10,10))
-
+    if n_par == 1: ax = [[ax]]
+    
     for i, row in enumerate(ax):
         for j, col in enumerate(row):
             if i == j:
@@ -296,7 +298,7 @@ def plot_cov_infbce(bce_covs, inf_covs, names, stddev=False, outpath=".", store=
             else:
                 bce = get_cov_entry(bce_corrs, i, j)
                 inf = get_cov_entry(inf_corrs, i, j)
-                lims = (-.5, .5)
+                lims = (-1., 1)
             col.plot(inf, label="inferno val")
             col.plot(bce, label="bce val")
             col.set_ylim(lims)

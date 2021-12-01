@@ -6,6 +6,7 @@ import numpy as np
 import json
 import logging
 import plot
+from preproc import get_norm_nuisance
 
     
 logging.basicConfig(format="%(levelname)s - %(name)s - %(message)s")
@@ -213,35 +214,32 @@ def get_fit_model(args):
     
     corr_shape_systs = {}
     uncorr_shape_systs = {}
+    norm_syst = {}
     
     if args["fit_model"] == "signal_only":
         # Set nuisances:
-        uncorr_shape_systs = {"TTJets_signal" : args["shape_syst"] + args["weight_syst"]}
-        norm_syst = args["norm_syst"]
+        uncorr_shape_systs = {"TTJets_signal" : args["fit_shape_systs"]}
+        for norm in args["fit_norm_sigma"]:
+            norm_syst[norm] = { "samples" : "TTJets_signal", "value" : args["fit_norm_sigma"][norm] }
     elif args["fit_model"] == "sig_bkg":
         for s in args["mc"]: 
             systs = []        
-            for syst in args["shape_syst"] + args["weight_syst"]:
+            for syst in args["fit_shape_systs"]:
                 if ("pdf" in syst):
                     if (s == "TTJets_signal"):
                         uncorr_shape_systs["TTJets_signal"] = syst
                 else:
                     systs.append(syst)
             corr_shape_systs[s] = systs
-        norm_syst = args["norm_syst"]
-    elif args["fit_model"] == "full":
-        for s in args["mc"]: 
-            systs = []        
-            for syst in ["jes_06", "jer", "taue" ,"btag", "trigger", "pdf"]:
-                if ("pdf" in syst):
-                    if (s == "TTJets_signal"):
-                        uncorr_shape_systs["TTJets_signal"] = syst
-                else:
-                    systs.append(syst)
-            corr_shape_systs[s] = systs            
-        norm_syst = {"lumi":{ "samples" : mc, "value" : 0.02 }, }   
+        for norm in args["fit_norm_sigma"]:
+            if "tt" in norm:
+                norm_syst[norm] = { "samples" : ["TTJets_signal", "TTJets_bkg"], "value" : args["fit_norm_sigma"][norm] }
+            else:
+                norm_syst[norm] = { "samples" : args["mc"], "value" : args["fit_norm_sigma"][norm] } 
     else:
         raise ValueError("No valid fit model")
+        
+    return corr_shape_systs, uncorr_shape_systs, norm_syst 
         
     
 #
@@ -307,7 +305,7 @@ def add_syst(corr_shape_systs, uncorr_shape_systs, norm_syst):
         
             systs.append(
                 {
-                "Name": "Lumi",
+                "Name": syst,
                 'Up': {'Normalization': norm_syst[syst]["value"]},
                 'Down': {'Normalization': -norm_syst[syst]["value"]},
                 'Type': 'Normalization',
