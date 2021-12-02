@@ -14,15 +14,18 @@ pd.options.mode.chained_assignment = None
 # Load norms and set names for INFERNO training
 #
 
-def get_shape_norm(samples, shape_syst, weight_syst, sample="TTJets_signal"):
+def get_shape_norm(samples, shape_syst, weight_syst, asymm = False, sample="TTJets_signal"):
     
     norm = []
     for syst in shape_syst:
         nominal = samples[sample]["weight"].sum()
         up = samples[sample + "_" + syst + "_up"]["weight"].sum()
         down = samples[sample + "_" + syst + "_down"]["weight"].sum()
-        std = (0.5*(abs(up - nominal) + abs(nominal-down))) / nominal
-        norm.append(std)
+        if asymm == False:
+            std = (0.5*(abs(up - nominal) + abs(nominal-down))) / nominal
+            norm.append(std)
+        else:
+            norm.append((down/nominal, up/nominal))
     
     weight_norm = []
     for syst in weight_syst:
@@ -30,7 +33,11 @@ def get_shape_norm(samples, shape_syst, weight_syst, sample="TTJets_signal"):
         up = samples[sample]["weight_" + syst + "_up"].sum()
         down = samples[sample]["weight_" + syst + "_down"].sum()
         std = (0.5*(abs(up - nominal) + abs(nominal-down))) / nominal
-        norm.append(std)
+        if asymm == False:
+            std = (0.5*(abs(up - nominal) + abs(nominal-down))) / nominal
+            norm.append(std)
+        else:
+            norm.append((down/nominal, up/nominal))
         
     return norm
 
@@ -155,7 +162,7 @@ def downsample_data(samples, sample_factor):
 def get_true_values(samples, args):
     
     # Set the normalizations for the training:
-    shape_norm_sigma = get_shape_norm(samples, args["shape_syst"], args["weight_syst"]) 
+    shape_norm_sigma = get_shape_norm(samples, args["shape_syst"], args["weight_syst"], asymm = args["asymm_shape_norm"] ) 
     #print( args["shape_norm_sigma"] )
     #[0.05, 0.02] # CHECK adjust for correct values
     # Signal and bkg

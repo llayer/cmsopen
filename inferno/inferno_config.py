@@ -27,7 +27,8 @@ args["shape_syst"] = []#["06_jes", "07_taue"] #jer
 # Weight syst can be btag, trigger, pdf
 args["weight_syst"] = []#["btag_weight1"]
 # Norm syst can be lumi, mistag, tau_trigger, tau_id, ttmass, ttq2, ttparton
-args["norm_syst"] = ["lumi"]
+args["s_norm_syst"] = ["lumi"]
+args["b_norm_syst"] = ["mistag"]
 # Scale syst
 args["scale_norms_only"] = None #[("lumi", 2.)] #Pure norm syst
 args["scale_shape_norms"] = None #[("jes", 0.05)]# None
@@ -46,6 +47,8 @@ args["use_weights"] = False
 #
 # INFERNO args
 #
+# Asymmetric shape uncertainties
+args["asymm_shape_norm"] = False
 #Sort the bins according to signal purity
 args["fit_sorted"] = False
 # Model parameter
