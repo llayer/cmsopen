@@ -6,6 +6,7 @@ import numpy as np
 import json
 import logging
 import plot
+import stack
 from preproc import get_norm_nuisance
 
     
@@ -59,6 +60,9 @@ def to_root(samples, systs = [], path = "/home/centos/data/inferno_cmsopen13/roo
 #
 # Write and fit workspace
 #
+def check_zero_bins(model_pred, data):
+    mc_total = np.array(model_pred.model_yields[0]).sum(axis=0)
+    return 0 in mc_total
 
 def create_ws(config, workspace_path = "", postproc=True):
     cabinetry.templates.build(config, method="uproot")
@@ -73,8 +77,9 @@ def fit_ws(ws, config, args, path, asimov = True):
     
     model, data = cabinetry.model_utils.model_and_data(ws, asimov=asimov)
     model_pred = cabinetry.model_utils.prediction(model)
-    figures = cabinetry.visualize.data_mc(model_pred, data, config=config, log_scale=True,
-                                          save_figure=args["store"], figure_folder=path)
+    #figures = cabinetry.visualize.data_mc(model_pred, data, config=config, log_scale=True,
+    #                                      save_figure=args["store"], figure_folder=path)
+    stack.plot_stack(model_pred, data, config=config, log_scale=True, store=args["store"], path=path)
     cabinetry.visualize.templates(config, save_figure=args["store"], close_figure = True, figure_folder=path)
     logging.getLogger("cabinetry").setLevel(logging.INFO)
     if args["print_yields"]: cabinetry.tabulate.yields(model_pred, data, per_bin=False, per_channel=True)
@@ -83,6 +88,8 @@ def fit_ws(ws, config, args, path, asimov = True):
     cabinetry.visualize.pulls(fit_results, exclude=["mu"], save_figure=args["store"], close_figure = False, figure_folder=path)
     cabinetry.visualize.correlation_matrix(fit_results, save_figure=args["store"], close_figure = True, figure_folder=path)
     scan_results = cabinetry.fit.scan(model, data, "mu", n_steps=args["n_steps"])
+    #ranking_results = cabinetry.fit.ranking(model, data, fit_results=fit_results)
+    #cabinetry.visualize.ranking(ranking_results, save_figure=args["store"], close_figure = False, figure_folder=path)
     #print(scan_results)
     #cabinetry.visualize.scan(scan_results)
     if args["fit_sig_lim"] == True:
@@ -220,7 +227,10 @@ def get_fit_model(args):
         # Set nuisances:
         uncorr_shape_systs = {"TTJets_signal" : args["fit_shape_systs"]}
         for norm in args["fit_norm_sigma"]:
-            norm_syst[norm] = { "samples" : "TTJets_signal", "value" : args["fit_norm_sigma"][norm] }
+            if norm == "mistag":
+                norm_syst[norm] = { "samples" : "QCD", "value" : args["fit_norm_sigma"][norm] }
+            else:
+                norm_syst[norm] = { "samples" : "TTJets_signal", "value" : args["fit_norm_sigma"][norm] }
     elif args["fit_model"] == "sig_bkg":
         for s in args["mc"]: 
             systs = []        
@@ -234,6 +244,8 @@ def get_fit_model(args):
         for norm in args["fit_norm_sigma"]:
             if "tt" in norm:
                 norm_syst[norm] = { "samples" : ["TTJets_signal", "TTJets_bkg"], "value" : args["fit_norm_sigma"][norm] }
+            elif norm == "mistag":
+                norm_syst[norm] = { "samples" : "QCD", "value" : args["fit_norm_sigma"][norm] }
             else:
                 norm_syst[norm] = { "samples" : args["mc"], "value" : args["fit_norm_sigma"][norm] } 
     else:

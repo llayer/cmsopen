@@ -126,13 +126,18 @@ def scale_shape_norm(samples, nuisance, value, args):
         raise ValueError("Specified NP", nuisance, "can't be scaled")
     
 def scale_norm_only(nuis, value, args):
-    args["s_norm_sigma"][nuis] *= value
+    if nuis == "mistag":
+        args["b_norm_sigma"][nuis] *= value
+    else:
+        args["s_norm_sigma"][nuis] *= value
     print("Scale", nuis, "to", args["s_norm_sigma"][nuis])
     
 def set_fit_norm_nuis(args):
     fit_norm_syst = get_norm_nuisance(args["fit_norm_syst"])
     for nuis in args["s_norm_sigma"]:
         fit_norm_syst[nuis] = args["s_norm_sigma"][nuis]
+    for nuis in args["b_norm_sigma"]:
+        fit_norm_syst[nuis] = args["b_norm_sigma"][nuis]
     return fit_norm_syst
             
     

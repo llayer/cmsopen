@@ -65,7 +65,7 @@ def train_cmsopen(opendata, test, args, epochs):
     # Compare the covariance matrices
     #
     #names = ["mu","JES", "JER"]#,'b-tag']
-    names = preproc.adjust_naming(["mu"] + args["systnames"] + args["norm_syst"])
+    names = preproc.adjust_naming(["mu"] + args["systnames"] + args["s_norm_syst"] + args["b_norm_syst"])
     plot.plot_cov(bce_info, inferno_info, names, args)
     
     return bce_model, inferno_model, order_d
@@ -98,8 +98,8 @@ def run_cmsopen( args, epochs=1, retrain = True, do_fit = False):
     args["systnames"] = preproc.adjust_naming(args["shape_syst"] + args["weight_syst"])
     
     # Set the norm only nuisances
-    args["s_norm_sigma"] = preproc.get_norm_nuisance(args["norm_syst"])
-    args["b_norm_sigma"] = []
+    args["s_norm_sigma"] = preproc.get_norm_nuisance(args["s_norm_syst"])
+    args["b_norm_sigma"] = preproc.get_norm_nuisance(args["b_norm_syst"])
     print(args["s_norm_sigma"])
     # Scale the nuisance norm if specified
     if args["scale_norms_only"] is not None:

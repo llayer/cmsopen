@@ -323,6 +323,8 @@ def plot_scan(bce, inferno, path="", asimov = True, store=False):
     plt.ylabel(r'$2\Delta$ NLL')
     plt.xlabel(r'$\mu$')
     plt.title("Comparison INFERNO - BCE")
+    plt.axhline(y=1, linestyle="dashed", color="grey")
+    plt.axhline(y=4, linestyle="dashed", color="grey")
     if store==True:
         postfix = "_asimov" if asimov==True else ""
         plt.savefig(path + "/mu_scan" + postfix + ".png")
