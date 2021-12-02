@@ -6,6 +6,7 @@ import os
 from functools import reduce
 from sklearn import preprocessing
 from pytorch_inferno.data import *
+import inferno_config
 
 pd.options.mode.chained_assignment = None 
 
@@ -36,15 +37,7 @@ def get_shape_norm(samples, shape_syst, weight_syst, sample="TTJets_signal"):
 
 def get_norm_nuisance(norm_syst):
        
-    norms = {"lumi": 0.02,
-            "mistag":0.05,
-            "tau_trigger":0.05,
-            "tau_id":0.06,
-            "ttmass":0.03,
-            "ttq2":0.02,
-            "ttparton":0.03
-            }
-    return {k: norms[k] for k in norm_syst}
+    return {k: inferno_config.norms[k] for k in norm_syst}
 
 
 def adjust_naming(syst_names):
@@ -159,17 +152,17 @@ def downsample_data(samples, sample_factor):
         else:
             set_normalization(samples[s], sample_factor)
 
-def set_true_values(samples, args):
+def get_true_values(samples, args):
     
     # Set the normalizations for the training:
-    args["shape_norm_sigma"] = get_shape_norm(samples, args["shape_syst"], args["weight_syst"]) 
-    print( args["shape_norm_sigma"] )
+    shape_norm_sigma = get_shape_norm(samples, args["shape_syst"], args["weight_syst"]) 
+    #print( args["shape_norm_sigma"] )
     #[0.05, 0.02] # CHECK adjust for correct values
     # Signal and bkg
     mu_true = samples["TTJets_signal"]["weight"].sum()
-    print(mu_true)
-    args["b_true"] = samples["QCD"]["weight"].sum() 
-    args["mu_true"] = mu_true   
+    #print(mu_true)
+    b_true = samples["QCD"]["weight"].sum() 
+    return b_true, mu_true, shape_norm_sigma
     
 #
 # Preparation of training data

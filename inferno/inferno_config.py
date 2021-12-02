@@ -1,3 +1,15 @@
+# Normalization uncertainties
+
+norms = {"lumi": 0.02,
+        "mistag":0.05,
+        "tau_trigger":0.05,
+        "tau_id":0.06,
+        "ttmass":0.03,
+        "ttq2":0.02,
+        "ttparton":0.03
+        }
+
+
 # Parameters for INFERNO training
 args = {}
 
@@ -19,6 +31,8 @@ args["norm_syst"] = ["lumi"]
 # Scale syst
 args["scale_norms_only"] = None #[("lumi", 2.)] #Pure norm syst
 args["scale_shape_norms"] = None #[("jes", 0.05)]# None
+# Ignore norms of shape
+args["ignore_shape_norm"] = False
 # Artificial systs
 args["artificial_syst"] = None#{"TTJets_signal": [{'name':"aplanarity", 'shift':0.5, 'norm':0.05}]}
 # Downsampling
@@ -68,6 +82,7 @@ args["n_steps"] = 200
 # Plotting style
 #
 args["create_gifs"] = False
+
 
 
 

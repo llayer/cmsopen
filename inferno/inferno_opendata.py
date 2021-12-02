@@ -127,7 +127,7 @@ def run_cmsopen( args, epochs=1, retrain = True, do_fit = False):
             for nuis in args["scale_shape_norms"]:
                 preproc.scale_shape_norm(samples, nuis[0], nuis[1], args)
         # Set the true values for the training:
-        preproc.set_true_values(samples, args)            
+        args["b_true"], args["mu_true"], args["shape_norm_sigma"] = preproc.get_true_values(samples, args)            
         # Downsample data
         if args["downsample_factor"] is not None:
             preproc.downsample_data(samples, args["downsample_factor"])

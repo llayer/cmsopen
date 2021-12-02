@@ -41,6 +41,7 @@ def train_inferno(data, args, epochs=100 ):
                                    use_hist=args["use_softhist"],
                                    bins = args["bins"],
                                    sigmoid_delta = args["sigmoid_delta"],
+                                   ignore_shape_norm=args["ignore_shape_norm"],
                                    interp_algo=args["interp_algo"])
     #init_net(net_inferno)
     model_inferno = ModelWrapper(net_inferno)
@@ -78,6 +79,7 @@ def train_bce(data, args, epochs=100):
                                bins = args["bins"],
                                use_hist=True,
                                ignore_loss=True,
+                               ignore_shape_norm=args["ignore_shape_norm"],
                                interp_algo=args["interp_algo"])
     lt = LossTracker()
     model_bce = ModelWrapper(net_bce)

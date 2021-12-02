@@ -104,7 +104,7 @@ def hep_nll(s_true:float, b_true:float, mu:Tensor, f_s_nom:Tensor, f_b_nom:Tenso
              f_s_up:Optional[Tensor]=None, f_s_dw:Optional[Tensor]=None,
              f_b_up:Optional[Tensor]=None, f_b_dw:Optional[Tensor]=None,
              shape_norm_sigma:Optional[Tensor]=None, s_norm_sigma:Optional[Tensor]=None, 
-             b_norm_sigma:Optional[Tensor]=None, 
+             b_norm_sigma:Optional[Tensor]=None, ignore_shape_norm:bool=False,
              interp_algo:str="fast_vertical") -> Tensor:
     r'''Compute negative log-likelihood for specified parameters.'''
     
@@ -121,8 +121,9 @@ def hep_nll(s_true:float, b_true:float, mu:Tensor, f_s_nom:Tensor, f_b_nom:Tenso
     # Normalizations !!! careful if signal and background shapes mix!!
     #print("shape_norm_sigma", shape_norm_sigma)
     s_exp, b_exp = mu, b_true
-    if len(shape_alpha) > 0:
+    if (len(shape_alpha) > 0) & (ignore_shape_norm==False):
         #print("Norms shape", normal(shape_alpha, shape_norm_sigma))
+        print("Norm shape")
         s_exp *= normal(shape_alpha, shape_norm_sigma).prod()  
     if len(s_norm_alpha) > 0:
         s_exp *= normal(s_norm_alpha, s_norm_sigma).prod()
@@ -151,12 +152,10 @@ def hep_nll(s_true:float, b_true:float, mu:Tensor, f_s_nom:Tensor, f_b_nom:Tenso
 class HEPInferno(AbsCallback):
     r'''Implementation of INFERNO with HEP like systematics'''
     def __init__(self, b_true:float, mu_true:float, n_shape_systs:int=0, n_weight_systs:int=0,
-                 interp_algo:str="default", 
-                 shape_norm_sigma:Optional[List[float]]=None,
-                 s_norm_sigma:Optional[List[float]]=None, b_norm_sigma:Optional[List[float]]=None, 
-                 b_rate_param:bool=False, use_hist:bool=False, bins:int=10, sigmoid_delta:float=200.,
-                 ignore_loss:bool=False, 
-                 **kwargs):
+                 interp_algo:str="default", shape_norm_sigma:Optional[List[float]]=None,
+                 ignore_shape_norm:bool=False, s_norm_sigma:Optional[List[float]]=None, 
+                 b_norm_sigma:Optional[List[float]]=None, b_rate_param:bool=False, use_hist:bool=False, 
+                 bins:int=10, sigmoid_delta:float=200., ignore_loss:bool=False, **kwargs):
         
         self.ignore_loss = ignore_loss
         self.use_hist = use_hist
@@ -169,6 +168,7 @@ class HEPInferno(AbsCallback):
         self.n_shape_alphas = n_shape_systs + n_weight_systs
         self.interp_algo = interp_algo
         self.shape_norm_sigma = shape_norm_sigma #torch.Tensor(shape_norm_sigma)
+        self.ignore_shape_norm = ignore_shape_norm
         self.s_norm_sigma = s_norm_sigma
         self.b_norm_sigma = b_norm_sigma
         self.b_rate_param = b_rate_param
@@ -228,6 +228,7 @@ class HEPInferno(AbsCallback):
         print("interp_algo", self.interp_algo)
         print("use_hist", self.use_hist)
         print("ignore_loss", self.ignore_loss)
+        print("ignore_shape_norm", self.ignore_shape_norm)
         print("*********************")
 
     def _aug_data(self): pass  # Override abs method
@@ -356,7 +357,7 @@ class HEPInferno(AbsCallback):
                              ) 
         nll = get_nll(mu=alpha[self.poi_idx], s_norm_alpha=alpha[self.s_norm_idxs], 
                       b_norm_alpha=alpha[self.b_norm_idxs], shape_alpha=alpha[self.shape_idxs],
-                      b_rate_param_alpha = alpha[self.b_rate_param_idx],
+                      b_rate_param_alpha = alpha[self.b_rate_param_idx], ignore_shape_norm = self.ignore_shape_norm,
                       interp_algo = self.interp_algo)
         _,h = calc_grad_hesse(nll, alpha, create_graph=True)
         cov = torch.inverse(h)        
