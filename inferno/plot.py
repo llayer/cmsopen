@@ -248,7 +248,9 @@ def plot_cov_trnval(trn_covs, val_covs, names, stddev=False, outpath=".", store=
                  transform = col.transAxes, size=15,
                  bbox=dict(facecolor='red', edgecolor=None, alpha=0.2))
                 if i==0:
-                    lims = np.array([500,1500])
+                    lims_low = np.min(trn) - 0.1 * np.min(trn)
+                    lims_up = np.min(val) + 0.5 * np.min(val) 
+                    lims = (lims_low, lims_up)
                     if stddev == True:
                         lims = np.sqrt(lims)
                 else:
@@ -262,6 +264,7 @@ def plot_cov_trnval(trn_covs, val_covs, names, stddev=False, outpath=".", store=
             col.plot(val, label="val")  
             if (i==0) & (j==2):
                 col.legend(loc="upper right", prop={'size': 16})
+    fig.tight_layout()
     if store:
         plt.savefig(outpath + "/train/inferno/cov_trnval.png")    
     plt.close()
@@ -290,7 +293,10 @@ def plot_cov_infbce(bce_covs, inf_covs, names, stddev=False, outpath=".", store=
                  transform = col.transAxes, size=15,
                  bbox=dict(facecolor='red', edgecolor=None, alpha=0.2))
                 if i==0:
-                    lims = (500,1500)
+                    #lims = (500,1500)
+                    lims_low = np.min(inf) - 0.1 * np.min(inf)
+                    lims_up = np.min(bce) + 0.5 * np.min(bce) 
+                    lims = (lims_low, lims_up)
                     if stddev == True:
                         lims = np.sqrt(lims)
                 else:
@@ -304,7 +310,7 @@ def plot_cov_infbce(bce_covs, inf_covs, names, stddev=False, outpath=".", store=
             col.set_ylim(lims)
             if (i==0) & (j==2):
                 col.legend(loc="upper right", prop={'size': 16})
-            
+    fig.tight_layout()            
     if store:
         plt.savefig(outpath + "/train/cov_infbce.png")
     plt.show()            

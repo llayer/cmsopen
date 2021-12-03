@@ -63,7 +63,7 @@ class SoftHistogram(torch.nn.Module):
         x = torch.unsqueeze(torch.squeeze(x), 0) - torch.unsqueeze(self.centers, 1)
         x = torch.sigmoid(self.sigma * (x + self.delta/2)) - torch.sigmoid(self.sigma * (x - self.delta/2))
         if weights is not None:
-            x = (x*weights).sum(dim=1)
+            x = (x*torch.squeeze(weights)).sum(dim=1)
         else:
             x = x.sum(dim=1)
         return x

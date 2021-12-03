@@ -20,7 +20,7 @@ logging.basicConfig(format="%(levelname)s - %(name)s - %(message)s")
 
 def create_tree(path, s, sample, weight="weight"):
     
-    print("Normalization", s, sample["weight"].sum())
+    print("Normalization", s, sample[weight].sum())
     
     file = uproot3.recreate(path + "/root_trees/" + s + ".root")
     file["tree"] = uproot3.newtree(
@@ -51,8 +51,9 @@ def to_root(samples, systs = [], path = "/home/centos/data/inferno_cmsopen13/roo
         if ('up' in s) | ('down' in s): continue
         for syst in systs:
             for ud in ["up", "down"]:
-                if (s == "TTJets_signal") & (syst == "pdf"):
-                    create_tree(path,  s + "_" + syst + "_" + ud, sample, weight = "weight_"+ syst + "_" + ud )
+                if ("pdf" in syst):
+                    if(s == "TTJets_signal"): 
+                        create_tree(path,  s + "_" + syst + "_" + ud, sample, weight = "weight_"+ syst + "_" + ud )
                 else:
                     create_tree(path,  s + "_" + syst + "_" + ud, sample, weight = "weight_"+ syst + "_" + ud )
 
@@ -88,8 +89,9 @@ def fit_ws(ws, config, args, path, asimov = True):
     cabinetry.visualize.pulls(fit_results, exclude=["mu"], save_figure=args["store"], close_figure = False, figure_folder=path)
     cabinetry.visualize.correlation_matrix(fit_results, save_figure=args["store"], close_figure = True, figure_folder=path)
     scan_results = cabinetry.fit.scan(model, data, "mu", n_steps=args["n_steps"])
-    #ranking_results = cabinetry.fit.ranking(model, data, fit_results=fit_results)
-    #cabinetry.visualize.ranking(ranking_results, save_figure=args["store"], close_figure = False, figure_folder=path)
+    ranking_results = cabinetry.fit.ranking(model, data, fit_results=fit_results)
+    print(ranking_results)
+    cabinetry.visualize.ranking(ranking_results, save_figure=args["store"], close_figure = False, figure_folder=path)
     #print(scan_results)
     #cabinetry.visualize.scan(scan_results)
     if args["fit_sig_lim"] == True:
