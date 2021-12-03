@@ -108,7 +108,7 @@ def run_cmsopen( args, epochs=1, retrain = True, do_fit = False):
     args["fit_norm_sigma"] = preproc.set_fit_norm_nuis(args)
     print(args["fit_norm_sigma"])
     # Set the fit nuisances
-    args["fit_shape_systs"] = list(dict.fromkeys(args["fit_shape_systs"] + args["shape_syst"]))
+    args["fit_shape_systs"] = list(dict.fromkeys(args["fit_shape_systs"] + args["shape_syst"] + args["weight_syst"]))
     print(args["fit_shape_systs"])
     
     if retrain == True:

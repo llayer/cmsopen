@@ -79,15 +79,17 @@ def set_weights(samples, weight_systs = []):
                 for ud in ["up", "down"]:
                     if syst == "btag":
                         sample["weight_btag_" + ud] = sample['norm'] * sample['trigger_weight'] * sample['btag_weight1_'+ud]
+                        sample["btag_"+ud] = sample['btag_weight1_'+ud] / sample['btag_weight1']
                     if syst == "trigger":
-                        sample["weight_trigger_"+ud] = sample['norm'] * sample['trigger_weight_'+ud] * sample['btag_weight1']    
+                        sample["weight_trigger_"+ud] = sample['norm'] * sample['trigger_weight_'+ud] * sample['btag_weight1']   
+                        sample["trigger_"+ud] = sample['trigger_weight_'+ud] / sample['trigger_weight']
                 if (s == "TTJets_signal") & (syst == "pdf"):
                     # PDF Up
-                    sample["pdf_up"] = sample["pdf_up"].fillna(0.)
-                    sample["weight_pdf_up"] = sample["weight"] * (1+sample["pdf_up"])
+                    sample["pdf_up"] = 1+sample["pdf_up"].fillna(0.)
+                    sample["weight_pdf_up"] = sample["weight"] * sample["pdf_up"]
                     # PDF Down
-                    sample["pdf_down"] = sample["pdf_down"].fillna(0.)
-                    sample["weight_pdf_down"] = sample["weight"] * (1-sample["pdf_down"]) 
+                    sample["pdf_down"] = 1-sample["pdf_down"].fillna(0.)
+                    sample["weight_pdf_down"] = sample["weight"] * sample["pdf_down"]
         print("Normalization", s, samples[s]["weight"].sum())
                     
 def set_normalization(sample, factor):
@@ -216,26 +218,34 @@ def get_train_data(samples, features, shape_syst, weight_syst, n_sig = 20000, n_
     # Merge the nominal and systematic frames
     dfs = []
     dfs.append(samples["TTJets_signal"].copy())
+    #print(samples["TTJets_signal"]["weight"].head())
     for syst in shape_syst:
         for ud in ["_up", "_down"]:    
             dfs.append(samples["TTJets_signal_" + syst + ud].copy())
+            #samples["TTJets_signal_" + syst + ud]["weight_" + syst + ud]  * \
+            #(1. / samples["TTJets_signal_" + syst + ud]["weight_" + syst + ud])
+            #print(samples["TTJets_signal_" + syst + ud]["weight_" + syst + ud].head())
     signal = reduce(lambda  left,right: pd.merge(left,right,how="inner", on="event_id"), dfs)
     # Split in training and test
     train_test_split(signal, n_sig)
     train_idx = get_train_evts(signal) 
     train_test_split(samples["QCD"], n_bkg)
     bkg = samples["QCD"].copy()
-    
+        
     #Weights
     #signal["weights"] = signal['trigger_weight'] * signal['btag_weight1']
-    signal["weight"] = signal["weight"] * (1. / np.mean(signal["weight"]))
+    signal["weight"] *= (1. / np.mean(signal["weight"]))
+    for syst in shape_syst:
+        for ud in ["_up", "_down"]:
+            signal["weight_" + syst + ud] *= (1. / np.mean(signal["weight_" + syst + ud]))
     #bkg["weights"] = bkg['btag_weight2']
+    #print( list( zip( signal["weight"], signal["weight_06_jes_up"], signal["weight_06_jes_down"])))                               
     bkg["weight"] = bkg["weight"] * (1. / np.mean(bkg["weight"])) 
     
     # Add labels
     signal["label"] = 1
     bkg["label"] = 0
-    
+        
     # Select test and train and add weights
     signal_train = signal[signal["train_flag"] == "train"]
     signal_test = signal[signal["train_flag"] == "test"]
@@ -269,11 +279,19 @@ def get_train_data(samples, features, shape_syst, weight_syst, n_sig = 20000, n_
     # Add the weights
     weights_train_syst = []
     weights_test_syst = []
+    for syst in shape_syst:
+        for ud in ["_up", "_down"]:
+            w_train = train_data["weight_" + syst + ud]
+            #print(list(zip(train_data[syst+ud], train_data[syst], w_train)))
+            w_test = test_data["weight_" + syst + ud]
+            weights_train_syst.append(  w_train.values.reshape((-1,1)) )
+            weights_test_syst.append( w_test.values.reshape((-1,1)) )
+
     for syst in weight_syst:
         for ud in ["_up", "_down"]:
-            w_train = train_data[syst + ud] / train_data[syst]
+            w_train = train_data[syst + ud]
             #print(list(zip(train_data[syst+ud], train_data[syst], w_train)))
-            w_test = test_data[syst + ud] / test_data[syst]
+            w_test = test_data[syst + ud]
             weights_train_syst.append(  w_train.values.reshape((-1,1)) )
             weights_test_syst.append( w_test.values.reshape((-1,1)) )
     

@@ -259,6 +259,10 @@ class HEPInferno(AbsCallback):
             self.val_shapes['sig'].append( self.sig_shape / self.cnt )            
             self.val_shapes['sig_up'].append( [shape / self.cnt for shape in self.sig_shape_up] )
             self.val_shapes['sig_down'].append( [shape / self.cnt for shape in self.sig_shape_down] )
+            
+            #print("nom", self.val_shapes['sig'][-1])
+            #print("up", self.val_shapes['sig_up'][-1])
+            #print("down", self.val_shapes['sig_down'][-1])
 
     def on_train_begin(self) -> None:
         
@@ -315,14 +319,15 @@ class HEPInferno(AbsCallback):
                              "must match the number of systematic variations:", (x_s.shape[-1]-1)/2 )
         
         if w_s is not None:
-            if self.n_weight_systs != ((w_s.shape[-1]-1)/2): 
-                raise ValueError("Number of specified weight nuisances n_weight_systs", self.n_weight_systs,
-                                 "must match the number of systematic variations:", (w_s.shape[-1]-1)/2 )
+            w_dim = w_s.shape[-1]
+            n_shape, n_weight = self.n_shape_systs, self.n_weight_systs
+            if w_dim != (1 + 2*n_shape + 2*n_weight):
+                raise ValueError("Sum of specified weight nuisances", n_weight, "and shape nuisances", n_shape,
+                                 "must match the number of systematic variations:", w_dim-1 )
         else:
             if self.n_weight_systs > 0: 
                 raise ValueError("Specified number of weight nuisances", self.n_weight_systs, "but no weights given")
                                  
-            
         
         # Nominal weights
         w_s_nom = w_s[:,:,0] if w_s is not None else None
@@ -333,20 +338,24 @@ class HEPInferno(AbsCallback):
         for i in range(self.n_shape_systs):
             idx_up = 1 + 2*i
             idx_down = 2 + 2*i
-            up_batch = self.to_shape(self.wrapper.model(x_s[:,:,idx_up]), w_s_nom)
-            down_batch = self.to_shape(self.wrapper.model(x_s[:,:,idx_down]), w_b_nom)
+            w_s_up = w_s[:,:,idx_up] if w_s is not None else None
+            w_s_down = w_s[:,:,idx_down] if w_s is not None else None
+            up_batch = self.to_shape(self.wrapper.model(x_s[:,:,idx_up]), w_s_up)
+            down_batch = self.to_shape(self.wrapper.model(x_s[:,:,idx_down]), w_s_down)
             
             #print([list(zip(x_s[:,:,0][0], x_s[:,:,idx_up][0], x_s[:,:,idx_down][0]))])
+            #print("shape", [list(zip(w_s_nom[0], w_s_up[0], w_s_down[0]))])
             
             u.append(up_batch)
             d.append(down_batch)    
         
         #Loop over weight systematics
         for i in range(self.n_weight_systs):
-            idx_up = 1 + 2*i
-            idx_down = 2 + 2*i
+            idx_up = 1 + 2*self.n_shape_systs + 2*i
+            idx_down = 2 + 2*self.n_shape_systs + 2*i
             up_batch = self.to_shape(self.wrapper.model(x_s[:,:,0]), w_s_nom * w_s[:,:,idx_up])
-            down_batch = self.to_shape(self.wrapper.model(x_s[:,:,0]), w_s_down * w_s[:,:,idx_down])
+            down_batch = self.to_shape(self.wrapper.model(x_s[:,:,0]), w_s_nom * w_s[:,:,idx_down])
+            #print("weight", [list(zip(w_s[:,:,0][0], w_s[:,:,idx_up][0], w_s[:,:,idx_down][0]))])
             u.append(up_batch)
             d.append(down_batch)             
             
@@ -397,6 +406,9 @@ class HEPInferno(AbsCallback):
             (f_s_up,f_s_dw),(f_b_up,f_b_dw)= self._get_up_down(self.wrapper.x[~b], self.wrapper.x[b], w_s, w_b)
         else:
             (f_s_up,f_s_dw),(f_b_up,f_b_dw)=(None,None), (None,None)
+            
+        #print("nominal", f_s)
+            
         self.store_shapes(f_s_nom=f_s, f_b_nom=f_b, f_s_up=f_s_up, f_s_dw=f_s_dw, f_b_up=f_b_up, f_b_dw=f_b_dw)
         inferno_loss = self.get_ikk(f_s_nom=f_s, f_b_nom=f_b, f_s_up=f_s_up, f_s_dw=f_s_dw, f_b_up=f_b_up, f_b_dw=f_b_dw)
         
