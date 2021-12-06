@@ -17,6 +17,15 @@ def train_inferno(data, args, epochs=100 ):
     neurons = args["inferno_neurons"]
     bins = args["bins"]
     nfeat = len(args["features"])
+    
+    print("*********************")
+    print("Summary INFERNO model")
+    print("*********************")
+    print("Learning rate", lr)
+    print("Temperature", temp)
+    print("Neurons", neurons)
+    print("Bins", bins)
+    
     if args["use_softhist"] == False:
         
         net_inferno = nn.Sequential(nn.Linear(nfeat,neurons),  nn.ReLU(),
@@ -27,7 +36,6 @@ def train_inferno(data, args, epochs=100 ):
         net_inferno = nn.Sequential(nn.Linear(nfeat,neurons),  nn.ReLU(),
                                 nn.Linear(neurons,neurons), nn.ReLU(),
                                 nn.Linear(neurons,1),  nn.Sigmoid())
-
     
     lt = LossTracker()
     sb = SaveBest(args["outpath"] + "/weights/best_inferno.h5")
@@ -74,6 +82,13 @@ def train_bce(data, args, epochs=100):
     net_bce = nn.Sequential(nn.Linear(nfeat,neurons),  nn.ReLU(),
                         nn.Linear(neurons,8), nn.ReLU(),
                         nn.Linear(8,1),  nn.Sigmoid())
+    
+    print("*********************")
+    print("Summary BCE model")
+    print("*********************")
+    print("Learning rate", lr)
+    print("Neurons", neurons)
+    
     #init_net(net)    
     ct = hep_model.HEPInferno(b_true=args["b_true"], 
                               mu_true=args["mu_true"],
@@ -151,6 +166,7 @@ def pred_test(model, test_dl, use_hist=False, name="inferno", bins=10.):
 
 def pred_nominal(samples, features, model, scaler, name, sort_bins = False, use_hist = False, order_d = None):
     
+    print("*********************")
     print("Predicting", name, "samples")
     
     #"TTJets_signal"

@@ -219,7 +219,8 @@ class HEPInferno(AbsCallback):
         self.sig_shape_down = [0. for i in range(self.n_shape_alphas)]
 
         print("*********************")
-        print("Summary INFERNO setup")
+        print("Summary INFERNO callback")
+        print("*********************")
         print("b_true", self.b_true)
         print("mu_true", self.mu_true)
         print("n_shape_systs", self.n_shape_systs)
@@ -236,6 +237,7 @@ class HEPInferno(AbsCallback):
         print("n_alpha", self.n_alpha)
         print("interp_algo", self.interp_algo)
         print("use_hist", self.use_hist)
+        print("sigmoid delta", self.sigmoid_delta)
         print("ignore_loss", self.ignore_loss)
         print("ignore_shape_norm", self.ignore_shape_norm)
         print("asymm_shape_norm", self.asymm_shape_norm)
@@ -275,7 +277,7 @@ class HEPInferno(AbsCallback):
         for c in self.wrapper.cbs:
             if hasattr(c, 'loss_is_meaned'): c.loss_is_meaned = False  # Ensure that average losses are correct        
         if self.shape_norm_sigma is not None: self.shape_norm_sigma = torch.Tensor(self.shape_norm_sigma).to(self.wrapper.device)
-        print(self.shape_norm_sigma)
+        #print(self.shape_norm_sigma)
         if self.s_norm_sigma is not None: self.s_norm_sigma = torch.Tensor(self.s_norm_sigma).to(self.wrapper.device)
         if self.b_norm_sigma is not None: self.b_norm_sigma = torch.Tensor(self.b_norm_sigma).to(self.wrapper.device)
 

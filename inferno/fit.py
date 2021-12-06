@@ -43,6 +43,9 @@ def create_tree(path, s, sample, weight="weight"):
 
     
 def to_root(samples, systs = [], path = "/home/centos/data/inferno_cmsopen13/root_trees"):
+
+    print("*********************")
+    print( "Create ROOT trees")
         
     for s in samples:
         sample = samples[s]
@@ -91,7 +94,7 @@ def fit_ws(ws, config, args, path, asimov = True):
     cabinetry.visualize.correlation_matrix(fit_results, save_figure=args["store"], close_figure = True, figure_folder=path)
     scan_results = cabinetry.fit.scan(model, data, "mu", n_steps=args["n_steps"])
     ranking_results = cabinetry.fit.ranking(model, data, fit_results=fit_results)
-    print(ranking_results)
+    #print(ranking_results)
     cabinetry.visualize.ranking(ranking_results, save_figure=args["store"], close_figure = False, figure_folder=path)
     
     #print(scan_results)
@@ -195,6 +198,23 @@ def load_sig_lim(path=""):
 #
 # Print summary and compare results
 #
+
+def print_fit_args(args):
+    
+    print("*********************")
+    print("Summary fit args")
+    print("*********************")
+    print("Fit model", args["fit_model"])
+    print("Fit norms", args["fit_norm_sigma"])
+    print("Fit shape systematics", args["fit_shape_systs"])
+    print("Fit asimov", args["fit_asimov"])
+    print("Fit data", args["fit_data"])
+    print("Fit significance", args["fit_sig_lim"])
+    print("Fit float QCD", args["fit_floatQCD"])
+    print("Prune stat error", args["prune_stat"])
+    print("Minos", args["minos"])
+    print("Scan n steps", args["n_steps"])          
+          
 def print_summary(results, sig_lim=None, name=""):
     
     print("*****************")

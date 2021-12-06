@@ -14,6 +14,12 @@ import plot
 
 def fit_cmsopen(args, fitvar, asimov = False):
     
+    print("*********************")
+    if asimov == True:
+        print( "Fit", fitvar, "asimov")
+    else:
+        print( "Fit", fitvar, "data")        
+    
     if (fitvar == "bce") or (args["use_softhist"] == True):
         bins = np.linspace(0,1,args["bins"]+1)
     else:
@@ -70,7 +76,7 @@ def train_cmsopen(opendata, test, args, epochs):
     names = preproc.adjust_naming(["mu"] + args["systnames"] + args["s_norm_syst"] + args["b_norm_syst"])
     plot.plot_cov(bce_info, inferno_info, names, args)
     
-    return bce_model, inferno_model, order_d, inferno_info
+    return bce_model, inferno_model, order_d
 
 
 def create_dir(path):
@@ -79,11 +85,21 @@ def create_dir(path):
         
 def store_args(args, path):
     with open(path + '/args.json', 'w') as outfile:
-        json.dump(args, outfile)    
-
+        json.dump(args, outfile)
+        
 
 def run_cmsopen( args, epochs=1, retrain = True, do_fit = False):
      
+    print("*********************")
+    if (retrain == True) & (do_fit == True):
+        print("Training and fitting INFERNO and binary-cross entropy (BCE) model")
+    elif (retrain == True):
+        print("Training INFERNO and binary-cross entropy (BCE) model")
+    else:
+        print("Fitting INFERNO and binary-cross entropy (BCE) model") 
+    print("*********************")
+    print()
+        
     # Create folders
     if args["store"] == True:
         create_dir(args["outpath"])
@@ -95,24 +111,12 @@ def run_cmsopen( args, epochs=1, retrain = True, do_fit = False):
         
         # Store the config file:
         store_args(args, args["outpath"])
+        print("*********************")        
+        print("Outpath", args["outpath"])
     
-    # Set names
-    args["systnames"] = preproc.adjust_naming(args["shape_syst"] + args["weight_syst"])
-    
-    # Set the norm only nuisances
-    args["s_norm_sigma"] = preproc.get_norm_nuisance(args["s_norm_syst"])
-    args["b_norm_sigma"] = preproc.get_norm_nuisance(args["b_norm_syst"])
-    print(args["s_norm_sigma"])
-    # Scale the nuisance norm if specified
-    if args["scale_norms_only"] is not None:
-        for nuis in args["scale_norms_only"]:
-            preproc.scale_norm_only(nuis[0], nuis[1], args)
-    args["fit_norm_sigma"] = preproc.set_fit_norm_nuis(args)
-    print(args["fit_norm_sigma"])
-    # Set the fit nuisances
-    args["fit_shape_systs"] = list(dict.fromkeys(args["fit_shape_systs"] + args["shape_syst"] + args["weight_syst"]))
-    print(args["fit_shape_systs"])
-    
+    # Set the systematics 
+    preproc.set_systs(args)
+        
     if retrain == True:
          
         # Load data
@@ -126,8 +130,7 @@ def run_cmsopen( args, epochs=1, retrain = True, do_fit = False):
 
         # Scale the norms of the shape nuisances if specified
         if args["scale_shape_norms"] is not None:
-            for nuis in args["scale_shape_norms"]:
-                preproc.scale_shape_norm(samples, nuis[0], nuis[1], args)
+            preproc.scale_shape(samples, args["scale_shape_norms"])
         # Set the true values for the training:
         args["b_true"], args["mu_true"], args["shape_norm_sigma"] = preproc.get_true_values(samples, args)            
         # Downsample data
@@ -137,9 +140,9 @@ def run_cmsopen( args, epochs=1, retrain = True, do_fit = False):
             args["mu_true"] *= args["downsample_factor"]
                 
         preproc.print_normalization(samples)
-        
+
         # Train
-        bce_model, inferno_model, order_d, inferno_info = train_cmsopen(opendata, test, args, epochs)
+        bce_model, inferno_model, order_d = train_cmsopen(opendata, test, args, epochs)
         
         # Predict INFERNO
         train.pred_nominal(samples, args["features"], inferno_model, scaler, sort_bins = args["fit_sorted"],
@@ -148,12 +151,15 @@ def run_cmsopen( args, epochs=1, retrain = True, do_fit = False):
         train.pred_nominal(samples, args["features"], bce_model, scaler, use_hist = True, name="bce")
         if args["store"] == True:
             preproc.store_samples(samples, args["outpath"])
-            
+        
+        print("*********************")
         print("Finished training")
+        print("*********************")
             
     else:
         
         # Load samples with predictions
+        print("*********************")
         print( "Loading samples from path", args["outpath"])
         samples = preproc.load_samples( args["outpath"] + "/samples/", shape_systs = args["shape_syst"])
         
@@ -165,28 +171,26 @@ def run_cmsopen( args, epochs=1, retrain = True, do_fit = False):
             preproc.exclude_train(samples)
         
         # Convert samples to ROOT trees
-        print( "Create root trees")
         fit.to_root(samples, path=args["outpath"], systs = args["weight_syst"])
-                
+        
+        # Print the fit arguments
+        fit.print_fit_args(args)
+            
         # Asimov
         if args["fit_asimov"]:
-            print( "Fit BCE Asimov")
             fit_cmsopen(args, fitvar="bce", asimov=True)
-            print( "Fit INFERNO Asimov")
             fit_cmsopen(args, fitvar="inferno", asimov=True)
 
         # Data 
         if args["fit_data"]:
-            print( "Fit BCE Data")
             fit_cmsopen(args, fitvar="bce")
-            print( "Fit INFERNO Data")
             fit_cmsopen(args, fitvar="inferno")
         
         # Load results and compare
         fit.compare_results(args)
         
         
-    return samples, inferno_info
+    return samples
         
         
         

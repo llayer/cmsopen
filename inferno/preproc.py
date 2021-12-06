@@ -102,7 +102,7 @@ def set_weights(samples, weight_systs = []):
                     # PDF Down
                     sample["pdf_down"] = 1-sample["pdf_down"].fillna(0.)
                     sample["weight_pdf_down"] = sample["weight"] * sample["pdf_down"]
-        print("Normalization", s, samples[s]["weight"].sum())
+        #print("Normalization", s, samples[s]["weight"].sum())
                     
 def set_normalization(sample, factor):
     
@@ -110,10 +110,17 @@ def set_normalization(sample, factor):
 
 def print_normalization(samples):
     
+    print("*********************")
+    print("Summary normalization")
+    print("*********************")
+
     for s in samples:
         print("Normalization", s, samples[s]["weight"].sum())
+        
+    print("*********************")
+    print()
     
-def scale_shape_norm(samples, nuisance, value, args):
+def scale_shape_norm(samples, nuisance, value):
     
     renamed_nuis = adjust_naming([nuisance])[0]
     if renamed_nuis in ["jes", "jer", "taue"]:
@@ -139,23 +146,27 @@ def scale_shape_norm(samples, nuisance, value, args):
     else:
         raise ValueError("Specified NP", nuisance, "can't be scaled")
     
-def scale_norm_only(nuis, value, args):
+def scale_norm_only(nuis, value, b_norm_sigma, s_norm_sigma):
     if nuis == "mistag":
-        args["b_norm_sigma"][nuis] *= value
+        b_norm_sigma[nuis] *= value
+        print("Scale", nuis, "to", b_norm_sigma[nuis])
     else:
-        args["s_norm_sigma"][nuis] *= value
-    print("Scale", nuis, "to", args["s_norm_sigma"][nuis])
+        s_norm_sigma[nuis] *= value
+        print("Scale", nuis, "to", s_norm_sigma[nuis])
     
-def set_fit_norm_nuis(args):
-    fit_norm_syst = get_norm_nuisance(args["fit_norm_syst"])
-    for nuis in args["s_norm_sigma"]:
-        fit_norm_syst[nuis] = args["s_norm_sigma"][nuis]
-    for nuis in args["b_norm_sigma"]:
-        fit_norm_syst[nuis] = args["b_norm_sigma"][nuis]
+def set_fit_norm_nuis(fit_norm_syst, s_norm_sigma, b_norm_sigma):
+    fit_norm_syst = get_norm_nuisance(fit_norm_syst)
+    for nuis in s_norm_sigma:
+        fit_norm_syst[nuis] = s_norm_sigma[nuis]
+    for nuis in b_norm_sigma:
+        fit_norm_syst[nuis] = b_norm_sigma[nuis]
     return fit_norm_syst
             
     
 def exclude_train(samples):
+    
+    print("*********************")
+    print( "Excluding samples used in training")
     
     for s in samples:
         if ( "QCD" in s) | ("TTJets_signal" in s):
@@ -169,6 +180,9 @@ def exclude_train(samples):
     
 def downsample_data(samples, sample_factor):
     
+    print("*********************")
+    print("Downsampling data")
+    print("*********************")
     for s in samples:
         if s == "Data":
             n_samples_pre = len(samples[s])
@@ -333,21 +347,8 @@ def get_train_data(samples, features, shape_syst, weight_syst, n_sig = 20000, n_
             #print(s)
             #print(list(samples[s]))
             samples[s]["is_train"] = samples[s].event_id.isin(train_idx)
-            print("DDDDD", samples[s]["weight"].sum())
         if "QCD" in s:
             samples[s]["is_train"] = samples[s]["train_flag"] == "train"
-    
-    print("*********************")
-    print("Summary training data")
-    print("Features", features)
-    print("Shape systematics", shape_syst)
-    print("Weight systematics", weight_syst)
-    print("Use weights", use_weights)
-    n_sig_train = sum(samples["TTJets_signal"]["is_train"]==1)
-    print("Number of signal training / test events:", n_sig_train, len(samples["TTJets_signal"]) - n_sig_train)
-    n_bkg_train = sum(samples["QCD"]["is_train"]==1)
-    print("Number of bkg training / test events:", n_bkg_train, len(samples["QCD"]) - n_bkg_train)
-    print("*********************")
         
     return trn, val, scaler
 
@@ -388,7 +389,7 @@ def assert_weight_syst(weight_syst):
     allowed_systs = ["btag", "trigger", "pdf"]
     for syst in weight_syst:
         if syst not in allowed_systs:
-            raise ValueError("Specified weight sytematic not allowed:", syst)
+            raise ValueError("Specified shape sytematic not allowed:", syst)
             
 def assert_shape_syst(shape_syst):
     
@@ -397,6 +398,48 @@ def assert_shape_syst(shape_syst):
         if syst not in allowed_systs:
             raise ValueError("Specified weight sytematic not allowed:", syst)
 
+def assert_norm_syst(norm_syst):
+    
+    allowed_systs = ["xsec", "lumi", "mistag", "tau_trigger",  "tau_id", "ttmass", "ttq2", "ttparton"]
+    for syst in norm_syst:
+        if syst not in allowed_systs:
+            raise ValueError("Specified norm sytematic not allowed:", syst)
+
+def set_systs(args):
+    
+    # Set names
+    args["systnames"] = adjust_naming(args["shape_syst"] + args["weight_syst"])
+    # Check that the specified systematics are allowed:
+    assert_shape_syst(args["shape_syst"] )
+    assert_weight_syst(args["weight_syst"])
+    assert_norm_syst(args["s_norm_syst"] + args["b_norm_syst"])
+    # Set the signal and background norm only nuisances
+    args["s_norm_sigma"] = get_norm_nuisance(args["s_norm_syst"])
+    args["b_norm_sigma"] = get_norm_nuisance(args["b_norm_syst"])
+    # Scale the nuisance norm if specified
+    if args["scale_norms_only"] is not None:
+        for nuis in args["scale_norms_only"]:
+           scale_norm_only(nuis[0], nuis[1], args["b_norm_sigma"], args["s_norm_sigma"])
+    # Set the fit nuisances
+    args["fit_norm_sigma"] = set_fit_norm_nuis(args["fit_norm_syst"], args["s_norm_sigma"], args["b_norm_sigma"])
+    args["fit_shape_systs"] = list(dict.fromkeys(args["fit_shape_systs"] + args["shape_syst"] + args["weight_syst"]))
+    print("*********************")
+    print("Summary features and systematics")
+    print("*********************")
+    print("Features", args["features"])
+    print("Shape systematics", args["shape_syst"])
+    print("Weight systematics", args["weight_syst"])
+    print("Signal norms", args["s_norm_sigma"])
+    print("Background norms", args["b_norm_sigma"])
+    
+def scale_shape(samples, scale_shape_norms):
+    
+    print("*********************")
+    print("Scaling normalizations of shape systematics")
+    print("*********************")
+    for nuis in scale_shape_norms:
+        scale_shape_norm(samples, nuis[0], nuis[1])
+    
 def load_samples(path, shape_systs=[]):
     
     samples = {}
@@ -413,11 +456,7 @@ def load_samples(path, shape_systs=[]):
         
 def load_data(features, shape_syst, weight_syst, path = "/home/centos/data/bdt_rs5/", bs=256, 
               n_sig = 5000, n_bkg = 5000, use_weights = False, art_syst=None):
-    
-    # Check that the specified systematics are allowed:
-    assert_shape_syst(shape_syst)
-    assert_weight_syst(weight_syst)
-    
+        
     # Load the samples
     samples = load_samples(path, shape_syst)
     
@@ -441,15 +480,20 @@ def load_data(features, shape_syst, weight_syst, path = "/home/centos/data/bdt_r
     data = DataPair(trn_dl, val_dl)
    
     print("*********************")
-    print("Summary data")
-    print("batch size", bs)
+    print("Summary training data")
+    print("*********************")
+    n_sig_train = sum(samples["TTJets_signal"]["is_train"]==1)
+    print("Number of signal training / test events:", n_sig_train, len(samples["TTJets_signal"]) - n_sig_train)
+    n_bkg_train = sum(samples["QCD"]["is_train"]==1)
+    print("Number of bkg training / test events:", n_bkg_train, len(samples["QCD"]) - n_bkg_train)
+    print("Use weights", use_weights)
+    print("Batch size", bs)
     print("x", trn_dl.dataset[0][0].shape)
     print("y", trn_dl.dataset[0][1])
     if trn_dl.dataset[0][2] is not None:
         print("w", trn_dl.dataset[0][2].shape)
     else:
         print("w", trn_dl.dataset[0][2])
-    print("*********************")
 
     return data, test_dl, samples, scaler
    
