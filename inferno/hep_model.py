@@ -211,7 +211,8 @@ class HEPInferno(AbsCallback):
             self.b_rate_param_idx = []
         
         # Store covariance matrix
-        self.covs, self.cov, self.cnt = {'trn':[], 'val':[]}, 0, 0
+        self.covs, self.cov, self.cnt = {'trn':[], 'val':[]}, 0, 0       
+        self.trn_shapes = {'sig':[], 'bkg':[]}
         self.val_shapes = {'sig':[], 'bkg':[], "sig_up":[], "sig_down":[]}
         self.sig_shape, self.bkg_shape = 0, 0
         self.sig_shape_up = [0. for i in range(self.n_shape_alphas)]
@@ -253,6 +254,8 @@ class HEPInferno(AbsCallback):
     def on_epoch_end(self) -> None:
         if self.wrapper.state == 'train':
             self.covs['trn'].append(  self.cov / self.cnt  )
+            self.trn_shapes['bkg'].append( self.bkg_shape / self.cnt )
+            self.trn_shapes['sig'].append( self.sig_shape / self.cnt )            
         else:
             self.covs['val'].append(  self.cov / self.cnt  )
             self.val_shapes['bkg'].append( self.bkg_shape / self.cnt )

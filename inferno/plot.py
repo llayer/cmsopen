@@ -24,9 +24,13 @@ def plot_inferno(df_inf, info, args, order_d):
     # Plot test predictions
     plot_predictions(df_inf, bins = args["bins"], use_hist = args["use_softhist"], plot_sorted=args["fit_sorted"], 
                      name="inferno", outpath=args["outpath"], store=args["store"])
+    
+    # Plot ovetrain
+    shapes = info["shapes"]
+    plot_overtrain(shapes, "inferno", plot_sorted=args["fit_sorted"], 
+                    order_d = order_d, use_hist = args["use_softhist"], outpath=args["outpath"], store=args["store"])
         
     # Plot systematic variations
-    shapes = info["shapes"]
     for i, syst_name in enumerate(args["systnames"]):
         plot_shapes(shapes, "inferno", syst_name, syst_idx=i, plot_sorted=args["fit_sorted"], 
                     order_d = order_d, use_hist = args["use_softhist"], outpath=args["outpath"], store=args["store"])
@@ -41,10 +45,13 @@ def plot_bce(df_bce, info, args):
     plot_loss(info["loss"], name="bce", outpath=args["outpath"], store=args["store"])
     
     # Plot predictions
+    shapes = info["shapes"]
     plot_predictions(df_bce, bins = args["bins"], use_hist = True, name="bce", outpath=args["outpath"], store=args["store"])
     
+    # Plot overtrain
+    plot_overtrain(shapes, "bce", use_hist = True, outpath=args["outpath"], store=args["store"])
+    
     # Plot systematic variations
-    shapes = info["shapes"]
     for i, syst_name in enumerate(args["systnames"]):
         plot_shapes(shapes, "bce", syst_name, syst_idx=i, use_hist = True, outpath=args["outpath"], store=args["store"])
 
@@ -133,6 +140,49 @@ def plot_shapes(shapes, name, syst_name, syst_idx=0, epoch_idx = -1, use_hist = 
         plt.savefig(outpath + "/train/" + name + "/shapes_" + syst_name + ".png")    
       
     plt.show()
+    
+    
+def plot_overtrain(shapes, name, epoch_idx=-1, use_hist = False, plot_sorted = False, order_d = None,
+                outpath=".", store=False):
+    
+    trn_bkg = shapes["bkg_trn"][epoch_idx]
+    trn_sig = shapes["sig_trn"][epoch_idx]
+    val_bkg = shapes["bkg"][epoch_idx]
+    val_sig = shapes["sig"][epoch_idx]
+    
+    if plot_sorted == True:
+        trn_bkg = trn_bkg[list(order_d.keys())]
+        trn_sig = trn_sig[list(order_d.keys())]
+        val_bkg = val_bkg[list(order_d.keys())]
+        val_sig = val_sig[list(order_d.keys())]
+        
+    bins = len(trn_bkg)
+    if use_hist == True:
+        xmax = 1.
+    else:
+        xmax = bins
+    edges = np.linspace(0, xmax, bins + 1)
+    centers = edges[:-1] + (xmax/float(bins))/float(2)
+    
+    fig, (ax1, ax2) = plt.subplots(nrows=2, gridspec_kw={'height_ratios': [3,1]}, figsize=(8,6))
+    ax1.stairs(trn_bkg, edges, label="bkg train")
+    ax1.stairs(trn_sig, edges, label="sig train")
+    ax1.scatter(centers, val_bkg)
+    ax1.scatter(centers, val_sig)
+    #ax1.set_ylim((0,1))
+    ax1.legend(loc="upper right")    
+
+    ax2.scatter(centers, val_bkg/trn_bkg)
+    ax2.scatter(centers, val_sig/trn_sig)
+    ax2.hlines(1., 0, xmax, linestyle="dotted", color="black")
+    ax2.set_ylim((0,2))
+    ax2.set_xlabel(name)
+    
+    if store:
+        plt.savefig(outpath + "/train/" + name + "/overtrain.png")    
+      
+    plt.show()
+
         
 #
 # Create a GIf for the NN predictions during training
@@ -287,11 +337,13 @@ def plot_cov_infbce(bce_covs, inf_covs, names, stddev=False, outpath=".", store=
                 if stddev == True:
                     bce = np.sqrt(bce)
                     inf = np.sqrt(inf)
-                plt.text(0.8, 0.8, names[i],
+                
+                col.text(0.8, 0.8, names[i],
                  horizontalalignment='center',
                  verticalalignment='center',
-                 transform = col.transAxes, size=15,
+                 transform = col.transAxes, #size=15,
                  bbox=dict(facecolor='red', edgecolor=None, alpha=0.2))
+                
                 if i==0:
                     #lims = (500,1500)
                     lims_low = np.min(inf) - 0.1 * np.min(inf)
@@ -305,11 +357,12 @@ def plot_cov_infbce(bce_covs, inf_covs, names, stddev=False, outpath=".", store=
                 bce = get_cov_entry(bce_corrs, i, j)
                 inf = get_cov_entry(inf_corrs, i, j)
                 lims = (-1., 1)
-            col.plot(inf, label="inferno val")
-            col.plot(bce, label="bce val")
+            col.plot(inf, label="inferno")
+            col.plot(bce, label="bce")
             col.set_ylim(lims)
-            if (i==0) & (j==2):
-                col.legend(loc="upper right", prop={'size': 16})
+            if (i==0) & (j==n_par-1):
+                col.legend(loc="upper right")
+                #col.legend(loc="upper right", prop={'size': 16})
     fig.tight_layout()            
     if store:
         plt.savefig(outpath + "/train/cov_infbce.png")

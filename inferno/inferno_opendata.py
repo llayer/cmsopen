@@ -133,12 +133,7 @@ def run_cmsopen( args, epochs=1, retrain = True, do_fit = False):
             preproc.downsample_data(samples, args["downsample_factor"])
             args["b_true"] *= args["downsample_factor"]
             args["mu_true"] *= args["downsample_factor"]
-        # Exclude the events used in the training from further processing   
-        if args["exclude_train"] is True:
-            preproc.exclude_train(samples)
-        
-        #args["shape_norm_sigma"] = [0.05, 0.02]
-        
+                
         preproc.print_normalization(samples)
         
         # Train
@@ -162,6 +157,10 @@ def run_cmsopen( args, epochs=1, retrain = True, do_fit = False):
         
     
     if do_fit:   
+        
+        # Exclude the events used in the training from further processing   
+        if args["exclude_train"] is True:
+            preproc.exclude_train(samples)
         
         # Convert samples to ROOT trees
         print( "Create root trees")

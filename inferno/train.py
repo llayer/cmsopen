@@ -52,6 +52,8 @@ def train_inferno(data, args, epochs=100 ):
     
     shapes = {"bkg" : hep_inf.val_shapes["bkg"],
               "sig" : hep_inf.val_shapes["sig"],
+              "bkg_trn": hep_inf.trn_shapes["bkg"],
+              "sig_trn": hep_inf.trn_shapes["sig"],
               "sig_up" : hep_inf.val_shapes["sig_up"],
               "sig_down" : hep_inf.val_shapes["sig_down"]
              }
@@ -90,6 +92,8 @@ def train_bce(data, args, epochs=100):
 
     shapes = {"bkg" : ct.val_shapes["bkg"],
               "sig" : ct.val_shapes["sig"],
+              "bkg_trn": ct.trn_shapes["bkg"],
+              "sig_trn": ct.trn_shapes["sig"],
               "sig_up" : ct.val_shapes["sig_up"],
               "sig_down" : ct.val_shapes["sig_down"],
              }
