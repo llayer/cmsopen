@@ -1,14 +1,21 @@
 # Normalization uncertainties
 
+xsec_std = {
+    'TTJets_bkg': 0.06097560975609759,
+     'WZJets': 0.04770462700154329,
+     'STJets': 0.0666983590353544,
+     'TTJets_signal': 0.0609756097560975
+}
+
 norms = {"lumi": 0.02,
         "mistag":0.05,
         "tau_trigger":0.05,
         "tau_id":0.06,
         "ttmass":0.03,
         "ttq2":0.02,
-        "ttparton":0.03
+        "ttparton":0.03,
+        "xsec": xsec_std["TTJets_signal"] # returns by default xsec uncertainty of signal
         }
-
 
 # Parameters for INFERNO training
 args = {}
@@ -72,6 +79,7 @@ args["bce_neurons"] = 20 # CHECK only affects first layer
 #
 args["fit_asimov"] = True
 args["fit_data"] = False
+args["prune_stat"] = True
 args["minos"] = ["mu"]
 args["fit_sig_lim"] = False
 args["print_ws"] = True

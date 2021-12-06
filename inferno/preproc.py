@@ -46,6 +46,18 @@ def get_norm_nuisance(norm_syst):
        
     return {k: inferno_config.norms[k] for k in norm_syst}
 
+    
+def calc_xsec_uncertainty(samples, args):
+   
+    xsec_std = {}
+    for s in args["mc"]:
+        
+        nom = samples[s]["norm"].sum()
+        up = samples[s]["norm_up"].sum()
+        down = samples[s]["norm_down"].sum()
+        std = (0.5*(abs(up - nom) + abs(nom-down))) / nom
+        xsec_std[s] = std
+    return xsec_std    
 
 def adjust_naming(syst_names):
     syst = []

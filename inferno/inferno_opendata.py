@@ -31,9 +31,11 @@ def fit_cmsopen(args, fitvar, asimov = False):
     path = args["outpath"] + "/fit/" + fitvar + postfix
     create_dir(path)
     ws_path = path + "/workspace.json"
-    ws = fit.create_ws(config, workspace_path = ws_path)
+    ws = fit.create_ws(config, workspace_path = ws_path, prune_stat=args["prune_stat"])
     if args["print_ws"]: print(ws)
-    fit_results, scan_results = fit.fit_ws(ws, config, args, path, asimov=asimov)   
+    fit_results, scan_results = fit.fit_ws(ws, config, args, path, asimov=asimov) 
+    #fit.stat_only(config, fit_results, prune_stat=True)
+    
     return ws
             
 def train_cmsopen(opendata, test, args, epochs):
@@ -68,7 +70,7 @@ def train_cmsopen(opendata, test, args, epochs):
     names = preproc.adjust_naming(["mu"] + args["systnames"] + args["s_norm_syst"] + args["b_norm_syst"])
     plot.plot_cov(bce_info, inferno_info, names, args)
     
-    return bce_model, inferno_model, order_d
+    return bce_model, inferno_model, order_d, inferno_info
 
 
 def create_dir(path):
@@ -137,7 +139,7 @@ def run_cmsopen( args, epochs=1, retrain = True, do_fit = False):
         preproc.print_normalization(samples)
         
         # Train
-        bce_model, inferno_model, order_d = train_cmsopen(opendata, test, args, epochs)
+        bce_model, inferno_model, order_d, inferno_info = train_cmsopen(opendata, test, args, epochs)
         
         # Predict INFERNO
         train.pred_nominal(samples, args["features"], inferno_model, scaler, sort_bins = args["fit_sorted"],
@@ -184,7 +186,7 @@ def run_cmsopen( args, epochs=1, retrain = True, do_fit = False):
         fit.compare_results(args)
         
         
-    return samples
+    return samples, inferno_info
         
         
         

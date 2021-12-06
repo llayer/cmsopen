@@ -30,6 +30,7 @@ def train_inferno(data, args, epochs=100 ):
 
     
     lt = LossTracker()
+    sb = SaveBest(args["outpath"] + "/weights/best_inferno.h5")
     hep_inf = hep_model.HEPInferno(b_true=args["b_true"], 
                                    mu_true=args["mu_true"],
                                    n_shape_systs=len(args["shape_syst"]),
@@ -48,7 +49,10 @@ def train_inferno(data, args, epochs=100 ):
     model_inferno = ModelWrapper(net_inferno)
 
     model_inferno.fit(epochs, data=data, opt=partialler(optim.Adam,lr=lr), loss=None,
-                      cbs=[hep_inf,  lt, SaveBest(args["outpath"] + "/weights/best_inferno.h5")])
+                      cbs=[hep_inf,  lt, sb])        
+    
+    idx_best = lt.losses["val"].index(sb.min_loss)
+    print("Evaluating best INFERNO model from epoch", idx_best, "with loss", lt.losses["val"][idx_best])
     
     shapes = {"bkg" : hep_inf.val_shapes["bkg"],
               "sig" : hep_inf.val_shapes["sig"],
@@ -58,7 +62,7 @@ def train_inferno(data, args, epochs=100 ):
               "sig_down" : hep_inf.val_shapes["sig_down"]
              }
         
-    return model_inferno, {"loss":lt, "covs": hep_inf.covs, "shapes" : shapes}
+    return model_inferno, {"loss":lt, "idx_best": idx_best, "covs": hep_inf.covs, "shapes" : shapes}
 
 
 def train_bce(data, args, epochs=100):
@@ -86,10 +90,14 @@ def train_bce(data, args, epochs=100):
                                asymm_shape_norm = args["asymm_shape_norm"],
                                interp_algo=args["interp_algo"])
     lt = LossTracker()
+    sb = SaveBest(args["outpath"] + "/weights/best_bce.h5")
     model_bce = ModelWrapper(net_bce)
     model_bce.fit(epochs, data=data, opt=partialler(optim.Adam, lr=lr), loss=nn.BCELoss(),
-                  cbs=[lt, ct, SaveBest(args["outpath"] + "/weights/best_bce.h5")])
+                  cbs=[lt, ct, sb])
 
+    idx_best = lt.losses["val"].index(sb.min_loss)
+    print("Evaluating best BCE model from epoch", idx_best, "with loss", lt.losses["val"][idx_best])
+    
     shapes = {"bkg" : ct.val_shapes["bkg"],
               "sig" : ct.val_shapes["sig"],
               "bkg_trn": ct.trn_shapes["bkg"],
@@ -100,7 +108,7 @@ def train_bce(data, args, epochs=100):
     
     #bce_trn_covs = ct.covs["trn"]
     #bce_val_covs = ct.covs["val"]
-    return model_bce, {"loss":lt, "covs": ct.covs, "shapes": shapes}
+    return model_bce, {"loss":lt, "idx_best": idx_best, "covs": ct.covs, "shapes": shapes}
 
 
 

@@ -27,16 +27,20 @@ def plot_inferno(df_inf, info, args, order_d):
     
     # Plot ovetrain
     shapes = info["shapes"]
-    plot_overtrain(shapes, "inferno", plot_sorted=args["fit_sorted"], 
+    plot_overtrain(shapes, "inferno", plot_sorted=args["fit_sorted"], epoch_idx = info["idx_best"],
                     order_d = order_d, use_hist = args["use_softhist"], outpath=args["outpath"], store=args["store"])
         
     # Plot systematic variations
     for i, syst_name in enumerate(args["systnames"]):
-        plot_shapes(shapes, "inferno", syst_name, syst_idx=i, plot_sorted=args["fit_sorted"], 
+        plot_shapes(shapes, "inferno", syst_name, syst_idx=i, plot_sorted=args["fit_sorted"], epoch_idx = info["idx_best"],
                     order_d = order_d, use_hist = args["use_softhist"], outpath=args["outpath"], store=args["store"])
         if args["create_gifs"] == True:
             make_gif(shapes, "inferno", plot_sorted=args["fit_sorted"], 
                     order_d = order_d, use_hist = args["use_softhist"], outpath=args["outpath"])
+            
+    # Store validation loss and cov
+    if args["store"] == True:
+        store_loss_cov(info, outpath=args["outpath"], name="inferno")
     
     
 def plot_bce(df_bce, info, args):
@@ -49,13 +53,27 @@ def plot_bce(df_bce, info, args):
     plot_predictions(df_bce, bins = args["bins"], use_hist = True, name="bce", outpath=args["outpath"], store=args["store"])
     
     # Plot overtrain
-    plot_overtrain(shapes, "bce", use_hist = True, outpath=args["outpath"], store=args["store"])
+    plot_overtrain(shapes, "bce", use_hist = True, outpath=args["outpath"], epoch_idx = info["idx_best"], store=args["store"])
     
     # Plot systematic variations
     for i, syst_name in enumerate(args["systnames"]):
-        plot_shapes(shapes, "bce", syst_name, syst_idx=i, use_hist = True, outpath=args["outpath"], store=args["store"])
+        plot_shapes(shapes, "bce", syst_name, syst_idx=i, use_hist = True, epoch_idx = info["idx_best"], 
+                    outpath=args["outpath"], store=args["store"])
 
-
+    # Store validation loss and cov
+    if args["store"] == True:
+        store_loss_cov(info, outpath=args["outpath"], name="bce")
+        
+#
+# Store validation loss and covariance matrix
+#
+def store_loss_cov(info, outpath=".", name="inferno"):
+    
+    val_loss = info["loss"].losses["val"]
+    val_cov = info["covs"]["val"]
+    np.save(outpath + "/train/" + name +"/val_loss.npy", val_loss)
+    np.save(outpath + "/train/" + name +"/val_cov.npy", val_cov)    
+    
 #
 # Plotting functions for loss and shapes
 #
@@ -97,7 +115,7 @@ def plot_predictions(df, bins=10, plot_sorted = False, use_hist = False, outpath
     
 def plot_shapes(shapes, name, syst_name, syst_idx=0, epoch_idx = -1, use_hist = False, plot_sorted = False, order_d = None,
                 outpath=".", store=False):
-    
+        
     bkg = shapes["bkg"][epoch_idx]
     sig = shapes["sig"][epoch_idx]
     sig_up = shapes["sig_up"][epoch_idx][syst_idx]
@@ -144,7 +162,7 @@ def plot_shapes(shapes, name, syst_name, syst_idx=0, epoch_idx = -1, use_hist = 
     
 def plot_overtrain(shapes, name, epoch_idx=-1, use_hist = False, plot_sorted = False, order_d = None,
                 outpath=".", store=False):
-    
+        
     trn_bkg = shapes["bkg_trn"][epoch_idx]
     trn_sig = shapes["sig_trn"][epoch_idx]
     val_bkg = shapes["bkg"][epoch_idx]
@@ -188,7 +206,7 @@ def plot_overtrain(shapes, name, epoch_idx=-1, use_hist = False, plot_sorted = F
 # Create a GIf for the NN predictions during training
 #
 def plot_sig_bkg(shapes, name, epoch_idx = -1, use_hist = False, plot_sorted = False, order_d = None, outpath="."):
-    
+
     bkg = shapes["bkg"][epoch_idx]
     sig = shapes["sig"][epoch_idx]
     
@@ -292,7 +310,7 @@ def plot_cov_trnval(trn_covs, val_covs, names, stddev=False, outpath=".", store=
                 if stddev == True:
                     trn = np.sqrt(trn)
                     val = np.sqrt(val)
-                plt.text(0.8, 0.8,names[i],
+                plt.text(0.8, 0.85,names[i],
                  horizontalalignment='center',
                  verticalalignment='center',
                  transform = col.transAxes, size=15,
@@ -338,7 +356,7 @@ def plot_cov_infbce(bce_covs, inf_covs, names, stddev=False, outpath=".", store=
                     bce = np.sqrt(bce)
                     inf = np.sqrt(inf)
                 
-                col.text(0.8, 0.8, names[i],
+                col.text(0.8, 0.85, names[i],
                  horizontalalignment='center',
                  verticalalignment='center',
                  transform = col.transAxes, #size=15,

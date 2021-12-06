@@ -7,7 +7,7 @@ import json
 import logging
 import plot
 import stack
-from preproc import get_norm_nuisance
+import inferno_config
 
     
 logging.basicConfig(format="%(levelname)s - %(name)s - %(message)s")
@@ -65,13 +65,14 @@ def check_zero_bins(model_pred, data):
     mc_total = np.array(model_pred.model_yields[0]).sum(axis=0)
     return 0 in mc_total
 
-def create_ws(config, workspace_path = "", postproc=True):
+def create_ws(config, workspace_path = "", postproc=True, prune_stat=True):
     cabinetry.templates.build(config, method="uproot")
     cabinetry.templates.postprocess(config)
     ws = cabinetry.workspace.build(config)
     cabinetry.workspace.save(ws, workspace_path)
-    spec = dict(pyhf.Workspace(ws).prune(modifier_types=["staterror"]))
-    return spec
+    if prune_stat:
+        ws = dict(pyhf.Workspace(ws).prune(modifier_types=["staterror"]))
+    return ws
     
     
 def fit_ws(ws, config, args, path, asimov = True):
@@ -92,23 +93,42 @@ def fit_ws(ws, config, args, path, asimov = True):
     ranking_results = cabinetry.fit.ranking(model, data, fit_results=fit_results)
     print(ranking_results)
     cabinetry.visualize.ranking(ranking_results, save_figure=args["store"], close_figure = False, figure_folder=path)
+    
     #print(scan_results)
     #cabinetry.visualize.scan(scan_results)
+    if args["store"] == True:
+        store_fitresults(fit_results, path = path)
+        store_scan(scan_results, path = path)        
+
     if args["fit_sig_lim"] == True:
         #limit_result = cabinetry.fit.limit(model, data, bracket=(0.5, 1.5))
         #cabinetry.visualize.limit(limit_result ,save_figure=args["store"], figure_folder=path)
         #print(limit_result)
         significance_result = cabinetry.fit.significance(model, data)
         #print(significance_result)
-        
-    if args["store"] == True:
-        store_fitresults(fit_results, path = path)
-        store_scan(scan_results, path = path)
-        if args["fit_sig_lim"] == True:
+        if args["store"] == True:
             store_sig_lim_results(significance_result, lim_results=None, path = path)
         
-        
     return fit_results, scan_results
+
+def stat_only(config, fit_results, prune_stat=True):
+    
+    fix = []
+    for label, best in zip(fit_results.labels, fit_results.bestfit.tolist()):
+        if (label == "mu"): continue
+        fix.append({"Name": label, "Value": best})   
+    #print({"Fixed":fix})   
+    
+    config["General"].update({"Fixed":fix})
+    print(config)
+    ws = cabinetry.workspace.build(config)
+    if prune_stat:
+        ws = dict(pyhf.Workspace(ws).prune(modifier_types=["staterror"]))
+    
+    model, data = cabinetry.model_utils.model_and_data(ws, asimov=True)
+    model_pred = cabinetry.model_utils.prediction(model)
+    fit_results = cabinetry.fit.fit(model, data)        
+    print(fit_results)
 
 #
 # Store fit results
@@ -175,15 +195,17 @@ def load_sig_lim(path=""):
 #
 # Print summary and compare results
 #
-def print_summary(results, sig_lim, name):
+def print_summary(results, sig_lim=None, name=""):
     
     print("*****************")
     print("Summary", name)
     for lab, best, std in zip(results["labels"], results["bestfit"], results["uncertainty"]):
         print(lab, round(best,3), "+-", round(std, 3))
-    print("Correlation matrix", results["corr_mat"])
-    print("Significance expected", sig_lim["expected_significance"])
-    print("Significance observed", sig_lim["observed_significance"])
+    print("Correlation matrix")
+    print(results["corr_mat"])
+    if sig_lim is not None:
+        print("Significance expected", sig_lim["expected_significance"])
+        print("Significance observed", sig_lim["observed_significance"])
     print("*****************")
 
 def compare_results(args):
@@ -192,33 +214,41 @@ def compare_results(args):
         # BCE
         bce_asimov_res = load_fitresults( args["outpath"] + "/fit/bce_asimov" )
         bce_asimov_scan = load_scan( args["outpath"] + "/fit/bce_asimov" )
-        bce_sig_lim = load_sig_lim( args["outpath"] + "/fit/bce_asimov" )
+        bce_sig_lim = load_sig_lim( args["outpath"] + "/fit/bce_asimov" ) if args["fit_sig_lim"] == True else None
         print_summary(bce_asimov_res, bce_sig_lim, "bce asimov")
         # INFERNO
         inferno_asimov_res = load_fitresults( args["outpath"] + "/fit/inferno_asimov")
         inferno_asimov_scan = load_scan( args["outpath"] + "/fit/inferno_asimov")
-        inferno_sig_lim = load_sig_lim( args["outpath"] + "/fit/inferno_asimov" )
+        inferno_sig_lim = load_sig_lim( args["outpath"] + "/fit/inferno_asimov" ) if args["fit_sig_lim"] == True else None
         print_summary(inferno_asimov_res, inferno_sig_lim, "inferno asimov")
         # Plot the comparison of the scan
         plot.plot_scan(bce_asimov_scan, inferno_asimov_scan, path=args["outpath"] + "/fit", asimov=True, store=args["store"])
 
     if args["fit_data"]:
-        pass
+        
         #BCE
-        #bce_res = fit.load_fitresults( args["outpath"] + "/fit/bce" )
-        #fit.print_summary(bce_res, "bce")
+        bce_res = load_fitresults( args["outpath"] + "/fit/bce" )
+        bce_sig_lim = load_sig_lim( args["outpath"] + "/fit/bce" )
+        bce_scan = load_scan( args["outpath"] + "/fit/bce" )
+        print_summary(bce_res, bce_sig_lim, "bce")
 
         # INFERNO
-        #inferno_res = fit.load_fitresults( args["outpath"] + "/fit/inferno" )
-        #fit.print_summary(inferno_res, "inferno")
+        inferno_res = load_fitresults( args["outpath"] + "/fit/inferno" )
+        inferno_scan = load_scan( args["outpath"] + "/fit/inferno")
+        inferno_sig_lim = load_sig_lim( args["outpath"] + "/fit/inferno" )
+        print_summary(inferno_res, inferno_sig_lim, "inferno")
 
         # Plot likelihood scans
-        #plot.plot_scan(bce_res, inferno_res, path=args["outpath"] + "/fit", asimov=False, store=args["store"])
+        plot.plot_scan(bce_scan, inferno_scan, path=args["outpath"] + "/fit", asimov=False, store=args["store"])
 
         
 #
 # Config setup
 #
+def get_xsec_uncertainty(sample):
+    
+    return inferno_config.xsec_std[sample]
+
 def get_fit_model(args):
     
     corr_shape_systs = {}
@@ -248,6 +278,9 @@ def get_fit_model(args):
                 norm_syst[norm] = { "samples" : ["TTJets_signal", "TTJets_bkg"], "value" : args["fit_norm_sigma"][norm] }
             elif norm == "mistag":
                 norm_syst[norm] = { "samples" : "QCD", "value" : args["fit_norm_sigma"][norm] }
+            elif norm == "xsec":
+                for s in args["mc"]: 
+                    norm_syst[norm] = { "samples" : s, "value" : get_xsec_uncertainty[s] }                
             else:
                 norm_syst[norm] = { "samples" : args["mc"], "value" : args["fit_norm_sigma"][norm] } 
     else:
