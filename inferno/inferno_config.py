@@ -30,6 +30,7 @@ args["sample_names"] = ["Data", "QCD", "TTJets_bkg", "WZJets", "STJets", "TTJets
 args["mc"] = ["TTJets_bkg", "WZJets", "STJets", "TTJets_signal"]
 args["exclude_train"] = False
 # Shape systs can be jes, jer, taue
+args["all_shape_syst"] = ["06_jes", "07_taue"] #jer]
 args["shape_syst"] = []#["06_jes", "07_taue"] #jer
 # Weight syst can be btag, trigger, pdf
 args["weight_syst"] = []#["btag_weight1"]

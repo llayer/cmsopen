@@ -61,7 +61,6 @@ def calc_xsec_uncertainty(samples, args):
 
 def adjust_naming(syst_names):
     syst = []
-    # Adjust the naming for combine
     for s in syst_names:
         if "jes" in s:
             syst.append('jes')
@@ -122,10 +121,9 @@ def print_normalization(samples):
     
 def scale_shape_norm(samples, nuisance, value):
     
-    renamed_nuis = adjust_naming([nuisance])[0]
-    if renamed_nuis in ["jes", "jer", "taue"]:
+    if nuisance in ["jes", "jer", "taue"]:
         for s in samples:
-            if renamed_nuis in s:
+            if nuisance in s:
                 pre_norm = samples[s]["weight"].sum()
                 if "up" in s:
                     set_normalization(samples[s], factor=1+value)
@@ -133,16 +131,16 @@ def scale_shape_norm(samples, nuisance, value):
                     set_normalization(samples[s], factor=1-value)
                 post_norm = samples[s]["weight"].sum()
                 print("Scaling", s, "from", pre_norm, "to", post_norm)
-    elif renamed_nuis in ["trigger", "btag", "pdf"]: 
+    elif nuisance in ["trigger", "btag", "pdf"]: 
         for s in samples:
             if s in args["mc"]:
-                if renamed_nuis == "pdf":
+                if nuisance == "pdf":
                     if s == "TTJets_signal":
-                        samples[s]["weight_" + renamed_nuis + "_up"] *= 1+values
-                        samples[s]["weight_" + renamed_nuis + "_down"] *= 1-values
+                        samples[s]["weight_" + nuisance + "_up"] *= 1+values
+                        samples[s]["weight_" + nuisance + "_down"] *= 1-values
                 else:
-                        samples[s]["weight_" + renamed_nuis + "_up"] *= 1+values
-                        samples[s]["weight_" + renamed_nuis + "_down"] *= 1-values
+                        samples[s]["weight_" + nuisance + "_up"] *= 1+values
+                        samples[s]["weight_" + nuisance + "_down"] *= 1-values
     else:
         raise ValueError("Specified NP", nuisance, "can't be scaled")
     
@@ -394,7 +392,7 @@ def assert_weight_syst(weight_syst):
 def assert_shape_syst(shape_syst):
     
     allowed_systs = ["jes", "jer", "taue"]
-    for syst in adjust_naming(shape_syst):
+    for syst in shape_syst:
         if syst not in allowed_systs:
             raise ValueError("Specified weight sytematic not allowed:", syst)
 
@@ -408,7 +406,7 @@ def assert_norm_syst(norm_syst):
 def set_systs(args):
     
     # Set names
-    args["systnames"] = adjust_naming(args["shape_syst"] + args["weight_syst"])
+    args["systnames"] = args["shape_syst"] + args["weight_syst"]
     # Check that the specified systematics are allowed:
     assert_shape_syst(args["shape_syst"] )
     assert_weight_syst(args["weight_syst"])
@@ -427,6 +425,7 @@ def set_systs(args):
     print("Summary features and systematics")
     print("*********************")
     print("Features", args["features"])
+    print("All loaded shape syst", args["all_shape_syst"])
     print("Shape systematics", args["shape_syst"])
     print("Weight systematics", args["weight_syst"])
     print("Signal norms", args["s_norm_sigma"])
@@ -448,17 +447,18 @@ def load_samples(path, shape_systs=[]):
         
         if ("Data" not in s) & ("QCD" not in s):
             for syst in shape_systs:
-                samples[s + "_" + syst + "_up"] = pd.read_hdf(path + s + "_" + syst + "_up" + ".h5")
-                samples[s + "_" + syst + "_down"] = pd.read_hdf(path + s + "_" + syst + "_down" + ".h5")
+                renamed_nuis = adjust_naming([syst])[0]
+                samples[s + "_" + renamed_nuis + "_up"] = pd.read_hdf(path + s + "_" + syst + "_up" + ".h5")
+                samples[s + "_" + renamed_nuis + "_down"] = pd.read_hdf(path + s + "_" + syst + "_down" + ".h5")
         
     return samples
 
         
-def load_data(features, shape_syst, weight_syst, path = "/home/centos/data/bdt_rs5/", bs=256, 
+def load_data(features, shape_syst, weight_syst, all_shape_syst=None, path = "/home/centos/data/bdt_rs5/", bs=256, 
               n_sig = 5000, n_bkg = 5000, use_weights = False, art_syst=None):
         
     # Load the samples
-    samples = load_samples(path, shape_syst)
+    samples = load_samples(path, all_shape_syst)
     
     # Set the weights
     set_weights(samples, weight_systs = weight_syst)

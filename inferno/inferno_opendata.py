@@ -40,7 +40,7 @@ def fit_cmsopen(args, fitvar, asimov = False):
     ws = fit.create_ws(config, workspace_path = ws_path, prune_stat=args["prune_stat"])
     if args["print_ws"]: print(ws)
     fit_results, scan_results = fit.fit_ws(ws, config, args, path, asimov=asimov) 
-    #fit.stat_only(config, fit_results, prune_stat=True)
+    fit.stat_only(config, fit_results, path = path, asimov=asimov, store=args["store"], prune_stat=args["prune_stat"])
     
     return ws
             
@@ -73,7 +73,7 @@ def train_cmsopen(opendata, test, args, epochs):
     # Compare the covariance matrices
     #
     #names = ["mu","JES", "JER"]#,'b-tag']
-    names = preproc.adjust_naming(["mu"] + args["systnames"] + args["s_norm_syst"] + args["b_norm_syst"])
+    names = ["mu"] + args["systnames"] + args["s_norm_syst"] + args["b_norm_syst"]
     plot.plot_cov(bce_info, inferno_info, names, args)
     
     return bce_model, inferno_model, order_d
@@ -123,6 +123,7 @@ def run_cmsopen( args, epochs=1, retrain = True, do_fit = False):
         opendata, test, samples, scaler = preproc.load_data( features = args["features"], 
                                                              shape_syst = args["shape_syst"],
                                                              weight_syst = args["weight_syst"],
+                                                             all_shape_syst = args["all_shape_syst"],
                                                              bs = args["bs"], n_sig = args["n_sig"], 
                                                              n_bkg = args["n_bkg"], 
                                                              use_weights = args["use_weights"], 
@@ -161,7 +162,7 @@ def run_cmsopen( args, epochs=1, retrain = True, do_fit = False):
         # Load samples with predictions
         print("*********************")
         print( "Loading samples from path", args["outpath"])
-        samples = preproc.load_samples( args["outpath"] + "/samples/", shape_systs = args["shape_syst"])
+        samples = preproc.load_samples( args["outpath"] + "/samples/", shape_systs = args["fit_shape_systs"])
         
     
     if do_fit:   

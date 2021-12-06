@@ -5,6 +5,8 @@ import matplotlib as mpl
 
 def plot_stack(model_pred, data, config=None, log_scale = True, store=False, path=""):
     
+    plt.rcParams.update(plt.rcParamsDefault)
+    
     data_yields = cabinetry.model_utils._data_per_channel(model_pred.model, data)[0]
     
     if config is not None:
@@ -146,9 +148,8 @@ def plot_stack(model_pred, data, config=None, log_scale = True, store=False, pat
 
     n_zero_pred = sum(total_yield == 0.0)  # number of bins with zero predicted yields
     if n_zero_pred > 0:
-        log.warning(
-            f"predicted yield is zero in {n_zero_pred} bin(s), excluded from ratio plot"
-        )
+        print("predicted yield is zero in {n_zero_pred} bin(s), excluded from ratio plot")
+        
     nonzero_model_yield = total_yield != 0.0
 
     # add uncertainty band around y=1

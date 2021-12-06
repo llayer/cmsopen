@@ -114,35 +114,37 @@ def fit_ws(ws, config, args, path, asimov = True):
         
     return fit_results, scan_results
 
-def stat_only(config, fit_results, prune_stat=True):
+def stat_only(config, fit_results, path="", asimov = True, store=True, prune_stat=True):
     
     fix = []
     for label, best in zip(fit_results.labels, fit_results.bestfit.tolist()):
-        if (label == "mu"): continue
+        if (label == "mu") | (label == "QCD_norm"): continue
         fix.append({"Name": label, "Value": best})   
     #print({"Fixed":fix})   
     
     config["General"].update({"Fixed":fix})
-    print(config)
+    #print(config)
     ws = cabinetry.workspace.build(config)
     if prune_stat:
         ws = dict(pyhf.Workspace(ws).prune(modifier_types=["staterror"]))
     
-    model, data = cabinetry.model_utils.model_and_data(ws, asimov=True)
+    model, data = cabinetry.model_utils.model_and_data(ws, asimov=asimov)
     model_pred = cabinetry.model_utils.prediction(model)
-    fit_results = cabinetry.fit.fit(model, data)        
-    print(fit_results)
+    fit_results_stat = cabinetry.fit.fit(model, data) 
+    if store == True:
+        store_fitresults(fit_results_stat, name = 'fit_results_stat', path = path)
+    #print(fit_results)
 
 #
 # Store fit results
 #
-def store_fitresults(fit_results, path=""):
+def store_fitresults(fit_results, name = 'fit_results', path=""):
     results = {}
     results["labels"] = fit_results.labels
     results["bestfit"] = fit_results.bestfit.tolist()
     results["uncertainty"] = fit_results.uncertainty.tolist()
     results["corr_mat"] = fit_results.corr_mat.flatten().tolist()
-    with open(path + '/fit_results.json', 'w') as outfile:
+    with open(path + '/' + name + '.json', 'w') as outfile:
         json.dump(results, outfile)
         
 def store_scan(scan_results, path=""):
