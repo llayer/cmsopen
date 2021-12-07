@@ -29,17 +29,18 @@ args["features"] = ['aplanarity', 'chargeEta', 'MET_met', 'deltaPhiTauMet']
 args["sample_names"] = ["Data", "QCD", "TTJets_bkg", "WZJets", "STJets", "TTJets_signal"]
 args["mc"] = ["TTJets_bkg", "WZJets", "STJets", "TTJets_signal"]
 args["exclude_train"] = False
+args["use_weights"] = True
 # Shape systs can be jes, jer, taue
-args["all_shape_syst"] = ["06_jes", "07_taue"] #jer]
-args["shape_syst"] = []#["06_jes", "07_taue"] #jer
+args["all_shape_syst"] = ["06_jes", "07_taue", "jer"]
+args["shape_syst"] = ["jes"] #, "taue",
+args["scale_shape_norms"] = [("jes", 0.06)]#["06_jes", "07_taue"] #jer
 # Weight syst can be btag, trigger, pdf
 args["weight_syst"] = []#["btag_weight1"]
 # Norm syst can be lumi, mistag, tau_trigger, tau_id, ttmass, ttq2, ttparton
-args["s_norm_syst"] = ["lumi"]
-args["b_norm_syst"] = ["mistag"]
+args["s_norm_syst"] = []#["lumi"]
+args["b_norm_syst"] = []#["mistag"]
 # Scale syst
 args["scale_norms_only"] = None #[("lumi", 2.)] #Pure norm syst
-args["scale_shape_norms"] = None #[("jes", 0.05)]# None
 # Ignore norms of shape
 args["ignore_shape_norm"] = False
 # Artificial systs
@@ -51,14 +52,15 @@ args["bs"] = 1000
 args["n_sig"] = 20000
 args["n_bkg"] = 5000
 args["bins"] = 10
-args["use_weights"] = False
 #
 # INFERNO args
 #
 # Asymmetric shape uncertainties
-args["asymm_shape_norm"] = False
+args["asymm_shape_norm"] = True
 #Sort the bins according to signal purity
 args["fit_sorted"] = False
+# Exclude zero bins in INFERNO
+args["exclude_zero"] = True
 # Model parameter
 args["inferno_lr"] = 1e-3
 args["inferno_neurons"] = 100

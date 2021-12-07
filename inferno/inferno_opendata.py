@@ -23,7 +23,10 @@ def fit_cmsopen(args, fitvar, asimov = False):
     if (fitvar == "bce") or (args["use_softhist"] == True):
         bins = np.linspace(0,1,args["bins"]+1)
     else:
-        bins = np.linspace(0,args["bins"],args["bins"]+1)
+        if args["exclude_zero"] == True:
+            bins = np.linspace(0,args["inferno_bins"],args["inferno_bins"]+1)
+        else:
+            bins = np.linspace(0,args["bins"],args["bins"]+1)
     
     # Get fit model
     corr_shape_systs, uncorr_shape_systs, norm_syst = fit.get_fit_model(args)
@@ -170,6 +173,10 @@ def run_cmsopen( args, epochs=1, retrain = True, do_fit = False):
         # Exclude the events used in the training from further processing   
         if args["exclude_train"] is True:
             preproc.exclude_train(samples)
+        
+        # Rebin INFERNO if zero bins
+        if args["exclude_zero"]:
+            fit.rebin_if_zero(samples, args)
         
         # Convert samples to ROOT trees
         fit.to_root(samples, path=args["outpath"], systs = args["weight_syst"])

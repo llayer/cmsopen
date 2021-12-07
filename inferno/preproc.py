@@ -179,8 +179,7 @@ def exclude_train(samples):
 def downsample_data(samples, sample_factor):
     
     print("*********************")
-    print("Downsampling data")
-    print("*********************")
+    print("Downsampling data by factor", sample_factor)
     for s in samples:
         if s == "Data":
             n_samples_pre = len(samples[s])
@@ -428,8 +427,10 @@ def set_systs(args):
     print("All loaded shape syst", args["all_shape_syst"])
     print("Shape systematics", args["shape_syst"])
     print("Weight systematics", args["weight_syst"])
+    print("Scale shapes", args["scale_shape_norms"])
     print("Signal norms", args["s_norm_sigma"])
     print("Background norms", args["b_norm_sigma"])
+    print("Scale norms", args["scale_norms_only"])
     
 def scale_shape(samples, scale_shape_norms):
     

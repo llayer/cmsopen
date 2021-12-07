@@ -336,7 +336,7 @@ class HEPInferno(AbsCallback):
         
         # Nominal weights
         w_s_nom = w_s[:,:,0] if w_s is not None else None
-        w_b_nom = w_s[:,:,0] if w_b is not None else None
+        w_b_nom = w_b[:,:,0] if w_b is not None else None
         
         u,d = [],[]
         # Loop over shape systematics

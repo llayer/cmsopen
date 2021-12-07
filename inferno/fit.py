@@ -14,9 +14,34 @@ logging.basicConfig(format="%(levelname)s - %(name)s - %(message)s")
 #cabinetry.set_logging()
 
 #
+# Exclude zero bins to avoid problems with fit
+#
+def rebin_if_zero(samples, args):
+    
+    counts = []
+    for s in args["sample_names"]:
+        counts.append(np.histogram(samples[s]["inferno"], range=(0,args["bins"]), bins=args["bins"])[0])
+    total_counts = np.array(counts).sum(0)
+    
+    if 0 not in total_counts:
+        args["inferno_bins"] = args["bins"]
+    else:
+        print("*********************")
+        print( "WARNING: Rebinning INFERNO due to zero bins")        
+        rebin = {}
+        nzeros = 0
+        for ibin, count in enumerate(total_counts):
+            if count == 0:
+                nzeros += 1 
+            rebin[ibin] = ibin - nzeros
+
+        for s in samples:
+            samples[s]["inferno"] = samples[s]["inferno"].replace(rebin)    
+        args["inferno_bins"] = args["bins"] - nzeros
+        
+#
 # Convert data to ROOT format
 #
-
 
 def create_tree(path, s, sample, weight="weight"):
     
