@@ -119,6 +119,9 @@ def print_normalization(samples):
     print("*********************")
     print()
     
+#
+# Scale or downsample the normalizations of the nuisances
+#
 def scale_shape_norm(samples, nuisance, value):
     
     if nuisance in ["jes", "jer", "taue"]:
@@ -144,6 +147,15 @@ def scale_shape_norm(samples, nuisance, value):
     else:
         raise ValueError("Specified NP", nuisance, "can't be scaled")
     
+    
+def scale_shape(samples, scale_shape_norms):
+    
+    print("*********************")
+    print("Scaling normalizations of shape systematics")
+    print("*********************")
+    for nuis in scale_shape_norms:
+        scale_shape_norm(samples, nuis[0], nuis[1])
+    
 def scale_norm_only(nuis, value, b_norm_sigma, s_norm_sigma):
     if nuis == "mistag":
         b_norm_sigma[nuis] *= value
@@ -151,31 +163,7 @@ def scale_norm_only(nuis, value, b_norm_sigma, s_norm_sigma):
     else:
         s_norm_sigma[nuis] *= value
         print("Scale", nuis, "to", s_norm_sigma[nuis])
-    
-def set_fit_norm_nuis(fit_norm_syst, s_norm_sigma, b_norm_sigma):
-    fit_norm_syst = get_norm_nuisance(fit_norm_syst)
-    for nuis in s_norm_sigma:
-        fit_norm_syst[nuis] = s_norm_sigma[nuis]
-    for nuis in b_norm_sigma:
-        fit_norm_syst[nuis] = b_norm_sigma[nuis]
-    return fit_norm_syst
-            
-    
-def exclude_train(samples):
-    
-    print("*********************")
-    print( "Excluding samples used in training")
-    
-    for s in samples:
-        if ( "QCD" in s) | ("TTJets_signal" in s):
-            n_samples_pre = len(samples[s])
-            norm_pre = samples[s]["weight"].sum()
-            samples[s] = samples[s][samples[s]["is_train"] == False]
-            norm_post = samples[s]["weight"].sum()
-            reweight_factor = norm_pre / float(norm_post)
-            set_normalization(samples[s], reweight_factor) 
-            assert(norm_pre - samples[s]["weight"].sum() < 0.0001)
-    
+
 def downsample_data(samples, sample_factor):
     
     print("*********************")
@@ -188,18 +176,6 @@ def downsample_data(samples, sample_factor):
             print("Downsampled data from", n_samples_pre, "to", n_samples_post)
         else:
             set_normalization(samples[s], sample_factor)
-
-def get_true_values(samples, args):
-    
-    # Set the normalizations for the training:
-    shape_norm_sigma = get_shape_norm(samples, args["shape_syst"], args["weight_syst"], asymm = args["asymm_shape_norm"] ) 
-    #print( args["shape_norm_sigma"] )
-    #[0.05, 0.02] # CHECK adjust for correct values
-    # Signal and bkg
-    mu_true = samples["TTJets_signal"]["weight"].sum()
-    #print(mu_true)
-    b_true = samples["QCD"]["weight"].sum() 
-    return b_true, mu_true, shape_norm_sigma
     
 #
 # Preparation of training data
@@ -349,7 +325,20 @@ def get_train_data(samples, features, shape_syst, weight_syst, n_sig = 20000, n_
         
     return trn, val, scaler
 
-
+def exclude_train(samples):
+    
+    print("*********************")
+    print( "Excluding samples used in training")
+    
+    for s in samples:
+        if ( "QCD" in s) | ("TTJets_signal" in s):
+            n_samples_pre = len(samples[s])
+            norm_pre = samples[s]["weight"].sum()
+            samples[s] = samples[s][samples[s]["is_train"] == False]
+            norm_post = samples[s]["weight"].sum()
+            reweight_factor = norm_pre / float(norm_post)
+            set_normalization(samples[s], reweight_factor) 
+            assert(norm_pre - samples[s]["weight"].sum() < 0.0001)
 
 #
 # Generate artificial systematic variation
@@ -379,7 +368,7 @@ def gen_artificial_systs(samples, artificial_syst):
             #print(list(zip(samples[s][col], samples[s + "_art_" + col + "_up"][col], samples[s + "_art_" + col + "_down"][col])))
 
 #
-# Data loading
+# Data loading and setting
 #
 def assert_weight_syst(weight_syst):
     
@@ -402,6 +391,26 @@ def assert_norm_syst(norm_syst):
         if syst not in allowed_systs:
             raise ValueError("Specified norm sytematic not allowed:", syst)
 
+def set_fit_norm_nuis(fit_norm_syst, s_norm_sigma, b_norm_sigma):
+    fit_norm_syst = get_norm_nuisance(fit_norm_syst)
+    for nuis in s_norm_sigma:
+        fit_norm_syst[nuis] = s_norm_sigma[nuis]
+    for nuis in b_norm_sigma:
+        fit_norm_syst[nuis] = b_norm_sigma[nuis]
+    return fit_norm_syst
+            
+def get_true_values(samples, args):
+    
+    # Set the normalizations for the training:
+    shape_norm_sigma = get_shape_norm(samples, args["shape_syst"], args["weight_syst"], asymm = args["asymm_shape_norm"] ) 
+    #print( args["shape_norm_sigma"] )
+    #[0.05, 0.02] # CHECK adjust for correct values
+    # Signal and bkg
+    mu_true = samples["TTJets_signal"]["weight"].sum()
+    #print(mu_true)
+    b_true = samples["QCD"]["weight"].sum() 
+    return b_true, mu_true, shape_norm_sigma
+            
 def set_systs(args):
     
     # Set names
@@ -431,14 +440,6 @@ def set_systs(args):
     print("Signal norms", args["s_norm_sigma"])
     print("Background norms", args["b_norm_sigma"])
     print("Scale norms", args["scale_norms_only"])
-    
-def scale_shape(samples, scale_shape_norms):
-    
-    print("*********************")
-    print("Scaling normalizations of shape systematics")
-    print("*********************")
-    for nuis in scale_shape_norms:
-        scale_shape_norm(samples, nuis[0], nuis[1])
     
 def load_samples(path, shape_systs=[]):
     

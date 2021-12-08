@@ -28,7 +28,7 @@ args["store"] = True
 args["features"] = ['aplanarity', 'chargeEta', 'MET_met', 'deltaPhiTauMet']
 args["sample_names"] = ["Data", "QCD", "TTJets_bkg", "WZJets", "STJets", "TTJets_signal"]
 args["mc"] = ["TTJets_bkg", "WZJets", "STJets", "TTJets_signal"]
-args["exclude_train"] = False
+args["exclude_train"] = True
 args["use_weights"] = True
 # Shape systs can be jes, jer, taue
 args["all_shape_syst"] = ["06_jes", "07_taue", "jer"]
@@ -81,7 +81,7 @@ args["bce_neurons"] = 20 # CHECK only affects first layer
 # FIT args
 #
 args["fit_asimov"] = True
-args["fit_data"] = False
+args["fit_data"] = True
 args["prune_stat"] = True
 args["minos"] = ["mu"]
 args["fit_sig_lim"] = False

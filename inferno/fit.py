@@ -102,7 +102,6 @@ def create_ws(config, workspace_path = "", postproc=True, prune_stat=True):
         ws = dict(pyhf.Workspace(ws).prune(modifier_types=["staterror"]))
     return ws
     
-    
 def fit_ws(ws, config, args, path, asimov = True):
     
     model, data = cabinetry.model_utils.model_and_data(ws, asimov=asimov)
@@ -114,13 +113,18 @@ def fit_ws(ws, config, args, path, asimov = True):
     logging.getLogger("cabinetry").setLevel(logging.INFO)
     if args["print_yields"]: cabinetry.tabulate.yields(model_pred, data, per_bin=False, per_channel=True)
     fit_results = cabinetry.fit.fit(model, data, minos=args["minos"])
+    #print(fit_results)
     logging.getLogger("cabinetry").setLevel(logging.WARNING)
-    cabinetry.visualize.pulls(fit_results, exclude=["mu"], save_figure=args["store"], close_figure = False, figure_folder=path)
-    cabinetry.visualize.correlation_matrix(fit_results, save_figure=args["store"], close_figure = True, figure_folder=path)
+    if (len(args["fit_shape_systs"]) + len(args["fit_norm_syst"])) > 0:
+        cabinetry.visualize.pulls(fit_results, exclude=["mu"], save_figure=args["store"], 
+                                  close_figure = False, figure_folder=path)
+        cabinetry.visualize.correlation_matrix(fit_results, save_figure=args["store"], 
+                                               close_figure = True, figure_folder=path)
+        ranking_results = cabinetry.fit.ranking(model, data, fit_results=fit_results)
+        #print(ranking_results)
+        cabinetry.visualize.ranking(ranking_results, save_figure=args["store"], close_figure = False, figure_folder=path)
+
     scan_results = cabinetry.fit.scan(model, data, "mu", n_steps=args["n_steps"])
-    ranking_results = cabinetry.fit.ranking(model, data, fit_results=fit_results)
-    #print(ranking_results)
-    cabinetry.visualize.ranking(ranking_results, save_figure=args["store"], close_figure = False, figure_folder=path)
     
     #print(scan_results)
     #cabinetry.visualize.scan(scan_results)
@@ -155,7 +159,7 @@ def stat_only(config, fit_results, path="", asimov = True, store=True, prune_sta
     
     model, data = cabinetry.model_utils.model_and_data(ws, asimov=asimov)
     model_pred = cabinetry.model_utils.prediction(model)
-    fit_results_stat = cabinetry.fit.fit(model, data) 
+    fit_results_stat = cabinetry.fit.fit(model, data, minos=["mu"]) 
     if store == True:
         store_fitresults(fit_results_stat, name = 'fit_results_stat', path = path)
     #print(fit_results)
@@ -168,6 +172,8 @@ def store_fitresults(fit_results, name = 'fit_results', path=""):
     results["labels"] = fit_results.labels
     results["bestfit"] = fit_results.bestfit.tolist()
     results["uncertainty"] = fit_results.uncertainty.tolist()
+    print(fit_results.minos_uncertainty)
+    results["minos_mu"] = fit_results.minos_uncertainty["mu"]
     results["corr_mat"] = fit_results.corr_mat.flatten().tolist()
     with open(path + '/' + name + '.json', 'w') as outfile:
         json.dump(results, outfile)
@@ -202,6 +208,7 @@ def load_fitresults(path=""):
         results = json.load(json_file)
     results["bestfit"] = np.array(results["bestfit"])
     results["uncertainty"] = np.array(results["uncertainty"])
+    results["minos_mu"] = np.array(results["minos_mu"])
     dim = int(np.sqrt(len(results["corr_mat"])))
     results["corr_mat"] = np.array(results["corr_mat"]).reshape(dim, dim)
     
@@ -248,6 +255,7 @@ def print_summary(results, sig_lim=None, name=""):
     print("Summary", name)
     for lab, best, std in zip(results["labels"], results["bestfit"], results["uncertainty"]):
         print(lab, round(best,3), "+-", round(std, 3))
+    print("Minos uncertainty mu", results["minos_mu"][0], results["minos_mu"][1])
     print("Correlation matrix")
     print(results["corr_mat"])
     if sig_lim is not None:
@@ -275,14 +283,14 @@ def compare_results(args):
         
         #BCE
         bce_res = load_fitresults( args["outpath"] + "/fit/bce" )
-        bce_sig_lim = load_sig_lim( args["outpath"] + "/fit/bce" )
+        bce_sig_lim = load_sig_lim( args["outpath"] + "/fit/bce" ) if args["fit_sig_lim"] == True else None
         bce_scan = load_scan( args["outpath"] + "/fit/bce" )
         print_summary(bce_res, bce_sig_lim, "bce")
 
         # INFERNO
         inferno_res = load_fitresults( args["outpath"] + "/fit/inferno" )
         inferno_scan = load_scan( args["outpath"] + "/fit/inferno")
-        inferno_sig_lim = load_sig_lim( args["outpath"] + "/fit/inferno" )
+        inferno_sig_lim = load_sig_lim( args["outpath"] + "/fit/inferno" ) if args["fit_sig_lim"] == True else None
         print_summary(inferno_res, inferno_sig_lim, "inferno")
 
         # Plot likelihood scans

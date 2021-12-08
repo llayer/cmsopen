@@ -18,6 +18,8 @@ def plot_cov(bce_info, inferno_info, names, args):
 
 def plot_inferno(df_inf, info, args, order_d):
     
+    plt.rcParams.update(plt.rcParamsDefault)
+    
     # Plot loss
     plot_loss(info["loss"], outpath=args["outpath"], store=args["store"])
     
@@ -44,6 +46,8 @@ def plot_inferno(df_inf, info, args, order_d):
     
     
 def plot_bce(df_bce, info, args):
+    
+    plt.rcParams.update(plt.rcParamsDefault)
     
     # Plot loss
     plot_loss(info["loss"], name="bce", outpath=args["outpath"], store=args["store"])
@@ -391,7 +395,9 @@ def plot_cov_infbce(bce_covs, inf_covs, names, stddev=False, outpath=".", store=
 # Compare the likelihood scan for INFERNO and BCE
 #     
 def plot_scan(bce, inferno, path="", asimov = True, store=False):
-                
+          
+    plt.rcParams.update(plt.rcParamsDefault)
+        
     plt.figure()#dpi=150)
     plt.plot(bce["parameter_values"], bce["delta_nlls"], label="BCE")
     plt.plot(inferno["parameter_values"], inferno["delta_nlls"], label="INFERNO")

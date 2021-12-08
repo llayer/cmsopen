@@ -188,7 +188,10 @@ def plot_stack(model_pred, data, config=None, log_scale = True, store=False, pat
     if log_scale or (log_scale is None and (y_max / y_min) > 100):
         # log vertical axis scale and limits
         ax1.set_yscale("log")
-        ax1.set_ylim([y_min / 10, y_max * 10])
+        if variable == "inferno":
+            ax1.set_ylim([y_min / 10, y_max * 100])
+        else:
+            ax1.set_ylim([y_min / 10, y_max * 10])            
     else:
         # do not use log scale
         ax1.set_ylim([0, y_max * 1.5])  # 50% headroom
@@ -198,7 +201,7 @@ def plot_stack(model_pred, data, config=None, log_scale = True, store=False, pat
     all_containers = mc_containers[::-1] + [mc_unc_container, data_container]
     all_labels = mc_labels[::-1] + ["Uncertainty", data_label]
     ax1.legend(
-        all_containers, all_labels, frameon=False, fontsize="large", loc="upper right", ncol=2, #handleheight=0.6
+        all_containers, all_labels, frameon=False, fontsize=10, loc="upper right", ncol=2, #handleheight=0.6
     )
 
     #plt.legend(fontsize='xx-large', ncol=2,handleheight=2.4, labelspacing=0.05)
@@ -219,11 +222,13 @@ def plot_stack(model_pred, data, config=None, log_scale = True, store=False, pat
                 fontsize=16)
 
     ax2.set_xlim(bin_edges[0], bin_edges[-1])
-    ax2.set_ylim([0.5, 1.5])
+    ax2.set_ylim([0., 2.])
     ax2.set_xlabel(histogram_dict_list[0]["variable"])
     ax2.set_ylabel("data / model")
-    ax2.set_yticks([0.5, 0.75, 1.0, 1.25, 1.5])
-    ax2.set_yticklabels([0.5, 0.75, 1.0, 1.25, ""])
+    #ax2.set_yticks([0.5, 0.75, 1.0, 1.25, 1.5])
+    #ax2.set_yticklabels([0.5, 0.75, 1.0, 1.25, ""])
+    ax2.set_yticks([0.5, 1.0, 1.5, 2.])
+    ax2.set_yticklabels([0.5, 1.0, 1.5, ""])
     ax2.tick_params(axis="both", which="major", pad=8)
     ax2.tick_params(direction="in", top=True, right=True, which="both")
 
