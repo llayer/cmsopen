@@ -37,10 +37,11 @@ def main(args):
     print("Filelist:")
     arguments = []
     counter = 0
-    for filename in os.listdir("data/"):
+    data_path = "/afs/cern.ch/work/l/llayer/legacy/CMSSW_5_3_32/src/cmsopen/aod2nano/data/"
+    for filename in os.listdir(data_path):
         if process in filename:
             print("    %s." % filename)
-            for line in open("data/" + filename, "r").readlines():
+            for line in open(data_path + filename, "r").readlines():
                 arguments.append("%u %s %s" % (counter, process, line))
                 counter += 1
     print("Number of jobs: %u" % len(arguments))

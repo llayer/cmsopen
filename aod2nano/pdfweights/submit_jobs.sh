@@ -1,15 +1,16 @@
 #!/bin/bash
 
 # Define path for job directories
-BASE_PATH=/afs/cern.ch/work/l/llayer/CMSSW_5_3_32/src/workspace/pdfweights/out
+BASE_PATH=//afs/cern.ch/work/l/llayer/legacy/CMSSW_5_3_32/src/cmsopen/aod2nano/pdfweights/jobs
 #BASE_PATH=/path/to/job/directory
 mkdir -p $BASE_PATH
 
 # Set processes
 PROCESSES=( \
     #testTT \
-    #TTJets \
-    missing_TTJets \
+    #test
+    TTJets \
+    #missing_TTJets \
     #WJetsToLNu \
     #DYJetsToLL \
     #T_TuneZ2_s \

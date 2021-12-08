@@ -64,7 +64,7 @@ process.out = cms.OutputModule('PoolOutputModule',
 
 
 #text_file = open("evlist.txt", "r")
-text_file = open("/afs/cern.ch/work/l/llayer/CMSSW_5_3_32/src/workspace/pdfweights/TTJets_ids.txt", "r")
+text_file = open("/afs/cern.ch/work/l/llayer/legacy/CMSSW_5_3_32/src/cmsopen/aod2nano/data/ttjets_idx.txt", "r")
 lines = text_file.read().split('\n')
 print lines[:5]
 text_file.close()
