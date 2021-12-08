@@ -3,7 +3,7 @@ import inferno_config
 
 # Load the default config of the training
 args = inferno_config.args
-path = "/home/centos/mount_point/data/basic_experiments3/"
+path = "/home/centos/mount_point/data/basic_experiments4/"
 epochs = 100
 experiments = []
 
@@ -93,13 +93,41 @@ ex10["outpath"] = path + name
 ex10["interp_algo"] = "fast_vertical"
 experiments.append(ex10)
 
+# Experiment 11 - 60 inferno neurons 
+name = "neurons60"
+ex11 = args.copy()
+ex11["outpath"] = path + name
+ex11["inferno_neurons"] = 60
+experiments.append(ex11)
+
+# Experiment 12 - 30 neurons
+name = "neurons30"
+ex12 = args.copy()
+ex12["outpath"] = path + name
+ex12["inferno_neurons"] = 30
+experiments.append(ex12)
+
+# Experiment 13 - temperature 0.5
+name = "temperature05"
+ex13 = args.copy()
+ex13["outpath"] = path + name
+ex13["temperature"] = 0.5
+experiments.append(ex13)
+
+# Experiment 14 - fast vertical interpolation
+name = "temperature09"
+ex14 = args.copy()
+ex14["outpath"] = path + name
+ex14["temperature"] = 0.9
+experiments.append(ex14)
+
 if __name__ == "__main__":
     
     
     for i, ex in enumerate(experiments):
         #print(ex)
         try:
-            inferno_opendata.run_cmsopen(ex, epochs = epochs, retrain=False, do_fit = True)
+            inferno_opendata.run_cmsopen(ex, epochs = epochs, retrain=True, do_fit = True)
         except:
             print("Ex", str(i), "failed")
    
