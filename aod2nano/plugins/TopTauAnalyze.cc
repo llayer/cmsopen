@@ -32,6 +32,7 @@ TopTauAnalyze::TopTauAnalyze(const edm::ParameterSet& cfg)
   edm::Service<TFileService> fs;
 
   isData            = cfg.getParameter < bool >      ("isData");
+  isTT              = cfg.getParameter < bool >      ("isTT");
   inFile            = cfg.getParameter < std::string >("inFile");
   jecUncName        = cfg.getParameter <std::string>("jecUncName"); // JEC uncertainties
   prefilter         = cfg.getParameter < bool >      ("prefilter");
@@ -1061,35 +1062,37 @@ void TopTauAnalyze::analyze(const edm::Event& evt, const edm::EventSetup& setup)
 
     }
 
-    // TTbar event
-    Handle < reco::GenParticleCollection > genParticles;
-    evt.getByLabel ("genParticles", genParticles);
-    edm::Handle<TtGenEvent> genEvent;
-    evt.getByLabel("genEvt", genEvent);
+    if( isTT ){
 
-    //std::cout << "isTtBar " << genEvent->isTtBar() << std::endl;
+      // TTbar event
+      Handle < reco::GenParticleCollection > genParticles;
+      evt.getByLabel ("genParticles", genParticles);
+      edm::Handle<TtGenEvent> genEvent;
+      evt.getByLabel("genEvt", genEvent);
 
-    value_isTT = genEvent->isTtBar();
+      //std::cout << "isTtBar " << genEvent->isTtBar() << std::endl;
 
-    if( genEvent->isTtBar() ){
+      value_isTT = genEvent->isTtBar();
 
-      int tmeme = GetTTbarTruth(genParticles);
-      //std::cout << "TMEME" << tmeme << std::endl;
+      if( genEvent->isTtBar() ){
 
-      value_tmeme_ = tmeme;
-      value_nLep_ = genEvent->numberOfLeptons();
-      value_topPt_ = genEvent->top()->pt();
-      value_topEta_ = genEvent->top()->eta();
-      value_topPhi_ = genEvent->top   ()->phi();
-      value_topBarPt_ = genEvent->topBar()->pt();
-      value_topBarEta_ = genEvent->topBar()->eta();
-      value_topBarPhi_ = genEvent->topBar()->phi();
-      value_ttbarPt_ = genEvent->topPair()->pt();
-      value_ttbarEta_ = genEvent->topPair()->eta();
-      value_ttbarPhi_ = genEvent->topPair()->phi();
+        int tmeme = GetTTbarTruth(genParticles);
+        //std::cout << "TMEME" << tmeme << std::endl;
 
+        value_tmeme_ = tmeme;
+        value_nLep_ = genEvent->numberOfLeptons();
+        value_topPt_ = genEvent->top()->pt();
+        value_topEta_ = genEvent->top()->eta();
+        value_topPhi_ = genEvent->top   ()->phi();
+        value_topBarPt_ = genEvent->topBar()->pt();
+        value_topBarEta_ = genEvent->topBar()->eta();
+        value_topBarPhi_ = genEvent->topBar()->phi();
+        value_ttbarPt_ = genEvent->topPair()->pt();
+        value_ttbarEta_ = genEvent->topPair()->eta();
+        value_ttbarPhi_ = genEvent->topPair()->phi();
+
+      }
     }
-
   }
 
   ///////////////////////////
@@ -1157,7 +1160,8 @@ bool TopTauAnalyze::pass_prefilter(){
 
   if( isData )
     if (pass_trigger() == false){
-      cout<< "Does not pass trigger" <<std::endl;
+      //cout<< "Does not pass trigger" <<std::endl;
+
       return false;
     }
 

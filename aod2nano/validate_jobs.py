@@ -100,12 +100,14 @@ def check_sample(sample_name = "Run2011A_MultiJet", nano = True, isData = True):
 
 if __name__ == "__main__":
 
-    """
-    for d in data:
+
+    for d in ['Run2011A_MultiJet', 'Run2011B_MultiJet']:#data:
         print d
         check_sample(sample_name = d, nano = False, isData = True)
-    """
 
-    for m in ["TTJets"]:#mc:
+
+    """
+    for m in ['DYJetsToLL']:#mc:
         print m
         check_sample(sample_name = m, nano = False, isData = False)
+    """

@@ -12,20 +12,34 @@ print(cmssw_base)
 #
 # can be invoked with no parameters passed, in this case use default values
 #
-if len(sys.argv) > 2:
+
+prefilter = True
+prefilter_tau_trigger = False
+prefilter_jet_trigger = False
+if len(sys.argv) > 3:
+    run_jet_trigger = int(sys.argv[3])
+    runOnMC = int(sys.argv[2])
+    prefilter = False
+    if run_jet_trigger == 1:
+        prefilter_jet_trigger = True
+    else:
+        prefilter_tau_trigger = True
+elif len(sys.argv) > 2:
     runOnMC = int(sys.argv[2])
 else:
-  print("Usage: cmsRun analyzer_cfg.py <mc flag> <skim tau flag>")
-  runOnMC = 1
-  skim = 1
-  # do not stop execution at this point, run with default arguments
-  #sys.exit("Wrong usage!")
+    runOnMC = 1
 
 
 print "Run on MC = ", runOnMC
+print "Run prefilter = ", prefilter
+print "Run jet trigger prefilter = ", prefilter_jet_trigger
+print "Run tau trigger prefilter = ", prefilter_tau_trigger
 maxEvents = -1
 pfMuonIsoConeR03 = True
 pfElectronIsoConeR03 = True
+jet_cut_pt = 10.
+tau_cut_pt = 10.
+
 #skim = False
 ########################################################################
 #################### Setup process #####################################
@@ -61,7 +75,7 @@ if runOnMC == 0:
     files = ["file:data.root"]#  "root://eospublic.cern.ch//eos/opendata/cms/Run2011A/MultiJet/AOD/12Oct2013-v1/20001/BE90B0AD-EF4B-E311-8429-003048F010A2.root"]
 else:
     #files = ["root://eospublic.cern.ch//eos/opendata/cms/MonteCarlo2011/Summer11LegDR/TTJets_TuneZ2_7TeV-madgraph-tauola/AODSIM/PU_S13_START53_LV6-v1/00000/0005D1FB-4BCF-E311-9FE4-002590A8312A.root"]
-    files = ["file:TTJets.root"] # wjets.root"] #
+    files = ["file:TTJets.root"] # wjets.root"] #["file:wjets.root"]#[
 
 process.source = cms.Source(
     "PoolSource", fileNames=cms.untracked.vstring(*files))
@@ -317,21 +331,18 @@ if runOnMC:
 
 if runOnMC:
     isData = False
-    prefilter = True
-    prefilter_tau_trigger = False
-    prefilter_jet_trigger = False
-    jet_cut_pt = 10.
-    tau_cut_pt = 10.
 else:
     isData = True
-    prefilter = True
-    prefilter_tau_trigger = False
-    prefilter_jet_trigger = False
-    jet_cut_pt = 10.
-    tau_cut_pt = 10.
+if "TTJets" in files[0]:
+    isTT = True
+else:
+    isTT = False
+
+print "Process TTJets", isTT
 
 process.MyModule = cms.EDAnalyzer('TopTauAnalyze',
     isData = cms.bool(isData),
+    isTT = cms.bool(isTT),
     inFile = cms.string(files[0]),
     jecUncName = cms.string(cmssw_base + '/src/cmsopen/aod2nano/JEC/START53_LV6A1_Uncertainty_AK5PF.txt'),
     prefilter = cms.bool(prefilter),
@@ -376,7 +387,7 @@ if event_cleaning:
 process.taujet += process.patPF2PATSequencePF
 process.taujet += process.nEventsFiltered
 
-if "TTJets" in files[0]:
+if isTT:
     process.load("TopQuarkAnalysis.TopEventProducers.sequences.ttGenEvent_cff")
     process.taujet += process.makeGenEvt
     print "Create gen event"

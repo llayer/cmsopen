@@ -1,36 +1,16 @@
 #!/bin/bash
-
+CMSSW_BASE=/afs/cern.ch/work/l/llayer/legacy/CMSSW_5_3_32
 # Define path for job directories
-BASE_PATH=/afs/cern.ch/work/l/llayer/CMSSW_5_3_32/src/workspace/nano/out
+BASE_PATH=$CMSSW_BASE/src/cmsopen/aod2nano/trigger/jobs
 #BASE_PATH=/path/to/job/directory
 mkdir -p $BASE_PATH
 
 # Set processes
 PROCESSES=( \
-    Run2011A \
-    #TTJets \
-    #SMHiggsToZZTo4L \
-    #ZZTo2e2mu \
-    #ZZTo4mu \
-    #ZZTo4e \
-    #GluGluToHToTauTau \
-    #VBF_HToTauTau \
-    #TTbar \
-    #W1JetsToLNu \
-    #W2JetsToLNu \
-    #W3JetsToLNu \
-    #DYJetsToLL \
-    #Run2012B_TauPlusX\
-    #Run2012C_TauPlusX\
-    #DY2JetsToLL \
-    #DY3JetsToLL \
-    #DY4JetsToLL \
-    #Run2012B_SingleMu\
-    #Run2012C_SingleMu\
-    #Run2012B_DoubleMuParked \
-    #Run2012C_DoubleMuParked \
-    #Run2012B_DoubleElectron \
-    #Run2012C_DoubleElectron \
+    Run2011A_MultiJet \
+    Run2011B_MultiJet \
+    Run2011A_SingleMu \
+    Run2011B_SingleMu \
     )
 
 # Create JDL files and job directories

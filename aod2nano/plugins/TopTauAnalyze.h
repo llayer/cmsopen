@@ -39,6 +39,7 @@ class TopTauAnalyze : public edm::EDAnalyzer {
 
 
   bool isData;
+  bool isTT;
   std::string inFile;
   bool prefilter;
   bool prefilter_jet_trigger;
