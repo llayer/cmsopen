@@ -23,7 +23,7 @@ args = {}
 #
 # General args
 #
-args["outpath"] = "/home/centos/mount_point/data/inferno_cmsopen0" #"/home/centos/data/inferno_cmsopen16"
+args["outpath"] = "/home/centos/mount_point/data/inferno_cmsopen3" #"/home/centos/data/inferno_cmsopen16"
 args["store"] = True
 args["features"] = ['aplanarity', 'chargeEta', 'MET_met', 'deltaPhiTauMet']
 args["sample_names"] = ["Data", "QCD", "TTJets_bkg", "WZJets", "STJets", "TTJets_signal"]
@@ -87,7 +87,7 @@ args["minos"] = ["mu"]
 args["fit_sig_lim"] = False
 args["print_ws"] = True
 args["print_yields"] = True
-args["fit_floatQCD"] = False
+args["fit_floatQCD"] = True
 args["fit_model"] = "signal_only"
 args["fit_shape_systs"] = []#{"TTJets_signal" : ["btag"], "TTJets_bkg" : ["btag"]}
 args["fit_norm_syst"] = [] #["tau_trigger"]# {"lumi":{ "samples" : mc, "value" : 0.02 }, }

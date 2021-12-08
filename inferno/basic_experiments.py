@@ -3,7 +3,7 @@ import inferno_config
 
 # Load the default config of the training
 args = inferno_config.args
-path = "/home/centos/mount_point/data/basic_experiments4/"
+path = "/home/centos/mount_point/data/basic_experiments5/"
 epochs = 100
 experiments = []
 
@@ -127,7 +127,7 @@ if __name__ == "__main__":
     for i, ex in enumerate(experiments):
         #print(ex)
         try:
-            inferno_opendata.run_cmsopen(ex, epochs = epochs, retrain=True, do_fit = True)
+            inferno_opendata.run_cmsopen(ex, epochs = epochs, retrain=False, do_fit = True)
         except:
             print("Ex", str(i), "failed")
    

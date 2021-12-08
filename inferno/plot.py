@@ -83,6 +83,7 @@ def store_loss_cov(info, outpath=".", name="inferno"):
 #
 def plot_loss(lt, outpath=".", name="inferno", store=False):
     
+    plt.figure()#dpi=150)
     plt.plot(lt.losses["trn"], label="train")
     plt.plot(lt.losses["val"], label="val")
     if name == "inferno":
@@ -109,6 +110,7 @@ def plot_predictions(df, bins=10, plot_sorted = False, use_hist = False, outpath
         hist_range=(0.,1.)
     else:
         hist_range=(0.,bins)
+    plt.figure()#dpi=150)
     plt.hist(sig, density=True, alpha=0.5, bins=bins, range=hist_range, label="Signal")
     plt.hist(bkg, density=True, alpha=0.5, bins=bins, range=hist_range, label="Background")
     plt.legend(loc="upper left")
