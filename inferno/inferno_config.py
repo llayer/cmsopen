@@ -23,7 +23,7 @@ args = {}
 #
 # General args
 #
-args["outpath"] = "/home/centos/mount_point/data/inferno_cmsopen3" #"/home/centos/data/inferno_cmsopen16"
+args["outpath"] = "/home/centos/mount_point/data/inferno_cmsopen5" #"/home/centos/data/inferno_cmsopen16"
 args["store"] = True
 args["features"] = ['aplanarity', 'chargeEta', 'MET_met', 'deltaPhiTauMet']
 args["sample_names"] = ["Data", "QCD", "TTJets_bkg", "WZJets", "STJets", "TTJets_signal"]
@@ -31,7 +31,7 @@ args["mc"] = ["TTJets_bkg", "WZJets", "STJets", "TTJets_signal"]
 args["exclude_train"] = True
 args["use_weights"] = True
 # Shape systs can be jes, jer, taue
-args["all_shape_syst"] = ["06_jes", "07_taue", "jer"]
+args["all_shape_syst"] = ["06_jes", "05_taue", "jer"]
 args["shape_syst"] = ["jes"] #, "taue",
 args["scale_shape_norms"] = [("jes", 0.06)]#["06_jes", "07_taue"] #jer
 # Weight syst can be btag, trigger, pdf
@@ -81,11 +81,11 @@ args["bce_neurons"] = 20 # CHECK only affects first layer
 # FIT args
 #
 args["fit_asimov"] = True
-args["fit_data"] = True
+args["fit_data"] = False
 args["prune_stat"] = True
 args["minos"] = ["mu"]
-args["fit_sig_lim"] = False
-args["print_ws"] = True
+args["fit_sig_lim"] = True
+args["print_ws"] = False
 args["print_yields"] = True
 args["fit_floatQCD"] = True
 args["fit_model"] = "signal_only"
