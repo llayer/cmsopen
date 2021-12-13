@@ -108,7 +108,7 @@ def fit_ws(ws, config, args, path, asimov = True):
     model_pred = cabinetry.model_utils.prediction(model)
     #figures = cabinetry.visualize.data_mc(model_pred, data, config=config, log_scale=True,
     #                                      save_figure=args["store"], figure_folder=path)
-    stack.plot_stack(model_pred, data, config=config, log_scale=True, store=args["store"], path=path)
+    stack.plot_from_model(model_pred, data, config=config, log_scale=True, store=args["store"], path=path)
     cabinetry.visualize.templates(config, save_figure=args["store"], close_figure = True, figure_folder=path)
     logging.getLogger("cabinetry").setLevel(logging.INFO)
     if args["print_yields"]: cabinetry.tabulate.yields(model_pred, data, per_bin=False, per_channel=True)

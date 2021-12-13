@@ -3,7 +3,95 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib as mpl
 
-def plot_stack(model_pred, data, config=None, log_scale = True, store=False, path=""):
+
+def plot_shape(bkg, sig, up, down, edges, centers, var):
+    
+    fig, (ax1, ax2) = plt.subplots(nrows=2, gridspec_kw={'height_ratios': [3,1]}, figsize=(8,6))
+    ax1.stairs(bkg, edges, label="bkg", color="blue")
+    ax1.stairs(sig, edges, label="sig", color="orange")
+    ax1.stairs(up, edges, label="sig up", color="green")
+    ax1.stairs(down, edges, label="sig down", color="red")
+    ax1.legend(loc="upper right")
+    
+    ax2.scatter(centers, np.array(up) / np.array(sig), color="green")
+    ax2.scatter(centers, np.array(down) / np.array(sig), color="red")
+    ax2.hlines(1., 0, edges[-1], linestyle="dotted", color="black")
+    ax2.set_ylim((0,2))
+    ax2.set_xlabel(var)
+          
+    plt.show()    
+    
+
+def plot_var_shape(samples, shape_syst, weight_syst, var = "MET_met", bins=20, range=(0., 350.)):
+
+    for syst in shape_syst:
+
+        bkg, bkg_weight = samples["QCD"][var], samples["QCD"]["weight"]
+        sig, sig_weight = samples["TTJets_signal"][var], samples["TTJets_signal"]["weight"]
+        sig_up, sig_up_weight = samples["TTJets_signal_" + syst + "_up"][var], samples["TTJets_signal_" + syst + "_up"]["weight"]
+        sig_down, sig_down_weight = samples["TTJets_signal_" + syst + "_down"][var], samples["TTJets_signal_" + syst + "_down"]["weight"]
+
+        bkg_shape, edges = np.histogram(bkg, bins=bins, weights=bkg_weight, range=range, density=True)
+        sig_shape = np.histogram(sig, weights=sig_weight, bins=bins, range=range, density=True)[0]
+        sig_up_shape = np.histogram(sig_up, weights=sig_up_weight, bins=bins, range=range, density=True)[0]
+        sig_down_shape = np.histogram(sig_down, weights=sig_down_weight, bins=bins, range=range, density=True)[0]
+
+        centers = edges[:-1] + (range[1]/float(bins))/float(2)
+        plot_shape(bkg_shape, sig_shape, sig_up_shape, sig_down_shape, edges, centers, var)
+
+    for syst in weight_syst:
+
+        bkg, bkg_weight = samples["QCD"][var], samples["QCD"]["weight"]
+        sig, sig_weight = samples["TTJets_signal"][var], samples["TTJets_signal"]["weight"]
+        sig_up, sig_up_weight = samples["TTJets_signal"][var], samples["TTJets_signal"]["weight_" + syst + "_up"]
+        sig_down, sig_down_weight = samples["TTJets_signal"][var], samples["TTJets_signal"]["weight_" + syst + "_down"]
+
+        bkg_shape, edges = np.histogram(bkg, bins=bins, weights=bkg_weight, range=range, density=True)
+        sig_shape = np.histogram(sig, weights=sig_weight, bins=bins, range=range, density=True)[0]
+        sig_up_shape = np.histogram(sig_up, weights=sig_up_weight, bins=bins, range=range, density=True)[0]
+        sig_down_shape = np.histogram(sig_down, weights=sig_down_weight, bins=bins, range=range, density=True)[0]
+
+        centers = edges[:-1] + (range[1]/float(bins))/float(2)
+        plot_shape(bkg_shape, sig_shape, sig_up_shape, sig_down_shape, edges, centers, var)
+
+
+
+def get_yield(sample, var, bins=30, range=(0,350.), log_scale = True, store=False, path=""):
+    
+    n, bins = np.histogram(sample[var], bins=bins, range=range, weights=sample['weight'])
+    n_err = np.sqrt(np.histogram(sample[var], bins=bins, weights=sample['weight']**2)[0])
+    
+    return n, n_err, bins
+
+def plot_from_pd(samples, variable = "MET_met", bins=30, range=(0,350.)):
+    
+    mc_histograms_yields, mc_colors, mc_labels = [], [], []
+    total_model_unc = 0
+    data_histogram_yields, data_histogram_stdev = 0,0 
+    data_label = ""
+    bin_edges = 0
+    colors = ['k', 'C0', "C3", "C2", "C1", "C4"]
+
+    for i, s in enumerate(args["sample_names"]):
+
+        n, n_err, bin_edges = get_yield(samples[s], variable, bins=bins, range=range)
+
+        if "Data" not in s:
+            mc_histograms_yields.append(n)
+            mc_labels.append(s)
+            mc_colors.append(colors[i])
+            total_model_unc += n_err
+        else:
+            data_histogram_yields = n
+            data_histogram_stdev = n_err
+            data_label = s    
+            
+    plot_stack(mc_histograms_yields, mc_colors, mc_labels, total_model_unc, 
+                data_histogram_yields, data_histogram_stdev, data_label,
+                variable, bin_edges, log_scale = log_scale, store=store, path=path)
+
+
+def plot_from_model(model_pred, data, config=None, log_scale = True, store=False, path=""):
     
     plt.rcParams.update(plt.rcParamsDefault)
     
@@ -73,6 +161,16 @@ def plot_stack(model_pred, data, config=None, log_scale = True, store=False, pat
             mc_histograms_yields.append(h["yields"])
             mc_labels.append(h["label"])
             mc_colors.append(h["color"])
+            
+    plot_stack(mc_histograms_yields, mc_colors, mc_labels, total_model_unc, 
+               data_histogram_yields, data_histogram_stdev, data_label,
+               variable, bin_edges,
+               log_scale = log_scale, store=store, path=path)
+
+            
+def plot_stack(mc_histograms_yields, mc_colors, mc_labels, total_model_unc, 
+               data_histogram_yields, data_histogram_stdev, data_label, variable, bin_edges,
+               log_scale = True, store=False, path=""):
             
     fig = plt.figure(figsize=(6, 5))
     gs = fig.add_gridspec(nrows=2, ncols=1, hspace=0, height_ratios=[3, 1])
@@ -223,7 +321,7 @@ def plot_stack(model_pred, data, config=None, log_scale = True, store=False, pat
 
     ax2.set_xlim(bin_edges[0], bin_edges[-1])
     ax2.set_ylim([0., 2.])
-    ax2.set_xlabel(histogram_dict_list[0]["variable"])
+    ax2.set_xlabel(variable)#histogram_dict_list[0]["variable"])
     ax2.set_ylabel("data / model")
     #ax2.set_yticks([0.5, 0.75, 1.0, 1.25, 1.5])
     #ax2.set_yticklabels([0.5, 0.75, 1.0, 1.25, ""])
