@@ -103,9 +103,9 @@ def set_weights(samples, weight_systs = []):
                     sample["weight_pdf_down"] = sample["weight"] * sample["pdf_down"]
         #print("Normalization", s, samples[s]["weight"].sum())
                     
-def set_normalization(sample, factor):
+def set_normalization(sample, factor, col_name="weight"):
     
-    sample["weight"] *= factor                     
+    sample[col_name] *= factor                     
 
 def print_normalization(samples):
     
@@ -164,7 +164,7 @@ def scale_norm_only(nuis, value, b_norm_sigma, s_norm_sigma):
         s_norm_sigma[nuis] *= value
         print("Scale", nuis, "to", s_norm_sigma[nuis])
 
-def downsample_data(samples, sample_factor):
+def downsample_data(samples, sample_factor, weight_syst):
     
     print("*********************")
     print("Downsampling data by factor", sample_factor)
@@ -176,7 +176,11 @@ def downsample_data(samples, sample_factor):
             print("Downsampled data from", n_samples_pre, "to", n_samples_post)
         else:
             set_normalization(samples[s], sample_factor)
-    
+            if s == "TTJets_signal":
+                for syst in weight_syst:
+                    set_normalization(samples[s], sample_factor, col_name = "weight_" + syst + "_up")
+                    set_normalization(samples[s], sample_factor, col_name = "weight_" + syst + "_down")
+
 #
 # Preparation of training data
 #
@@ -325,7 +329,7 @@ def get_train_data(samples, features, shape_syst, weight_syst, n_sig = 20000, n_
         
     return trn, val, scaler
 
-def exclude_train(samples):
+def exclude_train(samples, weight_syst):
     
     print("*********************")
     print( "Excluding samples used in training")
@@ -339,6 +343,11 @@ def exclude_train(samples):
             reweight_factor = norm_pre / float(norm_post)
             set_normalization(samples[s], reweight_factor) 
             assert(norm_pre - samples[s]["weight"].sum() < 0.0001)
+            if s == "TTJets_signal":
+                for syst in weight_syst:
+                    set_normalization(samples[s], reweight_factor, col_name = "weight_" + syst + "_up")
+                    set_normalization(samples[s], reweight_factor, col_name = "weight_" + syst + "_down")
+            
 
 #
 # Generate artificial systematic variation
@@ -456,14 +465,15 @@ def load_samples(path, shape_systs=[]):
     return samples
 
         
-def load_data(features, shape_syst, weight_syst, all_shape_syst=None, path = "/home/centos/data/bdt_rs5/", bs=256, 
+def load_data(features, shape_syst, weight_syst, all_shape_syst=None, all_weight_syst=None,
+              path = "/home/centos/data/bdt_rs5/", bs=256, 
               n_sig = 5000, n_bkg = 5000, use_weights = False, art_syst=None):
         
     # Load the samples
     samples = load_samples(path, all_shape_syst)
     
     # Set the weights
-    set_weights(samples, weight_systs = weight_syst)
+    set_weights(samples, weight_systs = all_weight_syst)
     
     # Create artificial systs
     if art_syst is not None:

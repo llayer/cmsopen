@@ -335,7 +335,7 @@ def get_fit_model(args):
                 norm_syst[norm] = { "samples" : "QCD", "value" : args["fit_norm_sigma"][norm] }
             elif norm == "xsec":
                 for s in args["mc"]: 
-                    norm_syst[norm] = { "samples" : s, "value" : get_xsec_uncertainty[s] }                
+                    norm_syst[norm] = { "samples" : s, "value" : get_xsec_uncertainty(s) }                
             else:
                 norm_syst[norm] = { "samples" : args["mc"], "value" : args["fit_norm_sigma"][norm] } 
     else:

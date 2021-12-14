@@ -10,6 +10,17 @@ from pytorch_inferno.inference import *
 from pytorch_inferno.inferno import *
 from pytorch_inferno.callback import *
 from fastcore.all import partialler
+from scipy.stats import norm, chi2
+
+# 
+# Calculate p-value and significance
+#
+def pval_and_significance(sb_nll, b_nll):
+        
+    lr = b_nll - sb_nll
+    p_val = chi2.sf(lr,1)
+    significance = norm.isf(p_val, 0, 1)
+    return p_val, significance
 
 #
 # Morphing
@@ -101,7 +112,7 @@ def asym_log_normal(theta, kappaLo, kappaHi):
 # Log-likelihood for HEP like systematics
 #
 
-def hep_nll(s_true:float, b_true:float, mu:Tensor, f_s_nom:Tensor, f_b_nom:Tensor,
+def sb_nll(s_true:float, b_true:float, mu:Tensor, f_s_nom:Tensor, f_b_nom:Tensor,
              shape_alpha:Optional[Tensor]=None, s_norm_alpha:Optional[Tensor]=None, 
              b_norm_alpha:Optional[Tensor]=None, b_rate_param_alpha:Optional[Tensor]=None,
              f_s_up:Optional[Tensor]=None, f_s_dw:Optional[Tensor]=None,
@@ -149,6 +160,21 @@ def hep_nll(s_true:float, b_true:float, mu:Tensor, f_s_nom:Tensor, f_b_nom:Tenso
     for a in shape_alpha: nll = nll - Normal(0,1).log_prob(a)
     for a in b_norm_alpha: nll = nll - Normal(0,1).log_prob(a)
     for a in s_norm_alpha: nll = nll - Normal(0,1).log_prob(a)
+    return nll
+
+
+def b_nll(s_true:float, b_true:float, f_s_nom:Tensor, f_b_nom:Tensor,
+             b_norm_alpha:Optional[Tensor]=None, b_rate_param_alpha:Optional[Tensor]=None,
+             b_norm_sigma:Optional[Tensor]=None) -> Tensor:
+    
+    #  Compute NLL
+    b_exp = b_true
+    if len(b_norm_alpha) > 0:
+        b_exp *= normal(b_norm_alpha, b_norm_sigma).prod()
+    t_exp = (b_exp*f_b_nom)
+    asimov = (s_true*f_s_nom)+(b_true*f_b_nom)   
+    nll = -torch.distributions.Poisson(t_exp, False).log_prob(asimov).sum()
+    for a in b_norm_alpha: nll = nll - Normal(0,1).log_prob(a)
     return nll
 
 
@@ -372,7 +398,7 @@ class HEPInferno(AbsCallback):
         alpha = torch.zeros((self.n_alpha), requires_grad=True, device=self.wrapper.device)
         with torch.no_grad(): alpha[self.poi_idx] += self.mu_true
         #print("alpha", alpha)
-        get_nll = partialler(hep_nll, s_true=self.mu_true, b_true=self.b_true, # Expectation values
+        get_nll = partialler(sb_nll, s_true=self.mu_true, b_true=self.b_true, # Expectation values
                              f_s_nom=f_s_nom, f_b_nom=f_b_nom, # Nominal shapes
                              f_s_up=f_s_up, f_s_dw=f_s_dw, # Signal shapes
                              f_b_up=f_b_up, f_b_dw=f_b_dw, #Background shapes
@@ -383,10 +409,21 @@ class HEPInferno(AbsCallback):
                       b_norm_alpha=alpha[self.b_norm_idxs], shape_alpha=alpha[self.shape_idxs],
                       b_rate_param_alpha = alpha[self.b_rate_param_idx], ignore_shape_norm = self.ignore_shape_norm,
                       asymm_shape_norm = self.asymm_shape_norm, interp_algo = self.interp_algo)
+        
+        #bnll = b_nll(s_true=self.mu_true, b_true=self.b_true, f_s_nom=f_s_nom, f_b_nom=f_b_nom,
+        #             b_norm_alpha = alpha[self.b_norm_idxs], b_rate_param_alpha=alpha[self.b_rate_param_idx],
+        #             b_norm_sigma = self.b_norm_sigma)
+        
+        #chi2 = torch.exp(torch.distributions.Chi2(1).log_prob(nll/bnll))
+        #print(chi2)
+        
+        
         _,h = calc_grad_hesse(nll, alpha, create_graph=True)
         cov = torch.inverse(h)        
         with torch.no_grad(): 
             self.cov += cov.detach().cpu().numpy()
+            #p_val, sig = pval_and_significance(nll.detach().cpu().numpy(), bnll.detach().cpu().numpy())
+            #print("pval", p_val, "sig", sig)
         self.cnt += 1
         return cov[self.poi_idx,self.poi_idx]
 

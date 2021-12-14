@@ -126,6 +126,7 @@ def run_cmsopen( args, epochs=1, retrain = True, do_fit = False):
         opendata, test, samples, scaler = preproc.load_data( features = args["features"], 
                                                              shape_syst = args["shape_syst"],
                                                              weight_syst = args["weight_syst"],
+                                                             all_weight_syst = args["all_weight_syst"],
                                                              all_shape_syst = args["all_shape_syst"],
                                                              bs = args["bs"], n_sig = args["n_sig"], 
                                                              n_bkg = args["n_bkg"], 
@@ -139,7 +140,7 @@ def run_cmsopen( args, epochs=1, retrain = True, do_fit = False):
         args["b_true"], args["mu_true"], args["shape_norm_sigma"] = preproc.get_true_values(samples, args)            
         # Downsample data
         if args["downsample_factor"] is not None:
-            preproc.downsample_data(samples, args["downsample_factor"])
+            preproc.downsample_data(samples, args["downsample_factor"], weight_syst = args["all_weight_syst"])
             args["b_true"] *= args["downsample_factor"]
             args["mu_true"] *= args["downsample_factor"]
                 
@@ -165,21 +166,21 @@ def run_cmsopen( args, epochs=1, retrain = True, do_fit = False):
         # Load samples with predictions
         print("*********************")
         print( "Loading samples from path", args["outpath"])
-        samples = preproc.load_samples( args["outpath"] + "/samples/", shape_systs = args["fit_shape_systs"])
-        
+        samples = preproc.load_samples( args["outpath"] + "/samples/", 
+                                        shape_systs = preproc.adjust_naming(args["all_shape_syst"]))        
     
     if do_fit:   
         
         # Exclude the events used in the training from further processing   
         if args["exclude_train"] is True:
-            preproc.exclude_train(samples)
+            preproc.exclude_train(samples, weight_syst = args["all_weight_syst"])
         
         # Rebin INFERNO if zero bins
         if args["exclude_zero"]:
             fit.rebin_if_zero(samples, args)
         
         # Convert samples to ROOT trees
-        fit.to_root(samples, path=args["outpath"], systs = args["weight_syst"])
+        fit.to_root(samples, path=args["outpath"], systs = args["all_weight_syst"])
         
         # Print the fit arguments
         fit.print_fit_args(args)
