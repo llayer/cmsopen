@@ -93,6 +93,7 @@ args["fit_model"] = "signal_only"
 args["fit_shape_systs"] = []#{"TTJets_signal" : ["btag"], "TTJets_bkg" : ["btag"]}
 args["fit_norm_syst"] = [] #["tau_trigger"]# {"lumi":{ "samples" : mc, "value" : 0.02 }, }
 args["n_steps"] = 200
+args["rebin_hist"] = None
 #
 # Plotting style
 #

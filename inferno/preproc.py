@@ -243,7 +243,7 @@ def get_train_data(samples, features, shape_syst, weight_syst, n_sig = 20000, n_
             signal["weight_" + syst + ud] *= (1. / np.mean(signal["weight_" + syst + ud]))
     #bkg["weights"] = bkg['btag_weight2']
     #print( list( zip( signal["weight"], signal["weight_06_jes_up"], signal["weight_06_jes_down"])))                               
-    bkg["weight"] = bkg["weight"] * (1. / np.mean(bkg["weight"])) 
+    bkg["weight"] = bkg["weight"] * (1. / np.mean(bkg["weight"])) * 4
     
     # Add labels
     signal["label"] = 1

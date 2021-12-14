@@ -21,7 +21,10 @@ def fit_cmsopen(args, fitvar, asimov = False):
         print( "Fit", fitvar, "data")        
     
     if (fitvar == "bce") or (args["use_softhist"] == True):
-        bins = np.linspace(0,1,args["bins"]+1)
+        if args["rebin_hist"] is not None:
+            bins = np.linspace(0,1,args["rebin_hist"]+1)
+        else:
+            bins = np.linspace(0,1,args["bins"]+1)
     else:
         if args["exclude_zero"] == True:
             bins = np.linspace(0,args["inferno_bins"],args["inferno_bins"]+1)
