@@ -37,7 +37,7 @@ def fit_cmsopen(args, fitvar, asimov = False):
     # Create config    
     config = fit.create_config(args["outpath"], fitvar, bins, args["sample_names"], corr_shape_systs, 
                                uncorr_shape_systs, norm_syst, float_qcd=args["fit_floatQCD"])
-        
+    if args["print_config"]: print(config)        
     # Create workspace
     postfix = "_asimov" if asimov==True else ""
     path = args["outpath"] + "/fit/" + fitvar + postfix
@@ -170,21 +170,25 @@ def run_cmsopen( args, epochs=1, retrain = True, do_fit = False):
         print("*********************")
         print( "Loading samples from path", args["outpath"])
         samples = preproc.load_samples( args["outpath"] + "/samples/", 
-                                        shape_systs = preproc.adjust_naming(args["all_shape_syst"]))        
+                                        shape_systs = preproc.adjust_naming(args["fit_shape_systs"]))      
+        print(list(samples))
     
     if do_fit:   
         
         # Exclude the events used in the training from further processing   
         if args["exclude_train"] is True:
             preproc.exclude_train(samples, weight_syst = args["all_weight_syst"])
+            
+        if args["add_pdf_weights"] is True:
+            preproc.pdf_weights(samples)
         
         # Rebin INFERNO if zero bins
         if args["exclude_zero"]:
             fit.rebin_if_zero(samples, args)
         
         # Convert samples to ROOT trees
-        fit.to_root(samples, path=args["outpath"], systs = args["all_weight_syst"])
-        
+        fit.to_root(samples, path=args["outpath"], systs = args["all_weight_syst"], include_pdf=args["add_pdf_weights"])
+                
         # Print the fit arguments
         fit.print_fit_args(args)
             

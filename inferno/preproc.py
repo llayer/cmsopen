@@ -119,6 +119,17 @@ def print_normalization(samples):
     print("*********************")
     print()
     
+    
+def pdf_weights(samples):
+    
+    pdf = pd.read_hdf("/home/centos/data/TTJets_pdf_renamed.root")
+    samples["TTJets_signal"] = pd.merge(samples["TTJets_signal"], pdf, how="left", on=["event", "luminosityBlock", "run"])
+    samples["TTJets_bkg"] = pd.merge(samples["TTJets_bkg"], pdf, how="left", on=["event", "luminosityBlock", "run"])
+    for i in range(22):
+        for ud in ["up", "down"]:
+            samples["TTJets_signal"]["weight_pdf_" + str(i) + "_" + ud] *= samples["TTJets_signal"]["weight"]
+            samples["TTJets_bkg"]["weight_pdf_" + str(i) + "_" + ud] *= samples["TTJets_bkg"]["weight"]
+    
 #
 # Scale or downsample the normalizations of the nuisances
 #
@@ -390,8 +401,8 @@ def assert_shape_syst(shape_syst):
     
     allowed_systs = ["jes", "jer", "taue"]
     for syst in shape_syst:
-        if syst not in allowed_systs:
-            raise ValueError("Specified weight sytematic not allowed:", syst)
+        if (syst not in allowed_systs) & ("art" not in syst):
+            raise ValueError("Specified shape sytematic not allowed:", syst)
 
 def assert_norm_syst(norm_syst):
     
@@ -459,9 +470,14 @@ def load_samples(path, shape_systs=[]):
         if ("Data" not in s) & ("QCD" not in s):
             for syst in shape_systs:
                 renamed_nuis = adjust_naming([syst])[0]
-                samples[s + "_" + renamed_nuis + "_up"] = pd.read_hdf(path + s + "_" + syst + "_up" + ".h5")
-                samples[s + "_" + renamed_nuis + "_down"] = pd.read_hdf(path + s + "_" + syst + "_down" + ".h5")
-        
+                if ("art" not in syst):
+                    samples[s + "_" + renamed_nuis + "_up"] = pd.read_hdf(path + s + "_" + syst + "_up" + ".h5")
+                    samples[s + "_" + renamed_nuis + "_down"] = pd.read_hdf(path + s + "_" + syst + "_down" + ".h5")
+                else:
+                    if (s == "TTJets_signal"):
+                        samples[s + "_" + renamed_nuis + "_up"] = pd.read_hdf(path + s + "_" + syst + "_up" + ".h5")
+                        samples[s + "_" + renamed_nuis + "_down"] = pd.read_hdf(path + s + "_" + syst + "_down" + ".h5")
+
     return samples
 
         
@@ -479,7 +495,8 @@ def load_data(features, shape_syst, weight_syst, all_shape_syst=None, all_weight
     if art_syst is not None:
         gen_artificial_systs(samples, art_syst)
         print(list(samples))
-        
+    
+    
     # Print the normalizations
     # print_normalization(samples)
 
@@ -508,6 +525,8 @@ def load_data(features, shape_syst, weight_syst, all_shape_syst=None, all_weight
         print("w", trn_dl.dataset[0][2])
 
     return data, test_dl, samples, scaler
+
+    
    
 #
 # Data storing

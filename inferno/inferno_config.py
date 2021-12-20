@@ -81,12 +81,14 @@ args["bce_neurons"] = 20 # CHECK only affects first layer
 #
 # FIT args
 #
+args["add_pdf_weights"] = True
 args["fit_asimov"] = True
 args["fit_data"] = False
 args["prune_stat"] = True
 args["minos"] = ["mu"]
 args["fit_sig_lim"] = True
 args["print_ws"] = False
+args["print_config"] = False
 args["print_yields"] = True
 args["fit_floatQCD"] = True
 args["fit_model"] = "signal_only"

@@ -67,7 +67,7 @@ def create_tree(path, s, sample, weight="weight"):
     file.close()    
 
     
-def to_root(samples, systs = [], path = "/home/centos/data/inferno_cmsopen13/root_trees"):
+def to_root(samples, systs = [], include_pdf=False, path = "/home/centos/data/inferno_cmsopen13/root_trees"):
 
     print("*********************")
     print( "Create ROOT trees")
@@ -79,13 +79,21 @@ def to_root(samples, systs = [], path = "/home/centos/data/inferno_cmsopen13/roo
         if ('up' in s) | ('down' in s): continue
         for syst in systs:
             for ud in ["up", "down"]:
+                if "pdf" in syst: continue
+                create_tree(path,  s + "_" + syst + "_" + ud, sample, weight = "weight_"+ syst + "_" + ud )
+                """
                 if ("pdf" in syst):
                     if(s == "TTJets_signal"): 
                         create_tree(path,  s + "_" + syst + "_" + ud, sample, weight = "weight_"+ syst + "_" + ud )
                 else:
                     create_tree(path,  s + "_" + syst + "_" + ud, sample, weight = "weight_"+ syst + "_" + ud )
-
-                                                                                                 
+                """
+        if include_pdf == True:
+            if (s == "TTJets_signal") | (s == "TTJets_bkg"): 
+                for i in range(22):
+                    for ud in ["up", "down"]:
+                        create_tree(path, s + "_pdf_" + str(i) + "_" + ud, sample, weight = "weight_pdf_" + str(i) + "_" + ud )
+                    
 #
 # Write and fit workspace
 #
@@ -115,6 +123,7 @@ def fit_ws(ws, config, args, path, asimov = True):
     fit_results = cabinetry.fit.fit(model, data, minos=args["minos"])
     #print(fit_results)
     logging.getLogger("cabinetry").setLevel(logging.WARNING)
+    
     if (len(args["fit_shape_systs"]) + len(args["fit_norm_syst"])) > 0:
         cabinetry.visualize.pulls(fit_results, exclude=["mu"], save_figure=args["store"], 
                                   close_figure = False, figure_folder=path)
@@ -123,7 +132,7 @@ def fit_ws(ws, config, args, path, asimov = True):
         ranking_results = cabinetry.fit.ranking(model, data, fit_results=fit_results)
         #print(ranking_results)
         cabinetry.visualize.ranking(ranking_results, save_figure=args["store"], close_figure = False, figure_folder=path)
-
+    
     scan_results = cabinetry.fit.scan(model, data, "mu", n_steps=args["n_steps"])
     
     #print(scan_results)
@@ -140,7 +149,7 @@ def fit_ws(ws, config, args, path, asimov = True):
         #print(significance_result)
         if args["store"] == True:
             store_sig_lim_results(significance_result, lim_results=None, path = path)
-        
+    
     return fit_results, scan_results
 
 def stat_only(config, fit_results, path="", asimov = True, store=True, prune_stat=True):
@@ -309,10 +318,14 @@ def get_fit_model(args):
     corr_shape_systs = {}
     uncorr_shape_systs = {}
     norm_syst = {}
-    
+        
     if args["fit_model"] == "signal_only":
         # Set nuisances:
-        uncorr_shape_systs = {"TTJets_signal" : args["fit_shape_systs"]}
+        uncorr_shape_systs = {"TTJets_signal" : args["fit_shape_systs"].copy()}
+        # Add pdf
+        if args["add_pdf_weights"] == True:
+            uncorr_shape_systs["TTJets_signal"] += ["pdf_" + str(i) for i in range(22)]
+            
         for norm in args["fit_norm_sigma"]:
             if norm == "mistag":
                 norm_syst[norm] = { "samples" : "QCD", "value" : args["fit_norm_sigma"][norm] }
@@ -320,14 +333,11 @@ def get_fit_model(args):
                 norm_syst[norm] = { "samples" : "TTJets_signal", "value" : args["fit_norm_sigma"][norm] }
     elif args["fit_model"] == "sig_bkg":
         for s in args["mc"]: 
-            systs = []        
-            for syst in args["fit_shape_systs"]:
-                if ("pdf" in syst):
-                    if (s == "TTJets_signal"):
-                        uncorr_shape_systs["TTJets_signal"] = syst
-                else:
-                    systs.append(syst)
-            corr_shape_systs[s] = systs
+            corr_shape_systs[s] = args["fit_shape_systs"].copy()
+        if args["add_pdf_weights"] == True:
+            corr_shape_systs["TTJets_signal"] += ["pdf_" + str(i) for i in range(22)]
+            corr_shape_systs["TTJets_bkg"] += ["pdf_" + str(i) for i in range(22)]
+            
         for norm in args["fit_norm_sigma"]:
             if "tt" in norm:
                 norm_syst[norm] = { "samples" : ["TTJets_signal", "TTJets_bkg"], "value" : args["fit_norm_sigma"][norm] }
@@ -340,7 +350,8 @@ def get_fit_model(args):
                 norm_syst[norm] = { "samples" : args["mc"], "value" : args["fit_norm_sigma"][norm] } 
     else:
         raise ValueError("No valid fit model")
-        
+       
+    
     return corr_shape_systs, uncorr_shape_systs, norm_syst 
         
     
@@ -376,7 +387,7 @@ def add_samples(sample_names):
     return{"Samples" : samples} 
     
 def add_syst(corr_shape_systs, uncorr_shape_systs, norm_syst):
-    
+        
     systs = []
     for sample in corr_shape_systs:
         for syst in corr_shape_systs[sample]:
@@ -420,6 +431,7 @@ def add_syst(corr_shape_systs, uncorr_shape_systs, norm_syst):
 
 def create_config(path, fit_var, bins, sample_names, corr_shape_systs={}, uncorr_shape_systs={}, norm_syst={}, float_qcd=True):
     
+    
     # General setup
     config = {
        "General":{
@@ -429,7 +441,7 @@ def create_config(path, fit_var, bins, sample_names, corr_shape_systs={}, uncorr
           "HistogramFolder": path + "/histograms/"
        }
     }
-    
+        
     # Region and fit variable
     config.update({
    "Regions":[
@@ -469,7 +481,7 @@ def create_config(path, fit_var, bins, sample_names, corr_shape_systs={}, uncorr
              "Bounds": [0.5, 1.5]
               }
         )
-
+        
     if cabinetry.configuration.validate(config):
         return config
     else:

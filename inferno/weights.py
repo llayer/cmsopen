@@ -60,17 +60,33 @@ def apply_weight(df, tau40_vals, tau45_vals, jet40_vals, jet45_vals):
     df["Jet_pt2_errors"] = np.where(mask, jet40_vals["errors"][df["Jet_pt2_idx"]-1], jet45_vals["errors"][df["Jet_pt2_idx"]-1])
     df["Jet_pt2_vals"] = np.where(mask, jet40_vals["vals"][df["Jet_pt2_idx"]-1], jet45_vals["vals"][df["Jet_pt2_idx"]-1])
     
-    
+"""    
 apply_weight(df, tau40_vals, tau45_vals, jet40_vals, jet45_vals)
 
 w = df["Tau_pt0_vals"] * df["Jet_pt0_vals"] * df["Jet_pt1_vals"] * df["Jet_pt2_vals"]
 w_err = w*(1+df["Tau_pt0_errors"]) * (1+df["Jet_pt0_errors"]) * (1+df["Jet_pt1_errors"]) * (1+df["Jet_pt2_errors"])
 w_err_tau = w *(1+df["Tau_pt0_errors"])
 w_err_jet = w *(1+df["Jet_pt0_errors"]) * (1+df["Jet_pt1_errors"]) * (1+df["Jet_pt2_errors"])
-
+"""
 
 f = uproot.open("/home/centos/data/TTJets_pdf.root")
 pdf = f["pdfana/Events"].arrays(library="pd")
+
+def rename_pdf(df):
+    rename_dict = {"MCEvt_cteq66_pdf_weights[0]":"pdf"}
+    i_weight = 0
+    for i in range(1,45):
+        name = "MCEvt_cteq66_pdf_weights[" + str(i) + "]"
+        df[name] = df[name] / df["MCEvt_cteq66_pdf_weights[0]"]
+        if i%2 == 0:
+
+            rename_dict[name] = "pdf_weight_" + str(i_weight) + "_down"
+            i_weight += 1
+        else:
+            rename_dict[name] = "pdf_weight_" + str(i_weight) + "_up"
+    df = df.rename(columns=rename_dict)
+    df.to_hdf("/home/centos/data/TTJets_pdf_renamed.root", "frame")
+
 def get_summed_pdf(pdf):
     
     nominal = pdf["MCEvt_cteq66_pdf_weights[0]"]
