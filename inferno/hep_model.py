@@ -278,7 +278,8 @@ class HEPInferno(AbsCallback):
             self.b_rate_param_idx = []
         
         # Store covariance matrix
-        self.covs, self.cov, self.cnt = {'trn':[], 'val':[]}, 0, 0       
+        self.covs, self.cov, self.cnt = {'trn':[], 'val':[]}, 0, 0
+        self.significance = 0
         self.trn_shapes = {'sig':[], 'bkg':[]}
         self.val_shapes = {'sig':[], 'bkg':[], "sig_up":[], "sig_down":[], "bkg_up":[], "bkg_down":[]}
         self.sig_shape, self.bkg_shape = 0, 0
@@ -318,7 +319,7 @@ class HEPInferno(AbsCallback):
     def on_batch_end(self) -> None: pass
     
     def on_epoch_begin(self) -> None: 
-        self.cov, self.cnt = 0, 0
+        self.cov, self.cnt, self.significance = 0, 0, 0
         self.sig_shape, self.bkg_shape = 0, 0
         self.sig_shape_up = [0 for i in range(len(self.s_shape_idxs))]
         self.sig_shape_down = [0 for i in range(len(self.s_shape_idxs))]
@@ -332,6 +333,7 @@ class HEPInferno(AbsCallback):
             self.trn_shapes['sig'].append( self.sig_shape / self.cnt )            
         else:
             self.covs['val'].append(  self.cov / self.cnt  )
+            print(self.significance / self.cnt )
             self.val_shapes['bkg'].append( self.bkg_shape / self.cnt )
             self.val_shapes['sig'].append( self.sig_shape / self.cnt )            
             self.val_shapes['sig_up'].append( [shape / self.cnt for shape in self.sig_shape_up] )
@@ -486,7 +488,7 @@ class HEPInferno(AbsCallback):
                          asymm_shape_norm = self.asymm_shape_norm, interp_algo = self.interp_algo)
             with torch.no_grad(): 
                 p_val, sig = pval_and_significance(nll.detach().cpu().numpy(), bnll.detach().cpu().numpy())
-                self.sig += sig
+                self.significance += sig
         
         #chi2 = torch.exp(torch.distributions.Chi2(1).log_prob(nll/bnll))
         #print(chi2)
