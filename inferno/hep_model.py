@@ -113,40 +113,54 @@ def asym_log_normal(theta, kappaLo, kappaHi):
 #
 
 def sb_nll(s_true:float, b_true:float, mu:Tensor, f_s_nom:Tensor, f_b_nom:Tensor,
-             shape_alpha:Optional[Tensor]=None, s_norm_alpha:Optional[Tensor]=None, 
+             shape_alpha_s:Optional[Tensor]=None, shape_alpha_b:Optional[Tensor]=None, 
+             s_norm_alpha:Optional[Tensor]=None, 
              b_norm_alpha:Optional[Tensor]=None, b_rate_param_alpha:Optional[Tensor]=None,
              f_s_up:Optional[Tensor]=None, f_s_dw:Optional[Tensor]=None,
              f_b_up:Optional[Tensor]=None, f_b_dw:Optional[Tensor]=None,
-             shape_norm_sigma:Optional[Tensor]=None, s_norm_sigma:Optional[Tensor]=None, 
-             b_norm_sigma:Optional[Tensor]=None, ignore_shape_norm:bool=False, asymm_shape_norm:bool=False,
+             s_shape_norm_sigma:Optional[Tensor]=None, b_shape_norm_sigma:Optional[Tensor]=None,
+             s_norm_sigma:Optional[Tensor]=None, b_norm_sigma:Optional[Tensor]=None, 
+             ignore_shape_norm:bool=False, asymm_shape_norm:bool=False,
              interp_algo:str="fast_vertical") -> Tensor:
     r'''Compute negative log-likelihood for specified parameters.'''
     
     #  Interpolate shapes
-    if interp_algo == "fast_vertical":
-        f_s = fast_vertical(shape_alpha, f_s_nom, f_s_up, f_s_dw) if shape_alpha is not None and f_s_up is not None else f_s_nom
-        f_b = fast_vertical(shape_alpha, f_b_nom, f_b_up, f_b_dw) if shape_alpha is not None and f_b_up is not None else f_b_nom        
-    else:
-        #print(shape_alpha)
-        #print(f_s_nom, f_s_up, f_s_dw)
-        f_s = interp_shape(shape_alpha, f_s_nom, f_s_up, f_s_dw) if shape_alpha is not None and f_s_up is not None else f_s_nom
-        f_b = interp_shape(shape_alpha, f_b_nom, f_b_up, f_b_dw) if shape_alpha is not None and f_b_up is not None else f_b_nom
-        
-    # Normalizations !!! careful if signal and background shapes mix!!
-    #print("shape_norm_sigma", shape_norm_sigma)
-    s_exp, b_exp = mu, b_true
-    if (len(shape_alpha) > 0) & (ignore_shape_norm==False):
-        #print("Norms shape", normal(shape_alpha, shape_norm_sigma))
-        #print("Norm shape")
-        if asymm_shape_norm == False:
-            s_exp *= normal(shape_alpha, shape_norm_sigma).prod()  
+    if (shape_alpha_s is not None) and (f_s_up is not None):
+        if interp_algo == "fast_vertical":
+            f_s = fast_vertical(shape_alpha_s, f_s_nom, f_s_up, f_s_dw) 
         else:
-            #print(asym_log_normal(shape_alpha, shape_norm_sigma[:,0], shape_norm_sigma[:,1]).prod())
-            s_exp *= asym_log_normal(shape_alpha, shape_norm_sigma[:,0], shape_norm_sigma[:,1]).prod()
+            f_s = interp_shape(shape_alpha_s, f_s_nom, f_s_up, f_s_dw) 
+    else:
+        f_s = f_s_nom
+    if (shape_alpha_b is not None) and (f_b_up is not None):
+        if interp_algo == "fast_vertical":
+            f_b = fast_vertical(shape_alpha_b, f_b_nom, f_b_up, f_b_dw) 
+        else:
+            f_b = interp_shape(shape_alpha_b, f_b_nom, f_b_up, f_b_dw)
+    else: 
+        f_b = f_b_nom  
+        
+    # Normalizations for the shape parameters - full correlation is assumed
+    s_exp, b_exp = mu, b_true
+    if (ignore_shape_norm==False):
+        if len(shape_alpha_s) > 0:
+            if asymm_shape_norm == False:
+                s_exp *= normal(shape_alpha_s, s_shape_norm_sigma).prod()  
+            else:
+                s_exp *= asym_log_normal(shape_alpha_s, s_shape_norm_sigma[:,0], s_shape_norm_sigma[:,1]).prod()
+        if  len(shape_alpha_b) > 0:
+            if asymm_shape_norm == False:
+                b_exp *= normal(shape_alpha_b, b_shape_norm_sigma).prod()  
+            else:
+                b_exp *= asym_log_normal(shape_alpha_b, b_shape_norm_sigma[:,0], b_shape_norm_sigma[:,1]).prod()
+            
+    # Normalization signal
     if len(s_norm_alpha) > 0:
         s_exp *= normal(s_norm_alpha, s_norm_sigma).prod()
+    # Normaliization background
     if len(b_norm_alpha) > 0:
         b_exp *= normal(b_norm_alpha, b_norm_sigma).prod()
+    # Rate parameter background
     if (b_rate_param_alpha  is not None) and (len(b_rate_param_alpha) > 0):
         b_exp *= b_rate_param_alpha
         
@@ -156,25 +170,44 @@ def sb_nll(s_true:float, b_true:float, mu:Tensor, f_s_nom:Tensor, f_b_nom:Tensor
         
     nll = -torch.distributions.Poisson(t_exp, False).log_prob(asimov).sum()
 
-    # Constrain shape +norm nuisances
-    for a in shape_alpha: nll = nll - Normal(0,1).log_prob(a)
+    # Constrain shape +norm nuisances'
+    for a in shape_alpha_b: nll = nll - Normal(0,1).log_prob(a)
+    for a in shape_alpha_s: nll = nll - Normal(0,1).log_prob(a)
     for a in b_norm_alpha: nll = nll - Normal(0,1).log_prob(a)
     for a in s_norm_alpha: nll = nll - Normal(0,1).log_prob(a)
     return nll
 
 
-def b_nll(s_true:float, b_true:float, f_s_nom:Tensor, f_b_nom:Tensor,
-             b_norm_alpha:Optional[Tensor]=None, b_rate_param_alpha:Optional[Tensor]=None,
-             b_norm_sigma:Optional[Tensor]=None) -> Tensor:
+def b_nll(s_true:float, b_true:float, f_s_nom:Tensor, f_b_nom:Tensor, shape_alpha_b:Optional[Tensor]=None,
+          f_b_up:Optional[Tensor]=None, f_b_dw:Optional[Tensor]=None,
+          b_shape_norm_sigma:Optional[Tensor]=None,
+          b_norm_alpha:Optional[Tensor]=None, b_rate_param_alpha:Optional[Tensor]=None,
+          b_norm_sigma:Optional[Tensor]=None,
+          ignore_shape_norm:bool=False, asymm_shape_norm:bool=False, interp_algo:str="fast_vertical") -> Tensor:
+
+    if (shape_alpha_b is not None) and (f_b_up is not None):
+        if interp_algo == "fast_vertical":
+            f_b = fast_vertical(shape_alpha_b, f_b_nom, f_b_up, f_b_dw) 
+        else:
+            f_b = interp_shape(shape_alpha_b, f_b_nom, f_b_up, f_b_dw)
+    else: 
+        f_b = f_b_nom  
     
     #  Compute NLL
     b_exp = b_true
+    if (ignore_shape_norm==False):
+        if  len(shape_alpha_b) > 0:
+            if asymm_shape_norm == False:
+                b_exp *= normal(shape_alpha_b, b_shape_norm_sigma).prod()  
+            else:
+                b_exp *= asym_log_normal(shape_alpha_b, b_shape_norm_sigma[:,0], b_shape_norm_sigma[:,1]).prod()
     if len(b_norm_alpha) > 0:
         b_exp *= normal(b_norm_alpha, b_norm_sigma).prod()
     t_exp = (b_exp*f_b_nom)
     asimov = (s_true*f_s_nom)+(b_true*f_b_nom)   
     nll = -torch.distributions.Poisson(t_exp, False).log_prob(asimov).sum()
     for a in b_norm_alpha: nll = nll - Normal(0,1).log_prob(a)
+    for a in shape_alpha_b: nll = nll - Normal(0,1).log_prob(a)
     return nll
 
 
@@ -185,10 +218,10 @@ def b_nll(s_true:float, b_true:float, f_s_nom:Tensor, f_b_nom:Tensor,
 class HEPInferno(AbsCallback):
     r'''Implementation of INFERNO with HEP like systematics'''
     def __init__(self, b_true:float, mu_true:float, n_shape_systs:int=0, n_weight_systs:int=0,
-                 interp_algo:str="default", shape_norm_sigma:Optional[List[float]]=None,
+                 interp_algo:str="default", shape_norm_sigma:Optional[List[float]]=None, is_sig_shape:Optional[List[bool]]=None, 
                  asymm_shape_norm:bool=False, ignore_shape_norm:bool=False, s_norm_sigma:Optional[List[float]]=None, 
                  b_norm_sigma:Optional[List[float]]=None, b_rate_param:bool=False, use_hist:bool=False, 
-                 bins:int=10, sigmoid_delta:float=200., ignore_loss:bool=False, **kwargs):
+                 bins:int=10, sigmoid_delta:float=200., ignore_loss:bool=False, store_significance:bool=False, **kwargs):
         
         self.ignore_loss = ignore_loss
         self.use_hist = use_hist
@@ -197,9 +230,11 @@ class HEPInferno(AbsCallback):
         self.mu_true = mu_true
         self.b_true = b_true
         self.n_shape_systs = n_shape_systs
+        self.is_sig_shape = is_sig_shape
         self.n_weight_systs = n_weight_systs
         self.n_shape_alphas = n_shape_systs + n_weight_systs
         self.interp_algo = interp_algo
+        self.store_significance = store_significance
         self.shape_norm_sigma = shape_norm_sigma #torch.Tensor(shape_norm_sigma)
         self.ignore_shape_norm = ignore_shape_norm
         self.asymm_shape_norm = asymm_shape_norm
@@ -215,6 +250,12 @@ class HEPInferno(AbsCallback):
             ValueError("Number of norm uncertainties on shape nuisances must match the number of shape nuisance parameters")
         if self.n_shape_alphas > 0:
             self.shape_idxs = list(range(1,self.n_shape_alphas+1))
+            self.s_shape_idxs = [i for (i, v) in zip(self.shape_idxs, self.is_sig_shape) if v]
+            self.s_shape_norm_sigma = [i for (i, v) in zip(self.shape_norm_sigma, self.is_sig_shape) if v]
+            self.b_shape_idxs = [i for (i, v) in zip(self.shape_idxs, np.invert(self.is_sig_shape)) if v]
+            self.b_shape_norm_sigma = [i for (i, v) in zip(self.shape_norm_sigma, np.invert(self.is_sig_shape)) if v]
+            print(self.s_shape_idxs, self.b_shape_idxs)
+            print(self.s_shape_norm_sigma, self.b_shape_norm_sigma)
             self.n_alpha += self.n_shape_alphas
         else:
             self.shape_idxs = []
@@ -239,10 +280,12 @@ class HEPInferno(AbsCallback):
         # Store covariance matrix
         self.covs, self.cov, self.cnt = {'trn':[], 'val':[]}, 0, 0       
         self.trn_shapes = {'sig':[], 'bkg':[]}
-        self.val_shapes = {'sig':[], 'bkg':[], "sig_up":[], "sig_down":[]}
+        self.val_shapes = {'sig':[], 'bkg':[], "sig_up":[], "sig_down":[], "bkg_up":[], "bkg_down":[]}
         self.sig_shape, self.bkg_shape = 0, 0
-        self.sig_shape_up = [0. for i in range(self.n_shape_alphas)]
-        self.sig_shape_down = [0. for i in range(self.n_shape_alphas)]
+        self.sig_shape_up = [0. for i in range(len(self.s_shape_idxs))]
+        self.sig_shape_down = [0. for i in range(len(self.s_shape_idxs))]
+        self.bkg_shape_up = [0. for i in range(len(self.b_shape_idxs))]
+        self.bkg_shape_down = [0. for i in range(len(self.b_shape_idxs))]
 
         print("*********************")
         print("Summary INFERNO callback")
@@ -267,6 +310,7 @@ class HEPInferno(AbsCallback):
         print("ignore_loss", self.ignore_loss)
         print("ignore_shape_norm", self.ignore_shape_norm)
         print("asymm_shape_norm", self.asymm_shape_norm)
+        print("store signiificance", self.store_significance)
         print("*********************")
 
     def _aug_data(self): pass  # Override abs method
@@ -276,8 +320,10 @@ class HEPInferno(AbsCallback):
     def on_epoch_begin(self) -> None: 
         self.cov, self.cnt = 0, 0
         self.sig_shape, self.bkg_shape = 0, 0
-        self.sig_shape_up = [0 for i in range(self.n_shape_alphas)]
-        self.sig_shape_down = [0 for i in range(self.n_shape_alphas)]
+        self.sig_shape_up = [0 for i in range(len(self.s_shape_idxs))]
+        self.sig_shape_down = [0 for i in range(len(self.s_shape_idxs))]
+        self.bkg_shape_up = [0 for i in range(len(self.b_shape_idxs))]
+        self.bkg_shape_down = [0 for i in range(len(self.b_shape_idxs))]
         
     def on_epoch_end(self) -> None:
         if self.wrapper.state == 'train':
@@ -290,11 +336,9 @@ class HEPInferno(AbsCallback):
             self.val_shapes['sig'].append( self.sig_shape / self.cnt )            
             self.val_shapes['sig_up'].append( [shape / self.cnt for shape in self.sig_shape_up] )
             self.val_shapes['sig_down'].append( [shape / self.cnt for shape in self.sig_shape_down] )
+            self.val_shapes['bkg_up'].append( [shape / self.cnt for shape in self.bkg_shape_up] )
+            self.val_shapes['bkg_down'].append( [shape / self.cnt for shape in self.bkg_shape_down] )
             
-            #print("nom", self.val_shapes['sig'][-1])
-            #print("up", self.val_shapes['sig_up'][-1])
-            #print("down", self.val_shapes['sig_down'][-1])
-
     def on_train_begin(self) -> None:
         
         if self.ignore_loss == False:
@@ -302,7 +346,10 @@ class HEPInferno(AbsCallback):
             
         for c in self.wrapper.cbs:
             if hasattr(c, 'loss_is_meaned'): c.loss_is_meaned = False  # Ensure that average losses are correct        
-        if self.shape_norm_sigma is not None: self.shape_norm_sigma = torch.Tensor(self.shape_norm_sigma).to(self.wrapper.device)
+        if self.s_shape_norm_sigma is not None: 
+            self.s_shape_norm_sigma = torch.Tensor(self.s_shape_norm_sigma).to(self.wrapper.device)        
+        if self.b_shape_norm_sigma is not None: 
+            self.b_shape_norm_sigma = torch.Tensor(self.b_shape_norm_sigma).to(self.wrapper.device)
         #print(self.shape_norm_sigma)
         if self.s_norm_sigma is not None: self.s_norm_sigma = torch.Tensor(self.s_norm_sigma).to(self.wrapper.device)
         if self.b_norm_sigma is not None: self.b_norm_sigma = torch.Tensor(self.b_norm_sigma).to(self.wrapper.device)
@@ -313,9 +360,12 @@ class HEPInferno(AbsCallback):
         with torch.no_grad(): 
             self.sig_shape += f_s_nom.detach().cpu().numpy()
             self.bkg_shape += f_b_nom.detach().cpu().numpy()   
-            for i in range(self.n_shape_alphas):
+            for i in range(len(self.s_shape_idxs)):
                 self.sig_shape_up[i] += f_s_up[i].detach().cpu().numpy()
                 self.sig_shape_down[i] += f_s_dw[i].detach().cpu().numpy()
+            for i in range(len(self.b_shape_idxs)):
+                            self.bkg_shape_up[i] += f_b_up[i].detach().cpu().numpy()
+                            self.bkg_shape_down[i] += f_b_dw[i].detach().cpu().numpy()
             
     def to_shape(self, p:Tensor, w:Optional[Tensor]=None) -> Tensor:
         
@@ -364,21 +414,31 @@ class HEPInferno(AbsCallback):
         w_s_nom = w_s[:,:,0] if w_s is not None else None
         w_b_nom = w_b[:,:,0] if w_b is not None else None
         
-        u,d = [],[]
+        u_s, d_s = [],[]
+        u_b, d_b = [],[]
         # Loop over shape systematics
         for i in range(self.n_shape_systs):
             idx_up = 1 + 2*i
             idx_down = 2 + 2*i
-            w_s_up = w_s[:,:,idx_up] if w_s is not None else None
-            w_s_down = w_s[:,:,idx_down] if w_s is not None else None
-            up_batch = self.to_shape(self.wrapper.model(x_s[:,:,idx_up]), w_s_up)
-            down_batch = self.to_shape(self.wrapper.model(x_s[:,:,idx_down]), w_s_down)
-            
+            if self.is_sig_shape[i] is True:
+                w_s_up = w_s[:,:,idx_up] if w_s is not None else None
+                w_s_down = w_s[:,:,idx_down] if w_s is not None else None
+                up_batch = self.to_shape(self.wrapper.model(x_s[:,:,idx_up]), w_s_up)
+                down_batch = self.to_shape(self.wrapper.model(x_s[:,:,idx_down]), w_s_down)
+                u_s.append(up_batch)
+                d_s.append(down_batch)    
+
+            else:
+                w_b_up = w_b[:,:,idx_up] if w_b is not None else None
+                w_b_down = w_b[:,:,idx_down] if w_b is not None else None
+                up_batch = self.to_shape(self.wrapper.model(x_b[:,:,idx_up]), w_b_up)
+                down_batch = self.to_shape(self.wrapper.model(x_b[:,:,idx_down]), w_b_down)                
+                u_b.append(up_batch)
+                d_b.append(down_batch)    
+
             #print([list(zip(x_s[:,:,0][0], x_s[:,:,idx_up][0], x_s[:,:,idx_down][0]))])
             #print("shape", [list(zip(w_s_nom[0], w_s_up[0], w_s_down[0]))])
             
-            u.append(up_batch)
-            d.append(down_batch)    
         
         #Loop over weight systematics
         for i in range(self.n_weight_systs):
@@ -387,10 +447,14 @@ class HEPInferno(AbsCallback):
             up_batch = self.to_shape(self.wrapper.model(x_s[:,:,0]), w_s_nom * w_s[:,:,idx_up])
             down_batch = self.to_shape(self.wrapper.model(x_s[:,:,0]), w_s_nom * w_s[:,:,idx_down])
             #print("weight", [list(zip(w_s[:,:,0][0], w_s[:,:,idx_up][0], w_s[:,:,idx_down][0]))])
-            u.append(up_batch)
-            d.append(down_batch)             
-            
-        return (torch.stack(u),torch.stack(d)), (None,None)
+            u_s.append(up_batch)
+            d_s.append(down_batch)             
+        
+        
+        u_s, d_s = (torch.stack(u_s),torch.stack(d_s)) if len(u_s) > 0 else (None, None)
+        u_b, d_b = (torch.stack(u_b),torch.stack(d_b)) if len(u_b) > 0 else (None, None)
+        
+        return (u_s, d_s), (u_b, d_b)
 
     def get_ikk(self, f_s_nom:Tensor, f_b_nom:Tensor, f_s_up:Optional[Tensor], f_s_dw:Optional[Tensor], 
                 f_b_up:Optional[Tensor], f_b_dw:Optional[Tensor]) -> Tensor:
@@ -402,17 +466,27 @@ class HEPInferno(AbsCallback):
                              f_s_nom=f_s_nom, f_b_nom=f_b_nom, # Nominal shapes
                              f_s_up=f_s_up, f_s_dw=f_s_dw, # Signal shapes
                              f_b_up=f_b_up, f_b_dw=f_b_dw, #Background shapes
-                             shape_norm_sigma = self.shape_norm_sigma, # Norm unct on shapes
+                             s_shape_norm_sigma = self.s_shape_norm_sigma, # Norm unct on shapes
+                             b_shape_norm_sigma = self.b_shape_norm_sigma, # Norm unct on shapes
                              s_norm_sigma = self.s_norm_sigma, b_norm_sigma = self.b_norm_sigma # Norm unct on sig and bkg
                              ) 
         nll = get_nll(mu=alpha[self.poi_idx], s_norm_alpha=alpha[self.s_norm_idxs], 
-                      b_norm_alpha=alpha[self.b_norm_idxs], shape_alpha=alpha[self.shape_idxs],
+                      b_norm_alpha=alpha[self.b_norm_idxs], 
+                      shape_alpha_s=alpha[self.s_shape_idxs],
+                      shape_alpha_b=alpha[self.b_shape_idxs],
                       b_rate_param_alpha = alpha[self.b_rate_param_idx], ignore_shape_norm = self.ignore_shape_norm,
                       asymm_shape_norm = self.asymm_shape_norm, interp_algo = self.interp_algo)
         
-        #bnll = b_nll(s_true=self.mu_true, b_true=self.b_true, f_s_nom=f_s_nom, f_b_nom=f_b_nom,
-        #             b_norm_alpha = alpha[self.b_norm_idxs], b_rate_param_alpha=alpha[self.b_rate_param_idx],
-        #             b_norm_sigma = self.b_norm_sigma)
+        if self.store_significance is True:
+            bnll = b_nll(s_true=self.mu_true, b_true=self.b_true, f_s_nom=f_s_nom, f_b_nom=f_b_nom,
+                         f_b_up=f_b_up, f_b_dw=f_b_dw,
+                         shape_alpha_b=alpha[self.b_shape_idxs],
+                         b_norm_alpha = alpha[self.b_norm_idxs], b_rate_param_alpha=alpha[self.b_rate_param_idx],
+                         b_norm_sigma = self.b_norm_sigma, ignore_shape_norm = self.ignore_shape_norm,
+                         asymm_shape_norm = self.asymm_shape_norm, interp_algo = self.interp_algo)
+            with torch.no_grad(): 
+                p_val, sig = pval_and_significance(nll.detach().cpu().numpy(), bnll.detach().cpu().numpy())
+                self.sig += sig
         
         #chi2 = torch.exp(torch.distributions.Chi2(1).log_prob(nll/bnll))
         #print(chi2)
@@ -422,8 +496,6 @@ class HEPInferno(AbsCallback):
         cov = torch.inverse(h)        
         with torch.no_grad(): 
             self.cov += cov.detach().cpu().numpy()
-            #p_val, sig = pval_and_significance(nll.detach().cpu().numpy(), bnll.detach().cpu().numpy())
-            #print("pval", p_val, "sig", sig)
         self.cnt += 1
         return cov[self.poi_idx,self.poi_idx]
 

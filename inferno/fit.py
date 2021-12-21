@@ -113,7 +113,10 @@ def create_ws(config, workspace_path = "", postproc=True, prune_stat=True):
 def fit_ws(ws, config, args, path, asimov = True):
     
     model, data = cabinetry.model_utils.model_and_data(ws, asimov=asimov)
+    print(model)
     model_pred = cabinetry.model_utils.prediction(model)
+    print(model_pred)
+    print(ws)
     #figures = cabinetry.visualize.data_mc(model_pred, data, config=config, log_scale=True,
     #                                      save_figure=args["store"], figure_folder=path)
     stack.plot_from_model(model_pred, data, config=config, log_scale=True, store=args["store"], path=path)
@@ -318,10 +321,19 @@ def get_fit_model(args):
     corr_shape_systs = {}
     uncorr_shape_systs = {}
     norm_syst = {}
-        
+    
+    sig_shape_systs, bkg_shape_syst = [], []
+    for syst in args["fit_shape_systs"]:
+        if "bkg" in syst:
+            bkg_shape_syst.append(syst)
+        else:
+            sig_shape_systs.append(syst)
+            
     if args["fit_model"] == "signal_only":
         # Set nuisances:
-        uncorr_shape_systs = {"TTJets_signal" : args["fit_shape_systs"].copy()}
+        #uncorr_shape_systs = {"TTJets_signal" : args["fit_shape_systs"].copy()}
+        uncorr_shape_systs = {"TTJets_signal" : sig_shape_systs.copy(),
+                              "QCD" : bkg_shape_syst.copy()}
         # Add pdf
         if args["add_pdf_weights"] == True:
             uncorr_shape_systs["TTJets_signal"] += ["pdf_" + str(i) for i in range(22)]
@@ -333,7 +345,8 @@ def get_fit_model(args):
                 norm_syst[norm] = { "samples" : "TTJets_signal", "value" : args["fit_norm_sigma"][norm] }
     elif args["fit_model"] == "sig_bkg":
         for s in args["mc"]: 
-            corr_shape_systs[s] = args["fit_shape_systs"].copy()
+            corr_shape_systs[s] = sig_shape_systs.copy()
+        if len(bkg_shape_syst) > 0: uncorr_shape_systs = {"QCD" : bkg_shape_syst.copy()}
         if args["add_pdf_weights"] == True:
             corr_shape_systs["TTJets_signal"] += ["pdf_" + str(i) for i in range(22)]
             corr_shape_systs["TTJets_bkg"] += ["pdf_" + str(i) for i in range(22)]

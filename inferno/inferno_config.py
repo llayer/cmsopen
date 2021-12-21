@@ -73,6 +73,8 @@ args["interp_algo"] = "default"
 # Soft hist instead of softmax
 args["use_softhist"] = False
 args["sigmoid_delta"] = 200.
+# Store significance
+args["store_significance"] = False
 #
 # BCE args
 #

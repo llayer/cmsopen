@@ -14,10 +14,11 @@ pd.options.mode.chained_assignment = None
 # Load norms and set names for INFERNO training
 #
 
-def get_shape_norm(samples, shape_syst, weight_syst, asymm = False, sample="TTJets_signal"):
+def get_shape_norm(samples, shape_syst, weight_syst, asymm = False ):
     
     norm = []
     for syst in shape_syst:
+        sample="TTJets_signal" if "bkg" not in syst else "QCD"
         nominal = samples[sample]["weight"].sum()
         up = samples[sample + "_" + syst + "_up"]["weight"].sum()
         down = samples[sample + "_" + syst + "_down"]["weight"].sum()
@@ -27,8 +28,8 @@ def get_shape_norm(samples, shape_syst, weight_syst, asymm = False, sample="TTJe
         else:
             norm.append((down/nominal, up/nominal))
     
-    weight_norm = []
     for syst in weight_syst:
+        sample="TTJets_signal"
         nominal = samples[sample]["weight"].sum()
         up = samples[sample]["weight_" + syst + "_up"].sum()
         down = samples[sample]["weight_" + syst + "_down"].sum()
@@ -221,40 +222,42 @@ def get_train_data(samples, features, shape_syst, weight_syst, n_sig = 20000, n_
     # Add a unique event key
     for s in samples:
         add_key(samples[s])
-    
-    # Add a suffix to be able to merge the frames
-    for syst in shape_syst:
-        for ud in ["_up", "_down"]:    
-            samples["TTJets_signal_" + syst + ud] = samples["TTJets_signal_" + syst + ud].add_suffix("_" + syst + ud)
-            samples["TTJets_signal_" + syst + ud].rename(columns={'event_id_' + syst + ud: 'event_id'}, inplace=True) 
-            #print(list(samples["TTJets_signal_" + syst + ud]))
-    
+        
     # Merge the nominal and systematic frames
-    dfs = []
-    dfs.append(samples["TTJets_signal"].copy())
+    dfs_signal = []
+    dfs_signal.append(samples["TTJets_signal"].copy())
+    dfs_bkg = []
+    train_test_split(samples["QCD"], n_bkg)
+    dfs_bkg.append( samples["QCD"].copy() )
     #print(samples["TTJets_signal"]["weight"].head())
     for syst in shape_syst:
-        for ud in ["_up", "_down"]:    
-            dfs.append(samples["TTJets_signal_" + syst + ud].copy())
-            #samples["TTJets_signal_" + syst + ud]["weight_" + syst + ud]  * \
-            #(1. / samples["TTJets_signal_" + syst + ud]["weight_" + syst + ud])
-            #print(samples["TTJets_signal_" + syst + ud]["weight_" + syst + ud].head())
-    signal = reduce(lambda  left,right: pd.merge(left,right,how="inner", on="event_id"), dfs)
+        for ud in ["_up", "_down"]:  
+            if "bkg" not in syst:
+                samples["TTJets_signal_" + syst + ud] = samples["TTJets_signal_" + syst + ud].add_suffix("_" + syst + ud)
+                samples["TTJets_signal_" + syst + ud].rename(columns={'event_id_' + syst + ud: 'event_id'}, inplace=True) 
+                dfs_signal.append(samples["TTJets_signal_" + syst + ud].copy())
+            else:
+                samples["QCD_" + syst + ud] = samples["QCD_" + syst + ud].add_suffix("_" + syst + ud)
+                samples["QCD_" + syst + ud].rename(columns={'event_id_' + syst + ud: 'event_id'}, inplace=True) 
+                dfs_bkg.append(samples["QCD_" + syst + ud].copy())
+                
+    signal = reduce(lambda  left,right: pd.merge(left,right,how="inner", on="event_id"), dfs_signal)
+    bkg = reduce(lambda  left,right: pd.merge(left,right,how="inner", on="event_id"), dfs_bkg)
     # Split in training and test
     train_test_split(signal, n_sig)
     train_idx = get_train_evts(signal) 
-    train_test_split(samples["QCD"], n_bkg)
-    bkg = samples["QCD"].copy()
+    
         
     #Weights
     #signal["weights"] = signal['trigger_weight'] * signal['btag_weight1']
     signal["weight"] *= (1. / np.mean(signal["weight"]))
+    bkg["weight"] *= (4. / np.mean(bkg["weight"]))
     for syst in shape_syst:
         for ud in ["_up", "_down"]:
-            signal["weight_" + syst + ud] *= (1. / np.mean(signal["weight_" + syst + ud]))
-    #bkg["weights"] = bkg['btag_weight2']
-    #print( list( zip( signal["weight"], signal["weight_06_jes_up"], signal["weight_06_jes_down"])))                               
-    bkg["weight"] = bkg["weight"] * (1. / np.mean(bkg["weight"])) * 4
+            if "bkg" not in syst:
+                signal["weight_" + syst + ud] *= (1. / np.mean(signal["weight_" + syst + ud])) 
+            else:
+                bkg["weight_" + syst + ud] *= (4. / np.mean(bkg["weight_" + syst + ud])) 
     
     # Add labels
     signal["label"] = 1
@@ -325,11 +328,14 @@ def get_train_data(samples, features, shape_syst, weight_syst, n_sig = 20000, n_
     # rename the syst frames:
     for syst in shape_syst:
         for ud in ["_up", "_down"]:
-            #samples["TTJets_signal" + syst].columns = samples["TTJets_signal" + syst].columns.str.rstrip(syst)
-            samples["TTJets_signal_" + syst + ud].columns = samples["TTJets_signal_" + syst + ud].columns.str.replace(
-                "_" + syst + ud + r'$', '')
-            #print(list(samples["TTJets_signal_" + syst + ud]))
-        
+            if "bkg" not in syst:
+                #samples["TTJets_signal" + syst].columns = samples["TTJets_signal" + syst].columns.str.rstrip(syst)
+                samples["TTJets_signal_" + syst + ud].columns = samples["TTJets_signal_" + syst + ud].columns.str.replace(
+                    "_" + syst + ud + r'$', '')
+            else:
+                samples["QCD_" + syst + ud].columns = samples["QCD_" + syst + ud].columns.str.replace(
+                    "_" + syst + ud + r'$', '')
+                
     for s in samples:
         if "TTJets_signal" in s:
             #print(s)
@@ -382,8 +388,14 @@ def gen_artificial_systs(samples, artificial_syst):
             X_up, X_down = shift_var(samples[s], col, shift)
             set_normalization(X_up, factor = 1. + norm)
             set_normalization(X_down, factor = 1. - norm)
-            samples[s + "_art_" + col + "_up"] = X_up
-            samples[s + "_art_" + col + "_down"] = X_down
+            if s == "TTJets_signal":
+                systname = "artsig"
+            elif s == "QCD":
+                systname = "artbkg"
+            else:
+                print("No valid sample for artificial syst")
+            samples[s + "_" + systname + "_" + col + "_up"] = X_up
+            samples[s + "_" + systname + "_" + col + "_down"] = X_down
             
             #print(list(zip(samples[s][col], samples[s + "_art_" + col + "_up"][col], samples[s + "_art_" + col + "_down"][col])))
 
@@ -430,7 +442,7 @@ def get_true_values(samples, args):
     #print(mu_true)
     b_true = samples["QCD"]["weight"].sum() 
     return b_true, mu_true, shape_norm_sigma
-            
+
 def set_systs(args):
     
     # Set names
@@ -446,6 +458,8 @@ def set_systs(args):
     if args["scale_norms_only"] is not None:
         for nuis in args["scale_norms_only"]:
            scale_norm_only(nuis[0], nuis[1], args["b_norm_sigma"], args["s_norm_sigma"])
+    # Add field for S/B shape
+    args["is_sig_shape"] = [True if "bkg" not in s else False for s in args["shape_syst"] ]
     # Set the fit nuisances
     args["fit_norm_sigma"] = set_fit_norm_nuis(args["fit_norm_syst"], args["s_norm_sigma"], args["b_norm_sigma"])
     args["fit_shape_systs"] = list(dict.fromkeys(args["fit_shape_systs"] + args["shape_syst"] + args["weight_syst"]))
@@ -467,17 +481,19 @@ def load_samples(path, shape_systs=[]):
     for s in ["TTJets_bkg", "WZJets", "STJets", "QCD", "TTJets_signal", "Data"]:
         samples[s] = pd.read_hdf(path + s + ".h5")
         
-        if ("Data" not in s) & ("QCD" not in s):
+        if ("Data" not in s):
             for syst in shape_systs:
                 renamed_nuis = adjust_naming([syst])[0]
-                if ("art" not in syst):
+                if ("art" not in syst) & ("QCD" not in s):
                     samples[s + "_" + renamed_nuis + "_up"] = pd.read_hdf(path + s + "_" + syst + "_up" + ".h5")
                     samples[s + "_" + renamed_nuis + "_down"] = pd.read_hdf(path + s + "_" + syst + "_down" + ".h5")
                 else:
-                    if (s == "TTJets_signal"):
+                    if ("sig" in syst) & (s == "TTJets_signal"):
                         samples[s + "_" + renamed_nuis + "_up"] = pd.read_hdf(path + s + "_" + syst + "_up" + ".h5")
                         samples[s + "_" + renamed_nuis + "_down"] = pd.read_hdf(path + s + "_" + syst + "_down" + ".h5")
-
+                    if ("bkg" in syst) & (s == "QCD"):
+                        samples[s + "_" + renamed_nuis + "_up"] = pd.read_hdf(path + s + "_" + syst + "_up" + ".h5")
+                        samples[s + "_" + renamed_nuis + "_down"] = pd.read_hdf(path + s + "_" + syst + "_down" + ".h5")                    
     return samples
 
         

@@ -148,7 +148,7 @@ def run_cmsopen( args, epochs=1, retrain = True, do_fit = False):
             args["mu_true"] *= args["downsample_factor"]
                 
         preproc.print_normalization(samples)
-
+        
         # Train
         bce_model, inferno_model, order_d = train_cmsopen(opendata, test, args, epochs)
         
