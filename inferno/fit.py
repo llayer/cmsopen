@@ -39,6 +39,26 @@ def rebin_if_zero(samples, args):
             samples[s]["inferno"] = samples[s]["inferno"].replace(rebin)    
         args["inferno_bins"] = args["bins"] - nzeros
         
+def get_nonzero_bins(samples, args):
+    counts = []
+    for s in args["sample_names"]:
+        content, edges = np.histogram(samples[s]["bce"], range=(0.,1.), bins=args["bins"])
+        counts.append(content)
+    total_counts = np.array(counts).sum(0)
+    
+    nonzero_bins = []
+    for i, c in enumerate(total_counts):
+        if c != 0:
+            nonzero_bins.append(i)
+            
+    #print(total_counts)
+    #print(nonzero_bins)
+            
+    lower = edges[min(nonzero_bins)]
+    upper = edges[max(nonzero_bins)+1]
+    nbins = len(nonzero_bins)
+    args["nonzero_histbins"] = (lower, upper, nbins)
+        
 #
 # Convert data to ROOT format
 #

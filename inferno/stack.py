@@ -21,24 +21,28 @@ variables = {
 def plot_art_syst(samples, art_syst, path="", store=False):
         
     # Plot the signal systs
-    for syst in art_syst["TTJets_signal"]:
-        
-        name = syst["name"]
-        var = variables[name]
-        s = "artsig_" + name 
-                
-        plot_var_shape(samples, [s], [], syst_sample = "TTJets_signal", var = name, 
-                       bins=var["bins"], range=(var["xlow"], var["xup"]), path=path, store=store)
-        
-    # Plot the bkg systs
-    for syst in art_syst["QCD"]:
+    for sample in art_syst:
+        for syst in art_syst[sample]:
+            print(sample, syst)
+            name = syst["name"]
+            var = variables[name]
+            if "TTJets_signal" in sample:
+                s = "artsig_" + name 
+            else:
+                s = "artbkg_" + name 
 
-        name = syst["name"]
-        var = variables[name]
-        s = "artbkg_" + name 
-        plot_var_shape(samples, [s], [], syst_sample = "QCD", var = name, 
-                       bins=var["bins"], range=(var["xlow"], var["xup"]), path=path, store=store)
-    
+            plot_var_shape(samples, [s], [], syst_sample = sample, var = name, 
+                           bins=var["bins"], range=(var["xlow"], var["xup"]), path=path, store=store)
+        """
+        # Plot the bkg systs
+        for syst in art_syst["QCD"]:
+
+            name = syst["name"]
+            var = variables[name]
+            s = "artbkg_" + name 
+            plot_var_shape(samples, [s], [], syst_sample = "QCD", var = name, 
+                           bins=var["bins"], range=(var["xlow"], var["xup"]), path=path, store=store)
+        """
 
 
 def plot_shape(bkg, sig, up, down, edges, centers, var, is_signal=True, path="", store=False):

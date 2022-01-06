@@ -22,10 +22,18 @@ def fit_cmsopen(args, fitvar, asimov = False):
         print( "Fit", fitvar, "data")        
     
     if (fitvar == "bce") or (args["use_softhist"] == True):
+                
         if args["rebin_hist"] is not None:
             bins = np.linspace(0,1,args["rebin_hist"]+1)
         else:
-            bins = np.linspace(0,1,args["bins"]+1)
+            if args["exclude_zero"] == True:
+                lower, upper, bins = args["nonzero_histbins"]
+                #print("LOWER",lower, "UPPER",upper, "BINS", bins)
+                bins = np.linspace(lower,upper,bins+1)
+                #bins = np.linspace(0,1,args["bins"]+1) 
+            else:
+                bins = np.linspace(0,1,args["bins"]+1)            
+            
     else:
         if args["exclude_zero"] == True:
             bins = np.linspace(0,args["inferno_bins"],args["inferno_bins"]+1)
@@ -119,7 +127,8 @@ def run_cmsopen( args, epochs=1, retrain = True, do_fit = False):
             create_dir(args["outpath"] + "/artificial")
         
         # Store the config file:
-        store_args(args, args["outpath"])
+        if (retrain == True):
+            store_args(args, args["outpath"])
         print("*********************")        
         print("Outpath", args["outpath"])
     
@@ -155,7 +164,6 @@ def run_cmsopen( args, epochs=1, retrain = True, do_fit = False):
         # Plot the articial syst
         if args["artificial_syst"] is not None:
             stack.plot_art_syst(samples, args["artificial_syst"], path=args["outpath"], store=args["store"])
-            stop
         
         # Train
         bce_model, inferno_model, order_d = train_cmsopen(opendata, test, args, epochs)
@@ -193,6 +201,7 @@ def run_cmsopen( args, epochs=1, retrain = True, do_fit = False):
         # Rebin INFERNO if zero bins
         if args["exclude_zero"]:
             fit.rebin_if_zero(samples, args)
+            fit.get_nonzero_bins(samples, args)
         
         # Convert samples to ROOT trees
         fit.to_root(samples, path=args["outpath"], systs = args["all_weight_syst"], include_pdf=args["add_pdf_weights"])

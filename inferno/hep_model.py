@@ -259,6 +259,10 @@ class HEPInferno(AbsCallback):
             self.n_alpha += self.n_shape_alphas
         else:
             self.shape_idxs = []
+            self.s_shape_idxs = []
+            self.b_shape_idxs = []
+            self.s_shape_norm_sigma = []
+            self.b_shape_norm_sigma = []
         # Signal norms
         if self.s_norm_sigma is not None and len(self.s_norm_sigma) > 0:
             self.s_norm_idxs = list(range(self.n_alpha, self.n_alpha+len(self.s_norm_sigma)))

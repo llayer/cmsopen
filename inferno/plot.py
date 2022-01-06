@@ -154,8 +154,13 @@ def plot_shapes(shapes, name, syst_name, syst_idx=0, epoch_idx = -1, use_hist = 
      transform = ax1.transAxes, size=15,
      bbox=dict(facecolor='red', edgecolor=None, alpha=0.2))
 
-    ax2.scatter(centers, np.array(sig_up) / np.array(sig), color="green")
-    ax2.scatter(centers, np.array(sig_down) / np.array(sig), color="red")
+    if "bkg" in syst_name:
+        nom = bkg
+    else:
+        nom = sig
+    
+    ax2.scatter(centers, np.array(sig_up) / np.array(nom), color="green")
+    ax2.scatter(centers, np.array(sig_down) / np.array(nom), color="red")
     ax2.hlines(1., 0, xmax, linestyle="dotted", color="black")
     ax2.set_ylim((0,2))
     ax2.set_xlabel(name)
