@@ -18,8 +18,8 @@ variables = {
 }
 
 
-def plot_art_syst(samples, art_syst):
-    
+def plot_art_syst(samples, art_syst, path="", store=False):
+        
     # Plot the signal systs
     for syst in art_syst["TTJets_signal"]:
         
@@ -28,7 +28,7 @@ def plot_art_syst(samples, art_syst):
         s = "artsig_" + name 
                 
         plot_var_shape(samples, [s], [], syst_sample = "TTJets_signal", var = name, 
-                       bins=var["bins"], range=(var["xlow"], var["xup"]))
+                       bins=var["bins"], range=(var["xlow"], var["xup"]), path=path, store=store)
         
     # Plot the bkg systs
     for syst in art_syst["QCD"]:
@@ -37,11 +37,11 @@ def plot_art_syst(samples, art_syst):
         var = variables[name]
         s = "artbkg_" + name 
         plot_var_shape(samples, [s], [], syst_sample = "QCD", var = name, 
-                       bins=var["bins"], range=(var["xlow"], var["xup"]))
+                       bins=var["bins"], range=(var["xlow"], var["xup"]), path=path, store=store)
     
 
 
-def plot_shape(bkg, sig, up, down, edges, centers, var, is_signal=True):
+def plot_shape(bkg, sig, up, down, edges, centers, var, is_signal=True, path="", store=False):
     
     fig, (ax1, ax2) = plt.subplots(nrows=2, gridspec_kw={'height_ratios': [3,1]}, figsize=(8,6))
     ax1.stairs(bkg, edges, label="bkg", color="blue")
@@ -52,19 +52,25 @@ def plot_shape(bkg, sig, up, down, edges, centers, var, is_signal=True):
     
     if is_signal == True:
         nom = sig
+        name = "TTJets_signal_" + var
     else:
         nom = bkg
+        name = "QCD_" + var
     
     ax2.scatter(centers, np.array(up) / np.array(nom), color="green")
     ax2.scatter(centers, np.array(down) / np.array(nom), color="red")
     ax2.hlines(1., 0, edges[-1], linestyle="dotted", color="black")
     ax2.set_ylim((0,2))
     ax2.set_xlabel(var)
+        
+    if store == True:
+        fig.savefig(path + "/artificial/" + name + ".png") 
           
     plt.show()    
     
 
-def plot_var_shape(samples, shape_syst, weight_syst, syst_sample="TTJets_signal", var = "MET_met", bins=20, range=(0., 350.)):
+def plot_var_shape(samples, shape_syst, weight_syst, syst_sample="TTJets_signal", var = "MET_met", bins=20, range=(0., 350.),
+                   path="", store=False):
 
     is_signal = True if "signal" in syst_sample else False
     
@@ -83,7 +89,8 @@ def plot_var_shape(samples, shape_syst, weight_syst, syst_sample="TTJets_signal"
         down_shape = np.histogram(down, weights=down_weight, bins=bins, range=range, density=True)[0]
 
         centers = edges[:-1] + (range[1]/float(bins))/float(2)
-        plot_shape(bkg_shape, sig_shape, up_shape, down_shape, edges, centers, var, is_signal=is_signal)
+        plot_shape(bkg_shape, sig_shape, up_shape, down_shape, edges, centers, var, is_signal=is_signal,
+                   path=path, store=store)
 
     for syst in weight_syst:
 
@@ -98,7 +105,8 @@ def plot_var_shape(samples, shape_syst, weight_syst, syst_sample="TTJets_signal"
         sig_down_shape = np.histogram(sig_down, weights=sig_down_weight, bins=bins, range=range, density=True)[0]
 
         centers = edges[:-1] + (range[1]/float(bins))/float(2)
-        plot_shape(bkg_shape, sig_shape, sig_up_shape, sig_down_shape, edges, centers, var, is_signal=is_signal)
+        plot_shape(bkg_shape, sig_shape, sig_up_shape, sig_down_shape, edges, centers, var, is_signal=is_signal, 
+                  path=path, store=store)
 
         
 def stack_weight(weight, n):

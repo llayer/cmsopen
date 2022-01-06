@@ -115,6 +115,8 @@ def run_cmsopen( args, epochs=1, retrain = True, do_fit = False):
         create_dir(args["outpath"] + "/train/bce")
         create_dir(args["outpath"] + "/train/inferno")
         create_dir(args["outpath"] + "/fit")
+        if args["artificial_syst"] is not None:
+            create_dir(args["outpath"] + "/artificial")
         
         # Store the config file:
         store_args(args, args["outpath"])
@@ -152,7 +154,7 @@ def run_cmsopen( args, epochs=1, retrain = True, do_fit = False):
         
         # Plot the articial syst
         if args["artificial_syst"] is not None:
-            stack.plot_art_syst(samples, args["artificial_syst"])
+            stack.plot_art_syst(samples, args["artificial_syst"], path=args["outpath"], store=args["store"])
             stop
         
         # Train
