@@ -281,12 +281,14 @@ class HEPInferno(AbsCallback):
         self.covs, self.cov, self.cnt = {'trn':[], 'val':[]}, 0, 0
         self.significance = 0
         self.trn_shapes = {'sig':[], 'bkg':[]}
-        self.val_shapes = {'sig':[], 'bkg':[], "sig_up":[], "sig_down":[], "bkg_up":[], "bkg_down":[]}
+        self.val_shapes = {'sig':[], 'bkg':[], 'up':[], 'down':[]} #"sig_up":[], "sig_down":[], "bkg_up":[], "bkg_down":[]}
         self.sig_shape, self.bkg_shape = 0, 0
-        self.sig_shape_up = [0. for i in range(len(self.s_shape_idxs))]
-        self.sig_shape_down = [0. for i in range(len(self.s_shape_idxs))]
-        self.bkg_shape_up = [0. for i in range(len(self.b_shape_idxs))]
-        self.bkg_shape_down = [0. for i in range(len(self.b_shape_idxs))]
+        #self.sig_shape_up = [0. for i in range(len(self.s_shape_idxs))]
+        #self.sig_shape_down = [0. for i in range(len(self.s_shape_idxs))]
+        #self.bkg_shape_up = [0. for i in range(len(self.b_shape_idxs))]
+        #self.bkg_shape_down = [0. for i in range(len(self.b_shape_idxs))]
+        self.shape_up = [0. for i in range(len(self.s_shape_idxs + self.b_shape_idxs))]
+        self.shape_down = [0. for i in range(len(self.s_shape_idxs + self.b_shape_idxs))]
 
         print("*********************")
         print("Summary INFERNO callback")
@@ -321,10 +323,12 @@ class HEPInferno(AbsCallback):
     def on_epoch_begin(self) -> None: 
         self.cov, self.cnt, self.significance = 0, 0, 0
         self.sig_shape, self.bkg_shape = 0, 0
-        self.sig_shape_up = [0 for i in range(len(self.s_shape_idxs))]
-        self.sig_shape_down = [0 for i in range(len(self.s_shape_idxs))]
-        self.bkg_shape_up = [0 for i in range(len(self.b_shape_idxs))]
-        self.bkg_shape_down = [0 for i in range(len(self.b_shape_idxs))]
+        #self.sig_shape_up = [0 for i in range(len(self.s_shape_idxs))]
+        #self.sig_shape_down = [0 for i in range(len(self.s_shape_idxs))]
+        #self.bkg_shape_up = [0 for i in range(len(self.b_shape_idxs))]
+        #self.bkg_shape_down = [0 for i in range(len(self.b_shape_idxs))]
+        self.shape_up = [0 for i in range(len(self.s_shape_idxs + self.b_shape_idxs))]
+        self.shape_down = [0 for i in range(len(self.s_shape_idxs + self.b_shape_idxs))]
         
     def on_epoch_end(self) -> None:
         if self.wrapper.state == 'train':
@@ -336,10 +340,13 @@ class HEPInferno(AbsCallback):
             #print(self.significance / self.cnt )
             self.val_shapes['bkg'].append( self.bkg_shape / self.cnt )
             self.val_shapes['sig'].append( self.sig_shape / self.cnt )            
-            self.val_shapes['sig_up'].append( [shape / self.cnt for shape in self.sig_shape_up] )
-            self.val_shapes['sig_down'].append( [shape / self.cnt for shape in self.sig_shape_down] )
-            self.val_shapes['bkg_up'].append( [shape / self.cnt for shape in self.bkg_shape_up] )
-            self.val_shapes['bkg_down'].append( [shape / self.cnt for shape in self.bkg_shape_down] )
+            #self.val_shapes['sig_up'].append( [shape / self.cnt for shape in self.sig_shape_up] )
+            #self.val_shapes['sig_down'].append( [shape / self.cnt for shape in self.sig_shape_down] )
+            #self.val_shapes['bkg_up'].append( [shape / self.cnt for shape in self.bkg_shape_up] )
+            #self.val_shapes['bkg_down'].append( [shape / self.cnt for shape in self.bkg_shape_down] )
+            self.val_shapes['up'].append( [shape / self.cnt for shape in self.shape_up] )
+            self.val_shapes['down'].append( [shape / self.cnt for shape in self.shape_down] )
+            
             
     def on_train_begin(self) -> None:
         
@@ -361,13 +368,23 @@ class HEPInferno(AbsCallback):
         
         with torch.no_grad(): 
             self.sig_shape += f_s_nom.detach().cpu().numpy()
-            self.bkg_shape += f_b_nom.detach().cpu().numpy()   
+            self.bkg_shape += f_b_nom.detach().cpu().numpy()  
+            """
             for i in range(len(self.s_shape_idxs)):
                 self.sig_shape_up[i] += f_s_up[i].detach().cpu().numpy()
                 self.sig_shape_down[i] += f_s_dw[i].detach().cpu().numpy()
             for i in range(len(self.b_shape_idxs)):
                             self.bkg_shape_up[i] += f_b_up[i].detach().cpu().numpy()
                             self.bkg_shape_down[i] += f_b_dw[i].detach().cpu().numpy()
+            """
+            for i in range(len(self.s_shape_idxs)):
+                self.shape_up[i] += f_s_up[i].detach().cpu().numpy()
+                self.shape_down[i] += f_s_dw[i].detach().cpu().numpy()
+            for i in range(len(self.b_shape_idxs)):
+                            self.shape_up[len(self.s_shape_idxs) + i] += f_b_up[i].detach().cpu().numpy()
+                            self.shape_down[len(self.s_shape_idxs) + i] += f_b_dw[i].detach().cpu().numpy()
+            
+                           
             
     def to_shape(self, p:Tensor, w:Optional[Tensor]=None) -> Tensor:
         

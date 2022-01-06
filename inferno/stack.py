@@ -5,26 +5,38 @@ import matplotlib as mpl
 import awkward
 
 
+variables = {
+    "MET_met" : {"bins" : 30, "xlow" : 0., "xup" : 400, "xtitle" : "MET [GeV]", "max_sf": 1.5, "log":True},
+    "Tau_eta" : {"bins" : 30, "xlow" : -3., "xup" : 3., "xtitle" : "#eta(#tau)", "max_sf": 50, "log":False},
+    "aplanarity" : {"bins" : 20, "xlow" : 0., "xup" : 0.5, "xtitle" : "aplanarity", "max_sf": 15, "log":False},
+    "ht" : {"bins" : 20, "xlow" : 0., "xup" : 1600., "xtitle" : "H_{T} [GeV]", "max_sf": 15, "log":False},
+    "chargeEta" : {"bins" : 20, "xlow" : -3., "xup" : 3., "xtitle" : "q #times #eta(#tau)", "max_sf": 50, "log":False},
+    "deltaPhiTauMet" : {"bins" : 20, "xlow" : 0., "xup" : 3.2, "xtitle" : "#Delta#phi(#tau, MET)", "max_sf": 50, "log":False},
+    "mt" : {"bins" : 20, "xlow" : 0., "xup" : 300., "xtitle" : "M_{T}(#tau, MET) [GeV]", "max_sf": 15, "log":True},
+    "mTauJet" : {"bins" : 20, "xlow" : 0., "xup" : 2500., "xtitle" :"M(#tau, jets) [GeV]", "max_sf": 15, "log":False},
+    "sphericity" : {"bins" : 20, "xlow" : 0., "xup" : 1.0, "xtitle" : "sphericity", "max_sf": 15, "log":False}
+}
+
+
 def plot_art_syst(samples, art_syst):
     
     # Plot the signal systs
     for syst in art_syst["TTJets_signal"]:
-        var = {"var_name" : "aplanarity", "bins" : 20, "xlow" : 0., "xup" : 0.5, "xtitle" : "aplanarity", 
-                "max_sf": 15, "log":False}
-        print(var)
-        s = "artsig_aplanarity"
-        print(var['var_name'], var["bins"], var["xlow"], var["xup"])
-        plot_var_shape(samples, [s], [], syst_sample = "TTJets_signal", var = var['var_name'], 
+        
+        name = syst["name"]
+        var = variables[name]
+        s = "artsig_" + name 
+                
+        plot_var_shape(samples, [s], [], syst_sample = "TTJets_signal", var = name, 
                        bins=var["bins"], range=(var["xlow"], var["xup"]))
         
     # Plot the bkg systs
     for syst in art_syst["QCD"]:
-        var = {"var_name" : "aplanarity", "bins" : 20, "xlow" : 0., "xup" : 0.5, "xtitle" : "aplanarity", 
-                "max_sf": 15, "log":False}
-        print(var)
-        s = "artbkg_aplanarity"
-        print(var['var_name'], var["bins"], var["xlow"], var["xup"])
-        plot_var_shape(samples, [s], [], syst_sample = "QCD", var = var['var_name'], 
+
+        name = syst["name"]
+        var = variables[name]
+        s = "artbkg_" + name 
+        plot_var_shape(samples, [s], [], syst_sample = "QCD", var = name, 
                        bins=var["bins"], range=(var["xlow"], var["xup"]))
     
 
@@ -381,4 +393,53 @@ def plot_stack(mc_histograms_yields, mc_colors, mc_labels, total_model_unc,
         fig.savefig(path+"/data_mc.png", bbox_inches="tight") 
     plt.show()
             
+      
+    
+    
+def plot_input_variations(samples):
+    
+    variables = [
+        {"var_name" : "MET_met", "bins" : 30, "xlow" : 0., "xup" : 400, "xtitle" : "MET [GeV]", "max_sf": 1.5, "log":True},
+        {"var_name" : "Tau_eta", "bins" : 30, "xlow" : -3., "xup" : 3., "xtitle" : "#eta(#tau)", "max_sf": 50, "log":False},
+        {"var_name" : "aplanarity", "bins" : 20, "xlow" : 0., "xup" : 0.5, "xtitle" : "aplanarity", "max_sf": 15, "log":False},
+        {"var_name" : "ht", "bins" : 20, "xlow" : 0., "xup" : 1600., "xtitle" : "H_{T} [GeV]", "max_sf": 15, "log":False},
+        {"var_name" : "chargeEta", "bins" : 20, "xlow" : -3., "xup" : 3., "xtitle" : "q #times #eta(#tau)", 
+         "max_sf": 50, "log":False},
+        {"var_name" : "deltaPhiTauMet", "bins" : 20, "xlow" : 0., "xup" : 3.2, "xtitle" : "#Delta#phi(#tau, MET)", 
+         "max_sf": 50, "log":False},
+        {"var_name" : "mt", "bins" : 20, "xlow" : 0., "xup" : 300., "xtitle" : "M_{T}(#tau, MET) [GeV]", 
+         "max_sf": 15, "log":True},
+        {"var_name" : "mTauJet", "bins" : 20, "xlow" : 0., "xup" : 2500., "xtitle" :"M(#tau, jets) [GeV]", 
+         "max_sf": 15, "log":False},
+        {"var_name" : "sphericity", "bins" : 20, "xlow" : 0., "xup" : 1.0, "xtitle" : "sphericity", "max_sf": 15, "log":False}
+    ]        
+    
+    syst = ["09_taue", "jer"]
+    for var in variables:
+        plot_var_shape(samples, syst, [], var = var['var_name'], bins=var["bins"], range=(var["xlow"], var["xup"]))
+    
+        
+def plot_input_stacks():
+    
+    variables = [
+    {"var_name" : "PV_npvs", "bins" : 30, "xlow" : 0., "xup" : 30, "xtitle" : "primary vertices", "max_sf": 50, "log":False},
+    {"var_name" : "MET_met", "bins" : 30, "xlow" : 0., "xup" : 400, "xtitle" : "MET [GeV]", "max_sf": 1.5, "log":True},
+    {"var_name" : "Jet_pt", "bins" : 30, "xlow" : 0., "xup" : 500., "xtitle" : "p_{T}(jet) [GeV]", "max_sf": 15, "log":False},
+    {"var_name" : "Jet_eta", "bins" : 30, "xlow" : -3., "xup" : 3., "xtitle" : "#eta(jet)", "max_sf": 50, "log":False},
+    {"var_name" : "Tau_pt", "bins" : 30, "xlow" : 0., "xup" : 300, "xtitle" : "p_{T}(#tau) [GeV]", "max_sf": 15, "log":False},
+    {"var_name" : "Tau_eta", "bins" : 30, "xlow" : -3., "xup" : 3., "xtitle" : "#eta(#tau)", "max_sf": 50, "log":False},
+    {"var_name" : "aplanarity", "bins" : 20, "xlow" : 0., "xup" : 0.5, "xtitle" : "aplanarity", "max_sf": 15, "log":False},
+    {"var_name" : "ht", "bins" : 20, "xlow" : 0., "xup" : 1600., "xtitle" : "H_{T} [GeV]", "max_sf": 15, "log":False},
+    {"var_name" : "chargeEta", "bins" : 20, "xlow" : -3., "xup" : 3., "xtitle" : "q #times #eta(#tau)", "max_sf": 50, "log":False},
+    {"var_name" : "deltaPhiTauMet", "bins" : 20, "xlow" : 0., "xup" : 3.2, "xtitle" : "#Delta#phi(#tau, MET)", "max_sf": 50, "log":False},
+    {"var_name" : "mt", "bins" : 20, "xlow" : 0., "xup" : 300., "xtitle" : "M_{T}(#tau, MET) [GeV]", "max_sf": 15, "log":True},
+    {"var_name" : "mTauJet", "bins" : 20, "xlow" : 0., "xup" : 2500., "xtitle" :"M(#tau, jets) [GeV]", "max_sf": 15, "log":False},
+    {"var_name" : "nJets", "bins" : 10, "xlow" : 3., "xup" : 13., "xtitle" : "N. of jets", "max_sf": 50, "log":True},
+    {"var_name" : "sphericity", "bins" : 20, "xlow" : 0., "xup" : 1.0, "xtitle" : "sphericity", "max_sf": 15, "log":False}
+    ]    
+    
+    for var in variables:
+        stack.plot_from_pd(samples, var["var_name"], bins=var["bins"], 
+                           range=(var["xlow"], var["xup"]), title=var["xtitle"], log_scale=var["log"])        
+        
             

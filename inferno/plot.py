@@ -124,8 +124,8 @@ def plot_shapes(shapes, name, syst_name, syst_idx=0, epoch_idx = -1, use_hist = 
         
     bkg = shapes["bkg"][epoch_idx]
     sig = shapes["sig"][epoch_idx]
-    sig_up = shapes["sig_up"][epoch_idx][syst_idx]
-    sig_down = shapes["sig_down"][epoch_idx][syst_idx]
+    sig_up = shapes["up"][epoch_idx][syst_idx]
+    sig_down = shapes["down"][epoch_idx][syst_idx]
     
     if plot_sorted == True:
         bkg = bkg[list(order_d.keys())]
@@ -144,8 +144,8 @@ def plot_shapes(shapes, name, syst_name, syst_idx=0, epoch_idx = -1, use_hist = 
     fig, (ax1, ax2) = plt.subplots(nrows=2, gridspec_kw={'height_ratios': [3,1]}, figsize=(8,6))
     ax1.stairs(bkg, edges, label="bkg", color="blue")
     ax1.stairs(sig, edges, label="sig", color="orange")
-    ax1.stairs(sig_up, edges, label="sig up", color="green")
-    ax1.stairs(sig_down, edges, label="sig down", color="red")
+    ax1.stairs(sig_up, edges, label="up", color="green")
+    ax1.stairs(sig_down, edges, label="down", color="red")
     ax1.legend(loc="upper right")
     
     plt.text(0.05, 0.9,syst_name,

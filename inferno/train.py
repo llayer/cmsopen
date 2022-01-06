@@ -68,8 +68,10 @@ def train_inferno(data, args, epochs=100 ):
               "sig" : hep_inf.val_shapes["sig"],
               "bkg_trn": hep_inf.trn_shapes["bkg"],
               "sig_trn": hep_inf.trn_shapes["sig"],
-              "sig_up" : hep_inf.val_shapes["sig_up"],
-              "sig_down" : hep_inf.val_shapes["sig_down"]
+              #"sig_up" : hep_inf.val_shapes["sig_up"],
+              #"sig_down" : hep_inf.val_shapes["sig_down"]
+              "up" : hep_inf.val_shapes["up"],
+              "down" : hep_inf.val_shapes["down"]
              }
         
     return model_inferno, {"loss":lt, "idx_best": idx_best, "covs": hep_inf.covs, "shapes" : shapes}
@@ -121,8 +123,10 @@ def train_bce(data, args, epochs=100):
               "sig" : ct.val_shapes["sig"],
               "bkg_trn": ct.trn_shapes["bkg"],
               "sig_trn": ct.trn_shapes["sig"],
-              "sig_up" : ct.val_shapes["sig_up"],
-              "sig_down" : ct.val_shapes["sig_down"],
+              #"sig_up" : ct.val_shapes["sig_up"],
+              #"sig_down" : ct.val_shapes["sig_down"],
+              "up" : ct.val_shapes["up"],
+              "down" : ct.val_shapes["down"],
              }
     
     #bce_trn_covs = ct.covs["trn"]
