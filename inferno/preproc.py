@@ -200,10 +200,11 @@ def add_key(df):
     df["event_id"] = df["event"].astype(str) + df["luminosityBlock"].astype(str)
 
     
-def train_test_split(df, n = 5000):
+def train_test_split(df, n = 5000, rs=11):
 
     df.reset_index(drop=True, inplace=True)
     indices = list(df.index)
+    random.seed(rs)
     train_id = random.sample(indices, n)
     test_id = list(set(indices) - set(train_id))
     train_mask = df.index.isin(train_id)
@@ -217,7 +218,7 @@ def get_train_evts(sample):
     return sample[sample["train_flag"]=="train"]["event_id"]    
     
     
-def get_train_data(samples, features, shape_syst, weight_syst, n_sig = 20000, n_bkg = 10000, use_weights = False):
+def get_train_data(samples, features, shape_syst, weight_syst, n_sig = 20000, n_bkg = 10000, use_weights = False, rs=11):
     
     # Add a unique event key
     for s in samples:
@@ -227,7 +228,7 @@ def get_train_data(samples, features, shape_syst, weight_syst, n_sig = 20000, n_
     dfs_signal = []
     dfs_signal.append(samples["TTJets_signal"].copy())
     dfs_bkg = []
-    train_test_split(samples["QCD"], n_bkg)
+    train_test_split(samples["QCD"], n_bkg, rs=rs)
     dfs_bkg.append( samples["QCD"].copy() )
     #print(samples["TTJets_signal"]["weight"].head())
     for syst in shape_syst:
@@ -244,7 +245,7 @@ def get_train_data(samples, features, shape_syst, weight_syst, n_sig = 20000, n_
     signal = reduce(lambda  left,right: pd.merge(left,right,how="inner", on="event_id"), dfs_signal)
     bkg = reduce(lambda  left,right: pd.merge(left,right,how="inner", on="event_id"), dfs_bkg)
     # Split in training and test
-    train_test_split(signal, n_sig)
+    train_test_split(signal, n_sig, rs=rs)
     train_idx = get_train_evts(signal) 
     
         
@@ -499,7 +500,7 @@ def load_samples(path, shape_systs=[]):
         
 def load_data(features, shape_syst, weight_syst, all_shape_syst=None, all_weight_syst=None,
               path = "/home/centos/data/bdt_rs5/", bs=256, 
-              n_sig = 5000, n_bkg = 5000, use_weights = False, art_syst=None):
+              n_sig = 5000, n_bkg = 5000, use_weights = False, art_syst=None, rs=11):
         
     # Load the samples
     samples = load_samples(path, all_shape_syst)
@@ -518,7 +519,7 @@ def load_data(features, shape_syst, weight_syst, all_shape_syst=None, all_weight
 
     # Get the training data            
     trn, val, scaler = get_train_data(samples, features, shape_syst, weight_syst, 
-                                      n_sig = n_sig, n_bkg = n_bkg, use_weights = use_weights)   
+                                      n_sig = n_sig, n_bkg = n_bkg, use_weights = use_weights, rs = rs)   
     trn_dl = WeightedDataLoader(DataSet(*trn), batch_size=bs, shuffle=True, drop_last=True)
     val_dl = WeightedDataLoader(DataSet(*val), batch_size=bs, shuffle=True)
     test_dl = WeightedDataLoader(DataSet(*val), batch_size=bs)
@@ -528,6 +529,7 @@ def load_data(features, shape_syst, weight_syst, all_shape_syst=None, all_weight
     print("Summary training data")
     print("*********************")
     n_sig_train = sum(samples["TTJets_signal"]["is_train"]==1)
+    print("RS for split:", rs)
     print("Number of signal training / test events:", n_sig_train, len(samples["TTJets_signal"]) - n_sig_train)
     n_bkg_train = sum(samples["QCD"]["is_train"]==1)
     print("Number of bkg training / test events:", n_bkg_train, len(samples["QCD"]) - n_bkg_train)

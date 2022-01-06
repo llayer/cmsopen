@@ -333,7 +333,7 @@ class HEPInferno(AbsCallback):
             self.trn_shapes['sig'].append( self.sig_shape / self.cnt )            
         else:
             self.covs['val'].append(  self.cov / self.cnt  )
-            print(self.significance / self.cnt )
+            #print(self.significance / self.cnt )
             self.val_shapes['bkg'].append( self.bkg_shape / self.cnt )
             self.val_shapes['sig'].append( self.sig_shape / self.cnt )            
             self.val_shapes['sig_up'].append( [shape / self.cnt for shape in self.sig_shape_up] )

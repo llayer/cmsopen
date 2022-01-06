@@ -10,6 +10,7 @@ import train
 import fit
 import json
 import plot
+import stack
 
 
 def fit_cmsopen(args, fitvar, asimov = False):
@@ -134,7 +135,8 @@ def run_cmsopen( args, epochs=1, retrain = True, do_fit = False):
                                                              bs = args["bs"], n_sig = args["n_sig"], 
                                                              n_bkg = args["n_bkg"], 
                                                              use_weights = args["use_weights"], 
-                                                             art_syst = args["artificial_syst"])
+                                                             art_syst = args["artificial_syst"],
+                                                             rs = args["rs"])
 
         # Scale the norms of the shape nuisances if specified
         if args["scale_shape_norms"] is not None:
@@ -146,8 +148,12 @@ def run_cmsopen( args, epochs=1, retrain = True, do_fit = False):
             preproc.downsample_data(samples, args["downsample_factor"], weight_syst = args["all_weight_syst"])
             args["b_true"] *= args["downsample_factor"]
             args["mu_true"] *= args["downsample_factor"]
-                
         preproc.print_normalization(samples)
+        
+        # Plot the articial syst
+        if args["artificial_syst"] is not None:
+            stack.plot_art_syst(samples, args["artificial_syst"])
+            stop
         
         # Train
         bce_model, inferno_model, order_d = train_cmsopen(opendata, test, args, epochs)

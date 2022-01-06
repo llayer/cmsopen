@@ -2,19 +2,49 @@ import cabinetry
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib as mpl
+import awkward
 
 
-def plot_shape(bkg, sig, up, down, edges, centers, var):
+def plot_art_syst(samples, art_syst):
+    
+    # Plot the signal systs
+    for syst in art_syst["TTJets_signal"]:
+        var = {"var_name" : "aplanarity", "bins" : 20, "xlow" : 0., "xup" : 0.5, "xtitle" : "aplanarity", 
+                "max_sf": 15, "log":False}
+        print(var)
+        s = "artsig_aplanarity"
+        print(var['var_name'], var["bins"], var["xlow"], var["xup"])
+        plot_var_shape(samples, [s], [], syst_sample = "TTJets_signal", var = var['var_name'], 
+                       bins=var["bins"], range=(var["xlow"], var["xup"]))
+        
+    # Plot the bkg systs
+    for syst in art_syst["QCD"]:
+        var = {"var_name" : "aplanarity", "bins" : 20, "xlow" : 0., "xup" : 0.5, "xtitle" : "aplanarity", 
+                "max_sf": 15, "log":False}
+        print(var)
+        s = "artbkg_aplanarity"
+        print(var['var_name'], var["bins"], var["xlow"], var["xup"])
+        plot_var_shape(samples, [s], [], syst_sample = "QCD", var = var['var_name'], 
+                       bins=var["bins"], range=(var["xlow"], var["xup"]))
+    
+
+
+def plot_shape(bkg, sig, up, down, edges, centers, var, is_signal=True):
     
     fig, (ax1, ax2) = plt.subplots(nrows=2, gridspec_kw={'height_ratios': [3,1]}, figsize=(8,6))
     ax1.stairs(bkg, edges, label="bkg", color="blue")
     ax1.stairs(sig, edges, label="sig", color="orange")
-    ax1.stairs(up, edges, label="sig up", color="green")
-    ax1.stairs(down, edges, label="sig down", color="red")
+    ax1.stairs(up, edges, label="up", color="green")
+    ax1.stairs(down, edges, label="down", color="red")
     ax1.legend(loc="upper right")
     
-    ax2.scatter(centers, np.array(up) / np.array(sig), color="green")
-    ax2.scatter(centers, np.array(down) / np.array(sig), color="red")
+    if is_signal == True:
+        nom = sig
+    else:
+        nom = bkg
+    
+    ax2.scatter(centers, np.array(up) / np.array(nom), color="green")
+    ax2.scatter(centers, np.array(down) / np.array(nom), color="red")
     ax2.hlines(1., 0, edges[-1], linestyle="dotted", color="black")
     ax2.set_ylim((0,2))
     ax2.set_xlabel(var)
@@ -22,29 +52,33 @@ def plot_shape(bkg, sig, up, down, edges, centers, var):
     plt.show()    
     
 
-def plot_var_shape(samples, shape_syst, weight_syst, var = "MET_met", bins=20, range=(0., 350.)):
+def plot_var_shape(samples, shape_syst, weight_syst, syst_sample="TTJets_signal", var = "MET_met", bins=20, range=(0., 350.)):
 
+    is_signal = True if "signal" in syst_sample else False
+    
     for syst in shape_syst:
 
         bkg, bkg_weight = samples["QCD"][var], samples["QCD"]["weight"]
         sig, sig_weight = samples["TTJets_signal"][var], samples["TTJets_signal"]["weight"]
-        sig_up, sig_up_weight = samples["TTJets_signal_" + syst + "_up"][var], samples["TTJets_signal_" + syst + "_up"]["weight"]
-        sig_down, sig_down_weight = samples["TTJets_signal_" + syst + "_down"][var], samples["TTJets_signal_" + syst + "_down"]["weight"]
+        up = samples[syst_sample + "_" + syst + "_up"][var]
+        up_weight = samples[syst_sample + "_" + syst + "_up"]["weight"]
+        down = samples[syst_sample + "_" + syst + "_down"][var]
+        down_weight = samples[syst_sample + "_" + syst + "_down"]["weight"]
 
         bkg_shape, edges = np.histogram(bkg, bins=bins, weights=bkg_weight, range=range, density=True)
         sig_shape = np.histogram(sig, weights=sig_weight, bins=bins, range=range, density=True)[0]
-        sig_up_shape = np.histogram(sig_up, weights=sig_up_weight, bins=bins, range=range, density=True)[0]
-        sig_down_shape = np.histogram(sig_down, weights=sig_down_weight, bins=bins, range=range, density=True)[0]
+        up_shape = np.histogram(up, weights=up_weight, bins=bins, range=range, density=True)[0]
+        down_shape = np.histogram(down, weights=down_weight, bins=bins, range=range, density=True)[0]
 
         centers = edges[:-1] + (range[1]/float(bins))/float(2)
-        plot_shape(bkg_shape, sig_shape, sig_up_shape, sig_down_shape, edges, centers, var)
+        plot_shape(bkg_shape, sig_shape, up_shape, down_shape, edges, centers, var, is_signal=is_signal)
 
     for syst in weight_syst:
 
         bkg, bkg_weight = samples["QCD"][var], samples["QCD"]["weight"]
         sig, sig_weight = samples["TTJets_signal"][var], samples["TTJets_signal"]["weight"]
-        sig_up, sig_up_weight = samples["TTJets_signal"][var], samples["TTJets_signal"]["weight_" + syst + "_up"]
-        sig_down, sig_down_weight = samples["TTJets_signal"][var], samples["TTJets_signal"]["weight_" + syst + "_down"]
+        sig_up, sig_up_weight = samples[syst_sample][var], samples[syst_sample]["weight_" + syst + "_up"]
+        sig_down, sig_down_weight = samples[syst_sample][var], samples[syst_sample]["weight_" + syst + "_down"]
 
         bkg_shape, edges = np.histogram(bkg, bins=bins, weights=bkg_weight, range=range, density=True)
         sig_shape = np.histogram(sig, weights=sig_weight, bins=bins, range=range, density=True)[0]
@@ -52,18 +86,28 @@ def plot_var_shape(samples, shape_syst, weight_syst, var = "MET_met", bins=20, r
         sig_down_shape = np.histogram(sig_down, weights=sig_down_weight, bins=bins, range=range, density=True)[0]
 
         centers = edges[:-1] + (range[1]/float(bins))/float(2)
-        plot_shape(bkg_shape, sig_shape, sig_up_shape, sig_down_shape, edges, centers, var)
+        plot_shape(bkg_shape, sig_shape, sig_up_shape, sig_down_shape, edges, centers, var, is_signal=is_signal)
 
-
+        
+def stack_weight(weight, n):
+    return np.full(n ,weight)
 
 def get_yield(sample, var, bins=30, range=(0,350.), log_scale = True, store=False, path=""):
     
-    n, bins = np.histogram(sample[var], bins=bins, range=range, weights=sample['weight'])
-    n_err = np.sqrt(np.histogram(sample[var], bins=bins, weights=sample['weight']**2)[0])
+    if "Jet_" in var:
+        values = awkward.flatten(awkward.from_iter(sample[var].values))
+        weight_stacked = sample.apply(lambda x : stack_weight(x["weight"] ,x["nJets"]), axis=1)
+        weight = awkward.flatten(awkward.from_iter(weight_stacked.values))
+    else:
+        values = sample[var]
+        weight = sample["weight"]
+    
+    n, bins = np.histogram(values, bins=bins, range=range, weights=weight)
+    n_err = np.sqrt(np.histogram(values, bins=bins, weights=weight**2)[0])
     
     return n, n_err, bins
 
-def plot_from_pd(samples, variable = "MET_met", bins=30, range=(0,350.)):
+def plot_from_pd(samples, variable = "MET_met", bins=30, range=(0,350.), title = "var", log_scale = True, store=False, path=""):
     
     mc_histograms_yields, mc_colors, mc_labels = [], [], []
     total_model_unc = 0
@@ -72,7 +116,7 @@ def plot_from_pd(samples, variable = "MET_met", bins=30, range=(0,350.)):
     bin_edges = 0
     colors = ['k', 'C0', "C3", "C2", "C1", "C4"]
 
-    for i, s in enumerate(args["sample_names"]):
+    for i, s in enumerate(["Data", "QCD", "TTJets_bkg", "WZJets", "STJets", "TTJets_signal"]):
 
         n, n_err, bin_edges = get_yield(samples[s], variable, bins=bins, range=range)
 
@@ -88,7 +132,7 @@ def plot_from_pd(samples, variable = "MET_met", bins=30, range=(0,350.)):
             
     plot_stack(mc_histograms_yields, mc_colors, mc_labels, total_model_unc, 
                 data_histogram_yields, data_histogram_stdev, data_label,
-                variable, bin_edges, log_scale = log_scale, store=store, path=path)
+                title, bin_edges, log_scale = log_scale, store=store, path=path)
 
 
 def plot_from_model(model_pred, data, config=None, log_scale = True, store=False, path=""):
