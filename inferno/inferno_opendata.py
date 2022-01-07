@@ -170,8 +170,8 @@ def run_cmsopen( args, epochs=1, retrain = True, do_fit = False):
         
         # Optimize
         if args["run_skopt"] == True:
-            bayes_opt.run_inferno_opt(opendata, args, epochs)
-            #bayes_opt.run_bce_opt(opendata, args, epochs)
+            #bayes_opt.run_inferno_opt(opendata, args, epochs)
+            bayes_opt.run_bce_opt(opendata, args, epochs)
         
         # Train
         bce_model, inferno_model, order_d = train_cmsopen(opendata, test, args, epochs)

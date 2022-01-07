@@ -123,7 +123,7 @@ def run_inferno_opt(opendata, args, epochs):
     initial_param = {'inferno_lr': 1e-3, 'temperature':0.2, 'inferno_neurons' : 80}
     
     search_result, prior_names = find_optimal_parameters_inferno(opendata, train_args, epochs, skopt_dim_nominal, 
-                                                                 initial_param, num_calls=12)
+                                                                 initial_param, num_calls=30)
     results = store_results(search_result, prior_names)
     results.to_hdf(args["outpath"] + "/skopt/inferno.h5", "frame")
     print(results)
@@ -142,7 +142,7 @@ def run_bce_opt(opendata, args, epochs):
     initial_param = {'bce_lr': 1e-3, 'bce_neurons' : 80}
     
     search_result, prior_names = find_optimal_parameters_bce(opendata, train_args, epochs, skopt_dim_nominal, 
-                                                             initial_param, num_calls=12)
+                                                             initial_param, num_calls=30)
     results = store_results(search_result, prior_names)
     results.to_hdf(args["outpath"] + "/skopt/bce.h5", "frame")
     print(results)
