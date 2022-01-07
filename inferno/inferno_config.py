@@ -26,6 +26,7 @@ args = {}
 args["outpath"] = "/home/centos/mount_point/data/inferno_cmsopen5" #"/home/centos/data/inferno_cmsopen16"
 args["store"] = True
 args["rs"] = 11
+args["run_skopt"] = False
 args["features"] = ['aplanarity', 'chargeEta', 'MET_met', 'deltaPhiTauMet']
 args["sample_names"] = ["Data", "QCD", "TTJets_bkg", "WZJets", "STJets", "TTJets_signal"]
 args["mc"] = ["TTJets_bkg", "WZJets", "STJets", "TTJets_signal"]

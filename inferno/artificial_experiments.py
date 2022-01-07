@@ -22,12 +22,14 @@ args["fit_data"] = True
 
 epochs = 50
 
+"""
 # No syst
 nosyst_args = args.copy()
 path = "/home/centos/mount_point/data/nosyst/"
 nosyst_args["outpath"] = path
 nosyst_args["shape_syst"] = []
 samples = inferno_opendata.run_cmsopen(nosyst_args, epochs = epochs, do_fit = True)
+"""
 
 """
 for i, val in enumerate(np.linspace(0.005, 0.02, 5)):
@@ -61,6 +63,40 @@ for i, val in enumerate(np.linspace(0.005, 0.02, 5)):
 
 """
 
+for i in range(3):
+    
+    nuis_var = ["artsig_aplanarity", "artsig_MET_met", "artsig_deltaPhiTauMet"]
+    nuis = nuis_var[0:i+1]
+    
+    print( nuis )
+    
+    path = "/home/centos/mount_point/data/artificial_nnuis/"
+    
+    art_nuis_args = args.copy()
+    art_nuis_args["outpath"] = path + "nnuis_" + str(i)
+    art_nuis_args["artificial_syst"] = {"TTJets_signal": [{'name':"aplanarity", 'shift':0.01, 'norm':0.05},
+                                                         {'name':"MET_met", 'shift':20, 'norm':0.05},
+                                                         {'name':"deltaPhiTauMet", 'shift':0.05, 'norm':0.05}]
+                                       }
+    art_nuis_args["shape_syst"] = nuis
+    samples = inferno_opendata.run_cmsopen(art_nuis_args, epochs = epochs, do_fit = True)
+    
+
+"""
+for i, val in enumerate(np.linspace(0.005, 0.02, 5)):
+        
+    path = "/home/centos/mount_point/data/artificial_sigbkg/"
+    art_sigbkg_args = args.copy()
+    art_sigbkg_args["outpath"] = path + "shift_" + str(i)
+    art_sigbkg_args["artificial_syst"] = {"TTJets_signal": [{'name':"aplanarity", 'shift':val, 'norm':0.05}],
+                                       "QCD": [{'name':"aplanarity", 'shift':val, 'norm':0.05}]}
+    art_sigbkg_args["shape_syst"] = ["artsig_aplanarity", "artbkg_aplanarity"]
+    samples = inferno_opendata.run_cmsopen(art_sigbkg_args, epochs = epochs, do_fit = True)
+    #try:
+    #    samples = inferno_opendata.run_cmsopen(args, epochs = epochs, do_fit = True)
+    #except:
+    #    print("Run failed")
+"""
 """
 for i, val in enumerate(np.linspace(1., 5., 5)):
     
