@@ -44,15 +44,12 @@ def find_optimal_parameters_inferno(opendata, args, epochs, dimensions, initial_
         print('\n \t ::: {} SKOPT CALL ::: \n'.format(num_skopt_call+1))
         print(p)
 
-        args["lr"] = p["lr"]
-        args["neurons"] = p["neurons"]
+        args["inferno_lr"] = p["inferno_lr"]
+        args["inferno_neurons"] = p["inferno_neurons"]
         args["temperature"] = p["temperature"]
-        
-        try:
-            inferno_model, inferno_info = train.train_inferno(opendata, args, epochs = epochs)
-            score = min(inferno_info.losses["val"])
-        except:
-            score = 10000
+                
+        inferno_model, inferno_info = train.train_inferno(opendata, args, epochs = epochs)
+        score = min(inferno_info["loss"].losses["val"])
 
         
         num_skopt_call += 1
@@ -92,15 +89,13 @@ def find_optimal_parameters_bce(opendata, args, epochs, dimensions, initial_para
         print('\n \t ::: {} SKOPT CALL ::: \n'.format(num_skopt_call+1))
         print(p)
 
-        args["lr"] = p["lr"]
-        args["neurons"] = p["neurons"]
+        args["bce_lr"] = p["bce_lr"]
+        args["bce_neurons"] = p["bce_neurons"]
         
-        try:
-            bce_model, bce_info = train.train_bce(opendata, args, epochs = epochs)
-            score = min(bce_info.losses["val"])
-        except:
-            score = 10000
-
+        print(args)
+        
+        bce_model, bce_info = train.train_bce(opendata, args, epochs = epochs)
+        score = min(bce_info["loss"].losses["val"])
         
         num_skopt_call += 1
 
@@ -121,27 +116,37 @@ def run_inferno_opt(opendata, args, epochs):
     train_args = args.copy()
     
     skopt_dim_nominal = [
-        Real(        low=1e-4, high=1e-2, prior='log-uniform', name='lr'),
+        Real(        low=1e-4, high=1e-2, prior='log-uniform', name='inferno_lr'),
         Real(        low=0.01, high=0.99, name='temperature'),
-        Integer(     low=50, high=200,  name='neurons')
+        Integer(     low=50, high=200,  name='inferno_neurons')
         ]
-    initial_param = {'lr': 1e-3, 'temperature':0.2, 'neurons' : 80}
+    initial_param = {'inferno_lr': 1e-3, 'temperature':0.2, 'inferno_neurons' : 80}
     
     search_result, prior_names = find_optimal_parameters_inferno(opendata, train_args, epochs, skopt_dim_nominal, 
-                                                                 initial_param, num_calls=30)
-
+                                                                 initial_param, num_calls=12)
+    results = store_results(search_result, prior_names)
+    results.to_hdf(args["outpath"] + "/skopt/inferno.h5", "frame")
+    print(results)
+    args["inferno_lr"] = results.iloc[0]["inferno_lr"]
+    args["inferno_neurons"] = int(results.iloc[0]["inferno_neurons"])
+    args["temperature"] = results.iloc[0]["temperature"]
 
 def run_bce_opt(opendata, args, epochs):
     
     train_args = args.copy()
     
     skopt_dim_nominal = [
-        Real(        low=1e-4, high=1e-2, prior='log-uniform', name='lr'),
-        Integer(     low=50, high=200,  name='neurons')
+        Real(        low=1e-4, high=1e-2, prior='log-uniform', name='bce_lr'),
+        Integer(     low=50, high=200,  name='bce_neurons')
         ]
-    initial_param = {'lr': 1e-3, 'neurons' : 80}
+    initial_param = {'bce_lr': 1e-3, 'bce_neurons' : 80}
     
     search_result, prior_names = find_optimal_parameters_bce(opendata, train_args, epochs, skopt_dim_nominal, 
-                                                             initial_param, num_calls=30)
-
+                                                             initial_param, num_calls=12)
+    results = store_results(search_result, prior_names)
+    results.to_hdf(args["outpath"] + "/skopt/bce.h5", "frame")
+    print(results)
+    print(results.iloc[0]["bce_lr"], results.iloc[0]["bce_neurons"])
+    args["bce_lr"] = results.iloc[0]["bce_lr"]
+    args["bce_neurons"] = int(results.iloc[0]["bce_neurons"])
     

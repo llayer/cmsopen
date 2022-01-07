@@ -126,6 +126,8 @@ def run_cmsopen( args, epochs=1, retrain = True, do_fit = False):
         create_dir(args["outpath"] + "/fit")
         if args["artificial_syst"] is not None:
             create_dir(args["outpath"] + "/artificial")
+        if args["run_skopt"] == True:
+            create_dir(args["outpath"] + "/skopt")
         
         # Store the config file:
         if (retrain == True):
@@ -169,6 +171,7 @@ def run_cmsopen( args, epochs=1, retrain = True, do_fit = False):
         # Optimize
         if args["run_skopt"] == True:
             bayes_opt.run_inferno_opt(opendata, args, epochs)
+            #bayes_opt.run_bce_opt(opendata, args, epochs)
         
         # Train
         bce_model, inferno_model, order_d = train_cmsopen(opendata, test, args, epochs)
