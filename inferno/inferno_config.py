@@ -33,9 +33,9 @@ args["mc"] = ["TTJets_bkg", "WZJets", "STJets", "TTJets_signal"]
 args["exclude_train"] = True
 args["use_weights"] = True
 # Shape systs can be jes, jer, taue
-args["all_shape_syst"] = ["09_jes", "taue", "jer"]
+args["all_shape_syst"] = ["06_jes", "taue", "jer"]
 args["shape_syst"] = ["jes"] #, "taue",
-args["scale_shape_norms"] = [("jes", 0.06)]#["06_jes", "07_taue"] #jer
+args["scale_shape_norms"] = None#[("jes", 0.06)]#["06_jes", "07_taue"] #jer
 # Weight syst can be btag, trigger, pdf
 args["all_weight_syst"] = ["btag", "trigger_jet", "trigger_tau", "pdf"]
 args["weight_syst"] = []#["btag_weight1"]

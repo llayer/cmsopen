@@ -23,23 +23,29 @@ args["fit_data"] = True
 epochs = 50
 
 # Scan the shape syst
+"""
 for syst in ["jes", "jer", "taue"]:
     
-    path = "/home/centos/mount_point/data/shape_syst/"
-
-    args["outpath"] = path + syst
-    args["shape_syst"] = [syst]
-    samples = inferno_opendata.run_cmsopen(args, epochs = epochs, do_fit = True)
+    if syst == 'jes':
+        continue
     
+    path = "/home/centos/mount_point/data/shape_syst/"
+    shape_args = args.copy()
+    shape_args["outpath"] = path + syst
+    shape_args["shape_syst"] = [syst]
+    samples = inferno_opendata.run_cmsopen(shape_args, epochs = epochs, do_fit = True)
+"""
     
 # Scan the weight syst
-for syst in ["btag", "trigger"]:
+
+for syst in ["btag", "trigger_jet", "trigger_tau"]:
     
     path = "/home/centos/mount_point/data/weight_syst/"
-
-    args["outpath"] = path + syst
-    args["shape_syst"] = [syst]
-    samples = inferno_opendata.run_cmsopen(args, epochs = epochs, do_fit = True)
+    weight_args = args.copy()
+    weight_args["outpath"] = path + syst
+    weight_args["shape_syst"] = []
+    weight_args["weight_syst"] = [syst]
+    samples = inferno_opendata.run_cmsopen(weight_args, epochs = epochs, do_fit = True)
 
 # Most promising
 
