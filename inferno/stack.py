@@ -180,7 +180,7 @@ def plot_from_model(model_pred, data, config=None, log_scale = True, store=False
         bin_edges = np.arange(len(data_yields[i_chan]) + 1)
         variable = "bin"
         
-    print(model_pred)
+    #print(model_pred)
         
     histogram_dict_list = []
     #colors = ['C0', "green", "orange", "red", "purple"]

@@ -123,7 +123,7 @@ def sb_nll(s_true:float, b_true:float, mu:Tensor, f_s_nom:Tensor, f_b_nom:Tensor
              ignore_shape_norm:bool=False, asymm_shape_norm:bool=False,
              interp_algo:str="fast_vertical") -> Tensor:
     r'''Compute negative log-likelihood for specified parameters.'''
-    
+        
     #  Interpolate shapes
     if (shape_alpha_s is not None) and (f_s_up is not None):
         if interp_algo == "fast_vertical":
@@ -162,7 +162,7 @@ def sb_nll(s_true:float, b_true:float, mu:Tensor, f_s_nom:Tensor, f_b_nom:Tensor
         b_exp *= normal(b_norm_alpha, b_norm_sigma).prod()
     # Rate parameter background
     if (b_rate_param_alpha  is not None) and (len(b_rate_param_alpha) > 0):
-        b_exp *= b_rate_param_alpha
+        b_exp += b_rate_param_alpha
         
     #  Compute NLL
     t_exp = (s_exp*f_s)+(b_exp*f_b)
@@ -276,7 +276,7 @@ class HEPInferno(AbsCallback):
         else:
             self.b_norm_idxs = []
         if self.b_rate_param:
-            self.b_rate_param_idx = list(self.n_alpha, self.n_alpha+1)
+            self.b_rate_param_idx = [self.n_alpha]
             self.n_alpha += 1
         else:
             self.b_rate_param_idx = []

@@ -18,6 +18,8 @@ args["inferno_neurons"] = 60
 args["temperature"] = 0.1
 args["store_significance"] = False
 args["interp_algo"] = "default"#"fast_vertical"
+args["bce_bins"] = 15
+args["fit_floatQCD"] = False
 args["fit_data"] = True
 
 epochs = 50
@@ -30,6 +32,15 @@ nosyst_args["outpath"] = path
 nosyst_args["shape_syst"] = []
 samples = inferno_opendata.run_cmsopen(nosyst_args, epochs = epochs, do_fit = True)
 """
+
+# Rate parameter
+rate_param_args = args.copy()
+path = "/home/centos/mount_point/data/rate_param/"
+rate_param_args["outpath"] = path
+rate_param_args["shape_syst"] = []
+rate_param_args["b_rate_param"] = True
+samples = inferno_opendata.run_cmsopen(rate_param_args, epochs = epochs, do_fit = True)
+
 
 """
 for i, val in enumerate(np.linspace(0.005, 0.02, 5)):

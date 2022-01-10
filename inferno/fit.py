@@ -90,7 +90,7 @@ def set_inferno_fit_bins(samples, args):
 
 def create_tree(path, s, sample, weight="weight"):
     
-    print("Normalization", s, sample[weight].sum())
+    #print("Normalization", s, sample[weight].sum())
     
     file = uproot3.recreate(path + "/root_trees/" + s + ".root")
     file["tree"] = uproot3.newtree(
@@ -124,7 +124,6 @@ def to_root(samples, systs = [], include_pdf=False, path = "/home/centos/data/in
         if ('up' in s) | ('down' in s): continue
         for syst in systs:
             
-            print(syst)
             for ud in ["up", "down"]:
                 if "pdf" in syst: continue
                 create_tree(path,  s + "_" + syst + "_" + ud, sample, weight = "weight_"+ syst + "_" + ud )
@@ -160,10 +159,7 @@ def create_ws(config, workspace_path = "", postproc=True, prune_stat=True):
 def fit_ws(ws, config, args, path, asimov = True):
     
     model, data = cabinetry.model_utils.model_and_data(ws, asimov=asimov)
-    print(model)
     model_pred = cabinetry.model_utils.prediction(model)
-    print(model_pred)
-    print(ws)
     #figures = cabinetry.visualize.data_mc(model_pred, data, config=config, log_scale=True,
     #                                      save_figure=args["store"], figure_folder=path)
     stack.plot_from_model(model_pred, data, config=config, log_scale=True, store=args["store"], path=path)
@@ -173,7 +169,7 @@ def fit_ws(ws, config, args, path, asimov = True):
     fit_results = cabinetry.fit.fit(model, data, minos=args["minos"])
     #print(fit_results)
     logging.getLogger("cabinetry").setLevel(logging.WARNING)
-    
+     
     if (len(args["fit_shape_systs"]) + len(args["fit_norm_syst"])) > 0:
         cabinetry.visualize.pulls(fit_results, exclude=["mu"], save_figure=args["store"], 
                                   close_figure = False, figure_folder=path)
@@ -200,6 +196,8 @@ def fit_ws(ws, config, args, path, asimov = True):
         if args["store"] == True:
             store_sig_lim_results(significance_result, lim_results=None, path = path)
     
+    print("HAAALLLOOOO")
+    
     return fit_results, scan_results
 
 def stat_only(config, fit_results, path="", asimov = True, store=True, prune_stat=True):
@@ -219,8 +217,10 @@ def stat_only(config, fit_results, path="", asimov = True, store=True, prune_sta
     model, data = cabinetry.model_utils.model_and_data(ws, asimov=asimov)
     model_pred = cabinetry.model_utils.prediction(model)
     fit_results_stat = cabinetry.fit.fit(model, data, minos=["mu"]) 
+    scan_results = cabinetry.fit.scan(model, data, "mu", n_steps=args["n_steps"])
     if store == True:
         store_fitresults(fit_results_stat, name = 'fit_results_stat', path = path)
+        store_scan(scan_results, name = 'mu_scan_stat' , path = path)
     #print(fit_results)
 
 #
@@ -237,7 +237,7 @@ def store_fitresults(fit_results, name = 'fit_results', path=""):
     with open(path + '/' + name + '.json', 'w') as outfile:
         json.dump(results, outfile)
         
-def store_scan(scan_results, path=""):
+def store_scan(scan_results, name = "mu_scan", path=""):
     
     results = {}
     results["name"] = scan_results.name
@@ -245,7 +245,7 @@ def store_scan(scan_results, path=""):
     results["uncertainty"] = scan_results.uncertainty
     results["parameter_values"] = scan_results.parameter_values.tolist()
     results["delta_nlls"] = scan_results.delta_nlls.tolist()
-    with open(path + '/mu_scan.json', 'w') as outfile:
+    with open(path + '/' + name + '.json', 'w') as outfile:
         json.dump(results, outfile)
         
 def store_sig_lim_results(sig_results, lim_results=None, path=""):

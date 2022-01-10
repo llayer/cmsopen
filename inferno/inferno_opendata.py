@@ -42,7 +42,8 @@ def fit_cmsopen(args, fitvar, asimov = False):
     ws = fit.create_ws(config, workspace_path = ws_path, prune_stat=args["prune_stat"])
     if args["print_ws"]: print(ws)
     fit_results, scan_results = fit.fit_ws(ws, config, args, path, asimov=asimov) 
-    fit.stat_only(config, fit_results, path = path, asimov=asimov, store=args["store"], prune_stat=args["prune_stat"])
+    if (len(args["fit_shape_systs"]) + len(args["fit_norm_syst"])) > 0:
+        fit.stat_only(config, fit_results, path = path, asimov=asimov, store=args["store"], prune_stat=args["prune_stat"])
     
     return ws
             
@@ -90,8 +91,10 @@ def store_args(args, path):
         json.dump(args, outfile)
         
 
-def run_cmsopen( args, epochs=1, retrain = True, do_fit = False):
-     
+def run_cmsopen( input_args, epochs=1, retrain = True, do_fit = False):
+    
+    args = input_args.copy()
+    
     print("*********************")
     if (retrain == True) & (do_fit == True):
         print("Training and fitting INFERNO and binary-cross entropy (BCE) model")
