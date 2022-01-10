@@ -85,9 +85,14 @@ def train_bce(data, args, epochs=100):
     neurons = args["bce_neurons"]
     bins = args["bce_bins"]
     
+    """
     net_bce = nn.Sequential(nn.Linear(nfeat,neurons),  nn.ReLU(),
                         nn.Linear(neurons,8), nn.ReLU(),
                         nn.Linear(8,1),  nn.Sigmoid())
+    """
+    net_bce = nn.Sequential(nn.Linear(nfeat,neurons),  nn.ReLU(),
+                        nn.Linear(neurons,neurons), nn.ReLU(),
+                        nn.Linear(neurons,1),  nn.Sigmoid())
     
     print("*********************")
     print("Summary BCE model")

@@ -200,7 +200,7 @@ def fit_ws(ws, config, args, path, asimov = True):
     
     return fit_results, scan_results
 
-def stat_only(config, fit_results, path="", asimov = True, store=True, prune_stat=True):
+def stat_only(config, fit_results, path="", asimov = True, store=True, prune_stat=True, n_steps=200):
     
     fix = []
     for label, best in zip(fit_results.labels, fit_results.bestfit.tolist()):
@@ -214,10 +214,14 @@ def stat_only(config, fit_results, path="", asimov = True, store=True, prune_sta
     if prune_stat:
         ws = dict(pyhf.Workspace(ws).prune(modifier_types=["staterror"]))
     
+    print(ws)
+    
     model, data = cabinetry.model_utils.model_and_data(ws, asimov=asimov)
     model_pred = cabinetry.model_utils.prediction(model)
+    logging.getLogger("cabinetry").setLevel(logging.INFO)
     fit_results_stat = cabinetry.fit.fit(model, data, minos=["mu"]) 
-    scan_results = cabinetry.fit.scan(model, data, "mu", n_steps=args["n_steps"])
+    logging.getLogger("cabinetry").setLevel(logging.WARNING)
+    scan_results = cabinetry.fit.scan(model, data, "mu", n_steps=n_steps)
     if store == True:
         store_fitresults(fit_results_stat, name = 'fit_results_stat', path = path)
         store_scan(scan_results, name = 'mu_scan_stat' , path = path)
@@ -273,9 +277,9 @@ def load_fitresults(path=""):
     
     return results
 
-def load_scan(path=""):
+def load_scan(path="", name='mu_scan'):
     
-    with open(path + '/mu_scan.json') as json_file:
+    with open(path + '/' + name + '.json') as json_file:
         results = json.load(json_file)
     results["parameter_values"] = np.array(results["parameter_values"])
     results["delta_nlls"] = np.array(results["delta_nlls"])
@@ -336,7 +340,13 @@ def compare_results(args):
         inferno_sig_lim = load_sig_lim( args["outpath"] + "/fit/inferno_asimov" ) if args["fit_sig_lim"] == True else None
         print_summary(inferno_asimov_res, inferno_sig_lim, "inferno asimov")
         # Plot the comparison of the scan
-        plot.plot_scan(bce_asimov_scan, inferno_asimov_scan, path=args["outpath"] + "/fit", asimov=True, store=args["store"])
+        if args["add_stat_only"]:
+            bce_asimov_scan_stat = load_scan( args["outpath"] + "/fit/bce_asimov", name='mu_scan_stat' )
+            inferno_asimov_scan_stat = load_scan( args["outpath"] + "/fit/inferno_asimov", name='mu_scan_stat')
+        else:
+            bce_asimov_scan_stat, inferno_asimov_scan_stat = None, None
+        plot.plot_scan(bce_asimov_scan, inferno_asimov_scan, bce_asimov_scan_stat, inferno_asimov_scan_stat,
+                       path=args["outpath"] + "/fit", asimov=True, store=args["store"])
 
     if args["fit_data"]:
         

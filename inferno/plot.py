@@ -401,13 +401,16 @@ def plot_cov_infbce(bce_covs, inf_covs, names, stddev=False, outpath=".", store=
 #
 # Compare the likelihood scan for INFERNO and BCE
 #     
-def plot_scan(bce, inferno, path="", asimov = True, store=False):
+def plot_scan(bce, inferno, bce_stat = None, inferno_stat  = None, path="", asimov = True, store=False):
           
     plt.rcParams.update(plt.rcParamsDefault)
         
     plt.figure()#dpi=150)
     plt.plot(bce["parameter_values"], bce["delta_nlls"], label="BCE")
     plt.plot(inferno["parameter_values"], inferno["delta_nlls"], label="INFERNO")
+    if bce_stat is not None:
+        #plt.plot(bce_stat["parameter_values"], bce_stat["delta_nlls"], label="BCE Stat")
+        plt.plot(inferno_stat["parameter_values"], inferno_stat["delta_nlls"], label="Stat only")    
     plt.ylim(0,5)
     plt.legend(loc="upper left")
     plt.ylabel(r'$2\Delta$ NLL')

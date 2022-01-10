@@ -43,7 +43,9 @@ def fit_cmsopen(args, fitvar, asimov = False):
     if args["print_ws"]: print(ws)
     fit_results, scan_results = fit.fit_ws(ws, config, args, path, asimov=asimov) 
     if (len(args["fit_shape_systs"]) + len(args["fit_norm_syst"])) > 0:
-        fit.stat_only(config, fit_results, path = path, asimov=asimov, store=args["store"], prune_stat=args["prune_stat"])
+        if args["add_stat_only"] == True:
+            fit.stat_only(config, fit_results, path = path, asimov=asimov, store=args["store"], 
+                          prune_stat=args["prune_stat"], n_steps = args["n_steps"])
     
     return ws
             
