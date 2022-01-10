@@ -20,12 +20,10 @@ def rebin_if_zero(samples, args):
     
     counts = []
     for s in args["sample_names"]:
-        counts.append(np.histogram(samples[s]["inferno"], range=(0,args["bins"]), bins=args["bins"])[0])
+        counts.append(np.histogram(samples[s]["inferno"], range=(0,args["inferno_bins"]), bins=args["inferno_bins"])[0])
     total_counts = np.array(counts).sum(0)
     
-    if 0 not in total_counts:
-        args["inferno_bins"] = args["bins"]
-    else:
+    if 0 in total_counts:
         print("*********************")
         print( "WARNING: Rebinning INFERNO due to zero bins")        
         rebin = {}
@@ -37,12 +35,12 @@ def rebin_if_zero(samples, args):
 
         for s in samples:
             samples[s]["inferno"] = samples[s]["inferno"].replace(rebin)    
-        args["inferno_bins"] = args["bins"] - nzeros
+        args["inferno_bins"] = args["inferno_bins"] - nzeros
         
-def get_nonzero_bins(samples, args):
+def get_nonzero_bins(samples, args, nbins, var="bce", ):
     counts = []
     for s in args["sample_names"]:
-        content, edges = np.histogram(samples[s]["bce"], range=(0.,1.), bins=args["bins"])
+        content, edges = np.histogram(samples[s][var], range=(0.,1.), bins=nbins)
         counts.append(content)
     total_counts = np.array(counts).sum(0)
     
@@ -50,14 +48,41 @@ def get_nonzero_bins(samples, args):
     for i, c in enumerate(total_counts):
         if c != 0:
             nonzero_bins.append(i)
-            
-    #print(total_counts)
-    #print(nonzero_bins)
-            
+                        
     lower = edges[min(nonzero_bins)]
     upper = edges[max(nonzero_bins)+1]
     nbins = len(nonzero_bins)
-    args["nonzero_histbins"] = (lower, upper, nbins)
+    return lower, upper, nbins
+    
+def set_bce_fit_bins(samples, args):
+    
+    if args["exclude_zero"] == True:
+        lower, upper, nbins = get_nonzero_bins(samples, args, args["bce_bins"], var="bce")
+        #print("LOWER",lower, "UPPER",upper, "BINS", bins)
+        #bins = np.linspace(0,1,args["bins"]+1) 
+    else:
+        lower, upper, nbins = 0, 1, args["bce_bins"]
+        
+    if args["rebin_hist"] is not None:
+        nbins = args["rebin_hist"]
+   
+    args["bce_fit_bins"] = np.linspace(lower,upper,nbins+1)
+    
+def set_inferno_fit_bins(samples, args):
+    
+    if args["use_softhist"] == True:
+        if args["exclude_zero"] == True:
+            lower, upper, nbins = get_nonzero_bins(samples, args, args["inferno_bins"], var="inferno")
+        else:
+            lower, upper, nbins = 0, 1, args["inferno_bins"]
+        if args["rebin_hist"] is not None:
+            nbins = args["rebin_hist"]
+        args["inferno_fit_bins"] = np.linspace(lower,upper,nbins+1)
+
+    else:
+        if args["exclude_zero"] == True:
+            rebin_if_zero(samples, args)
+        args["inferno_fit_bins"] = np.linspace(0,args["inferno_bins"],args["inferno_bins"]+1)
         
 #
 # Convert data to ROOT format
@@ -98,6 +123,8 @@ def to_root(samples, systs = [], include_pdf=False, path = "/home/centos/data/in
         if ("Data" in s) | ("QCD" in s): continue
         if ('up' in s) | ('down' in s): continue
         for syst in systs:
+            
+            print(syst)
             for ud in ["up", "down"]:
                 if "pdf" in syst: continue
                 create_tree(path,  s + "_" + syst + "_" + ud, sample, weight = "weight_"+ syst + "_" + ud )

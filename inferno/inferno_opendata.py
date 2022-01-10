@@ -22,25 +22,11 @@ def fit_cmsopen(args, fitvar, asimov = False):
     else:
         print( "Fit", fitvar, "data")        
     
-    if (fitvar == "bce") or (args["use_softhist"] == True):
-                
-        if args["rebin_hist"] is not None:
-            bins = np.linspace(0,1,args["rebin_hist"]+1)
-        else:
-            if args["exclude_zero"] == True:
-                lower, upper, bins = args["nonzero_histbins"]
-                #print("LOWER",lower, "UPPER",upper, "BINS", bins)
-                bins = np.linspace(lower,upper,bins+1)
-                #bins = np.linspace(0,1,args["bins"]+1) 
-            else:
-                bins = np.linspace(0,1,args["bins"]+1)            
-            
+    if (fitvar == "bce"):
+        bins = args["bce_fit_bins"]
     else:
-        if args["exclude_zero"] == True:
-            bins = np.linspace(0,args["inferno_bins"],args["inferno_bins"]+1)
-        else:
-            bins = np.linspace(0,args["bins"],args["bins"]+1)
-    
+        bins = args["inferno_fit_bins"]        
+                    
     # Get fit model
     corr_shape_systs, uncorr_shape_systs, norm_syst = fit.get_fit_model(args)
             
@@ -69,7 +55,7 @@ def train_cmsopen(opendata, test, args, epochs):
     
     # Predict test set - eventually add weights
     df_inf, order_d = train.pred_test(inferno_model, test, use_hist = args["use_softhist"], 
-                                          name="inferno", bins=args["bins"])
+                                          name="inferno", bins=args["inferno_bins"])
         
     # Plot the results
     plot.plot_inferno(df_inf, inferno_info, args, order_d)
@@ -170,7 +156,7 @@ def run_cmsopen( args, epochs=1, retrain = True, do_fit = False):
         
         # Optimize
         if args["run_skopt"] == True:
-            #bayes_opt.run_inferno_opt(opendata, args, epochs)
+            bayes_opt.run_inferno_opt(opendata, args, epochs)
             bayes_opt.run_bce_opt(opendata, args, epochs)
         
         # Train
@@ -194,7 +180,7 @@ def run_cmsopen( args, epochs=1, retrain = True, do_fit = False):
         print("*********************")
         print( "Loading samples from path", args["outpath"])
         samples = preproc.load_samples( args["outpath"] + "/samples/", 
-                                        shape_systs = preproc.adjust_naming(args["fit_shape_systs"]))      
+                                        shape_systs = preproc.adjust_naming(args["all_shape_syst"]))      
         print(list(samples))
     
     if do_fit:   
@@ -206,10 +192,9 @@ def run_cmsopen( args, epochs=1, retrain = True, do_fit = False):
         if args["add_pdf_weights"] is True:
             preproc.pdf_weights(samples)
         
-        # Rebin INFERNO if zero bins
-        if args["exclude_zero"]:
-            fit.rebin_if_zero(samples, args)
-            fit.get_nonzero_bins(samples, args)
+        # Set binning and range for the fit
+        fit.set_bce_fit_bins(samples, args)
+        fit.set_inferno_fit_bins(samples, args)
         
         # Convert samples to ROOT trees
         fit.to_root(samples, path=args["outpath"], systs = args["all_weight_syst"], include_pdf=args["add_pdf_weights"])

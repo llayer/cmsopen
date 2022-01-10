@@ -92,9 +92,9 @@ def set_weights(samples, weight_systs = []):
                     if syst == "btag":
                         sample["weight_btag_" + ud] = sample['norm'] * sample['trigger_weight'] * sample['btag_weight1_'+ud]
                         sample["btag_"+ud] = sample['btag_weight1_'+ud] / sample['btag_weight1']
-                    if syst == "trigger":
-                        sample["weight_trigger_"+ud] = sample['norm'] * sample['trigger_weight_'+ud] * sample['btag_weight1']   
-                        sample["trigger_"+ud] = sample['trigger_weight_'+ud] / sample['trigger_weight']
+                    if "trigger" in syst:
+                        sample["weight_" + syst + "_" + ud] = sample['norm'] * sample['trigger_weight'] * \
+                                                              sample[syst + '_'+ ud] * sample['btag_weight1']   
                 if (s == "TTJets_signal") & (syst == "pdf"):
                     # PDF Up
                     sample["pdf_up"] = 1+sample["pdf_up"].fillna(0.)
@@ -123,14 +123,20 @@ def print_normalization(samples):
     
 def pdf_weights(samples):
     
-    pdf = pd.read_hdf("/home/centos/data/TTJets_pdf_renamed.root")
+    pdf = pd.read_hdf("/home/centos/data/systs/TTJets_pdf_renamed.root")
     samples["TTJets_signal"] = pd.merge(samples["TTJets_signal"], pdf, how="left", on=["event", "luminosityBlock", "run"])
     samples["TTJets_bkg"] = pd.merge(samples["TTJets_bkg"], pdf, how="left", on=["event", "luminosityBlock", "run"])
     for i in range(22):
         for ud in ["up", "down"]:
             samples["TTJets_signal"]["weight_pdf_" + str(i) + "_" + ud] *= samples["TTJets_signal"]["weight"]
             samples["TTJets_bkg"]["weight_pdf_" + str(i) + "_" + ud] *= samples["TTJets_bkg"]["weight"]
+
+def trigger_weights(samples):
     
+    for s in ["TTJets_bkg", "WZJets", "STJets", "TTJets_signal"]:
+        trigger = pd.read_hdf("/home/centos/data/systs/" + s + "_trigger.h5")
+        samples[s] = pd.merge(samples[s], trigger, how="inner", on=["event", "luminosityBlock", "run"])
+        assert( len(trigger) == len(samples[s]) )                  
 #
 # Scale or downsample the normalizations of the nuisances
 #
@@ -405,7 +411,7 @@ def gen_artificial_systs(samples, artificial_syst):
 #
 def assert_weight_syst(weight_syst):
     
-    allowed_systs = ["btag", "trigger", "pdf"]
+    allowed_systs = ["btag", "trigger_jet", "trigger_tau", "pdf"]
     for syst in weight_syst:
         if syst not in allowed_systs:
             raise ValueError("Specified shape sytematic not allowed:", syst)
@@ -460,7 +466,7 @@ def set_systs(args):
         for nuis in args["scale_norms_only"]:
            scale_norm_only(nuis[0], nuis[1], args["b_norm_sigma"], args["s_norm_sigma"])
     # Add field for S/B shape
-    args["is_sig_shape"] = [True if "bkg" not in s else False for s in args["shape_syst"] ]
+    args["is_sig_shape"] = [True if "bkg" not in s else False for s in args["shape_syst"] + args["weight_syst"] ]
     # Set the fit nuisances
     args["fit_norm_sigma"] = set_fit_norm_nuis(args["fit_norm_syst"], args["s_norm_sigma"], args["b_norm_sigma"])
     args["fit_shape_systs"] = list(dict.fromkeys(args["fit_shape_systs"] + args["shape_syst"] + args["weight_syst"]))
@@ -504,6 +510,9 @@ def load_data(features, shape_syst, weight_syst, all_shape_syst=None, all_weight
         
     # Load the samples
     samples = load_samples(path, all_shape_syst)
+    
+    # Load trigger weight
+    trigger_weights(samples)
     
     # Set the weights
     set_weights(samples, weight_systs = all_weight_syst)

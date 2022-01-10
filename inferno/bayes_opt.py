@@ -118,7 +118,7 @@ def run_inferno_opt(opendata, args, epochs):
     skopt_dim_nominal = [
         Real(        low=1e-4, high=1e-2, prior='log-uniform', name='inferno_lr'),
         Real(        low=0.01, high=0.99, name='temperature'),
-        Integer(     low=50, high=200,  name='inferno_neurons')
+        Integer(     low=20, high=100,  name='inferno_neurons')
         ]
     initial_param = {'inferno_lr': 1e-3, 'temperature':0.2, 'inferno_neurons' : 80}
     
@@ -137,7 +137,7 @@ def run_bce_opt(opendata, args, epochs):
     
     skopt_dim_nominal = [
         Real(        low=1e-4, high=1e-2, prior='log-uniform', name='bce_lr'),
-        Integer(     low=50, high=200,  name='bce_neurons')
+        Integer(     low=20, high=100,  name='bce_neurons')
         ]
     initial_param = {'bce_lr': 1e-3, 'bce_neurons' : 80}
     

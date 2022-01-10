@@ -1,7 +1,7 @@
 import matplotlib.pyplot as plt
 import numpy as np
 import os
-import shutil
+import shutil 
 
 #
 # Define plots for INFERNO and BCE training
@@ -24,7 +24,7 @@ def plot_inferno(df_inf, info, args, order_d):
     plot_loss(info["loss"], outpath=args["outpath"], store=args["store"])
     
     # Plot test predictions
-    plot_predictions(df_inf, bins = args["bins"], use_hist = args["use_softhist"], plot_sorted=args["fit_sorted"], 
+    plot_predictions(df_inf, bins = args["inferno_bins"], use_hist = args["use_softhist"], plot_sorted=args["fit_sorted"], 
                      name="inferno", outpath=args["outpath"], store=args["store"])
     
     # Plot ovetrain
@@ -54,7 +54,7 @@ def plot_bce(df_bce, info, args):
     
     # Plot predictions
     shapes = info["shapes"]
-    plot_predictions(df_bce, bins = args["bins"], use_hist = True, name="bce", outpath=args["outpath"], store=args["store"])
+    plot_predictions(df_bce, bins = args["bce_bins"], use_hist = True, name="bce", outpath=args["outpath"], store=args["store"])
     
     # Plot overtrain
     plot_overtrain(shapes, "bce", use_hist = True, outpath=args["outpath"], epoch_idx = info["idx_best"], store=args["store"])

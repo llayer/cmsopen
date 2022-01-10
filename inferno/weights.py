@@ -69,6 +69,20 @@ w_err_tau = w *(1+df["Tau_pt0_errors"])
 w_err_jet = w *(1+df["Jet_pt0_errors"]) * (1+df["Jet_pt1_errors"]) * (1+df["Jet_pt2_errors"])
 """
 
+def calculate_trigger_error(sample_name):
+    df = pd.read_hdf("/home/centos/mount_point/data/samples/" + sample_name + ".h5")
+    apply_weight(df, tau40_vals, tau45_vals, jet40_vals, jet45_vals)
+    #w = df["Tau_pt0_vals"] * df["Jet_pt0_vals"] * df["Jet_pt1_vals"] * df["Jet_pt2_vals"]
+    df["trigger_jet_up"] = (1+df["Tau_pt0_errors"])
+    df["trigger_tau_up"] = (1+df["Jet_pt0_errors"]) * (1+df["Jet_pt1_errors"]) * (1+df["Jet_pt2_errors"])
+    df["trigger_jet_down"] = (1-df["Tau_pt0_errors"])
+    df["trigger_tau_down"] = (1-df["Jet_pt0_errors"]) * (1-df["Jet_pt1_errors"]) * (1-df["Jet_pt2_errors"])
+    out = df[["event", "luminosityBlock", "run", "trigger_jet_up", "trigger_tau_up", "trigger_jet_down", "trigger_tau_down"]]
+    out.to_hdf("/home/centos/data/systs/" + sample_name+ "_trigger.h5", "frame")
+#for s in ["TTJets_bkg", "WZJets", "STJets", "TTJets_signal"]:
+#    calculate_trigger_error(s)
+    
+
 f = uproot.open("/home/centos/data/TTJets_pdf.root")
 pdf = f["pdfana/Events"].arrays(library="pd")
 

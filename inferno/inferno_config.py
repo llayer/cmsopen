@@ -37,7 +37,7 @@ args["all_shape_syst"] = ["09_jes", "taue", "jer"]
 args["shape_syst"] = ["jes"] #, "taue",
 args["scale_shape_norms"] = [("jes", 0.06)]#["06_jes", "07_taue"] #jer
 # Weight syst can be btag, trigger, pdf
-args["all_weight_syst"] = ["btag", "trigger", "pdf"]
+args["all_weight_syst"] = ["btag", "trigger_jet", "trigger_tau", "pdf"]
 args["weight_syst"] = []#["btag_weight1"]
 # Norm syst can be lumi, mistag, tau_trigger, tau_id, ttmass, ttq2, ttparton
 args["s_norm_syst"] = []#["lumi"]
@@ -54,7 +54,6 @@ args["downsample_factor"] = None
 args["bs"] = 1000 
 args["n_sig"] = 20000
 args["n_bkg"] = 5000
-args["bins"] = 10
 #
 # INFERNO args
 #
@@ -68,6 +67,7 @@ args["exclude_zero"] = True
 args["inferno_lr"] = 1e-3
 args["inferno_neurons"] = 100
 args["temperature"] = 0.1
+args["inferno_bins"] = 10
 # Boolean whether to let the background float
 args["b_rate_param"] = False
 # Interpolation algo
@@ -82,6 +82,7 @@ args["store_significance"] = False
 #
 args["bce_lr"] = 1e-3 #CHECK if correct
 args["bce_neurons"] = 20 # CHECK only affects first layer
+args["bce_bins"] = 10
 #
 # FIT args
 #

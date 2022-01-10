@@ -15,7 +15,7 @@ def train_inferno(data, args, epochs=100 ):
     lr = args["inferno_lr"]
     temp = args["temperature"]
     neurons = args["inferno_neurons"]
-    bins = args["bins"]
+    bins = args["inferno_bins"]
     nfeat = len(args["features"])
     
     print("*********************")
@@ -49,7 +49,7 @@ def train_inferno(data, args, epochs=100 ):
                                    b_norm_sigma = list(args["b_norm_sigma"].values()),
                                    b_rate_param = args["b_rate_param"],
                                    use_hist=args["use_softhist"],
-                                   bins = args["bins"],
+                                   bins = bins,
                                    sigmoid_delta = args["sigmoid_delta"],
                                    ignore_shape_norm=args["ignore_shape_norm"],
                                    asymm_shape_norm = args["asymm_shape_norm"],
@@ -83,6 +83,8 @@ def train_bce(data, args, epochs=100):
     neurons = args["bce_neurons"]
     nfeat = len(args["features"])  
     neurons = args["bce_neurons"]
+    bins = args["bce_bins"]
+    
     net_bce = nn.Sequential(nn.Linear(nfeat,neurons),  nn.ReLU(),
                         nn.Linear(neurons,8), nn.ReLU(),
                         nn.Linear(8,1),  nn.Sigmoid())
@@ -92,6 +94,7 @@ def train_bce(data, args, epochs=100):
     print("*********************")
     print("Learning rate", lr)
     print("Neurons", neurons)
+    print("Bins", bins)
     
     #init_net(net)    
     ct = hep_model.HEPInferno(b_true=args["b_true"], 
@@ -103,7 +106,7 @@ def train_bce(data, args, epochs=100):
                                s_norm_sigma = list(args["s_norm_sigma"].values()),
                                b_norm_sigma = list(args["b_norm_sigma"].values()),
                                b_rate_param = args["b_rate_param"],
-                               bins = args["bins"],
+                               bins = bins,
                                use_hist=True,
                                ignore_loss=True,
                                ignore_shape_norm=args["ignore_shape_norm"],
