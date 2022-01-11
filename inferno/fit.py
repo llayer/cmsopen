@@ -340,7 +340,7 @@ def compare_results(args):
         inferno_sig_lim = load_sig_lim( args["outpath"] + "/fit/inferno_asimov" ) if args["fit_sig_lim"] == True else None
         print_summary(inferno_asimov_res, inferno_sig_lim, "inferno asimov")
         # Plot the comparison of the scan
-        if args["add_stat_only"]:
+        if ((len(args["fit_shape_systs"]) + len(args["fit_norm_syst"])) > 0) and (args["add_stat_only"]==True):
             bce_asimov_scan_stat = load_scan( args["outpath"] + "/fit/bce_asimov", name='mu_scan_stat' )
             inferno_asimov_scan_stat = load_scan( args["outpath"] + "/fit/inferno_asimov", name='mu_scan_stat')
         else:
