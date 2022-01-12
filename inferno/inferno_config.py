@@ -24,6 +24,7 @@ args = {}
 # General args
 #
 args["outpath"] = "/home/centos/mount_point/data/inferno_cmsopen5" #"/home/centos/data/inferno_cmsopen16"
+args["sample_path"] = None
 args["store"] = True
 args["rs"] = 11
 args["run_skopt"] = False

@@ -37,7 +37,7 @@ for syst in ["jes", "jer", "taue"]:
 """
     
 # Scan the weight syst
-
+"""
 for syst in ["btag", "trigger_jet", "trigger_tau"]:
     
     path = "/home/centos/mount_point/data/weight_syst/"
@@ -46,10 +46,15 @@ for syst in ["btag", "trigger_jet", "trigger_tau"]:
     weight_args["shape_syst"] = []
     weight_args["weight_syst"] = [syst]
     samples = inferno_opendata.run_cmsopen(weight_args, epochs = epochs, do_fit = True)
-
+"""
 # Most promising
+
+# JES, TauE, Trigger
 
 # Final run with all
 
+# JES, TauE, Trigger, Rate param
+
+# Try one of the previous for the full fit...
 # Full fit with all variables
 # Eval data

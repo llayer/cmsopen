@@ -87,12 +87,9 @@ for i in range(3):
     samples = inferno_opendata.run_cmsopen(art_nuis_args, epochs = epochs, do_fit = True)
 """
 
-
+"""
 for i, val in enumerate(np.linspace(0.005, 0.02, 5)):
-        
-    if i < 2:
-        continue
-        
+                
     path = basepath + "artificial_sigbkg/"
     art_sigbkg_args = args.copy()
     art_sigbkg_args["outpath"] = path + "shift_" + str(i)
@@ -100,7 +97,7 @@ for i, val in enumerate(np.linspace(0.005, 0.02, 5)):
                                        "QCD": [{'name':"aplanarity", 'shift':val, 'norm':0.05}]}
     art_sigbkg_args["shape_syst"] = ["artsig_aplanarity", "artbkg_aplanarity"]
     samples = inferno_opendata.run_cmsopen(art_sigbkg_args, epochs = epochs, do_fit = True)
-
+"""
 
 """
 for i, val in enumerate(np.linspace(1., 5., 5)):
@@ -148,4 +145,74 @@ for syst in ["btag", "trigger_jet", "trigger_tau"]:
     weight_args["weight_syst"] = [syst]
     samples = inferno_opendata.run_cmsopen(weight_args, epochs = epochs, do_fit = True)
 """
+
+"""
+# JES, TauE, Trigger
+path = basepath + "most_impact/"
+most_impact_args = args.copy()
+most_impact_args["outpath"] = path
+most_impact_args["shape_syst"] = ["jes", "taue"]
+most_impact_args["weight_syst"] = ["trigger_jet"]
+samples = inferno_opendata.run_cmsopen(most_impact_args, epochs = epochs, do_fit = True)
+
+# JES, TauE, Trigger rate
+path = basepath + "most_impact_rate/"
+most_impact_rate_args = args.copy()
+most_impact_rate_args["outpath"] = path
+most_impact_rate_args["shape_syst"] = ["jes", "taue"]
+most_impact_rate_args["weight_syst"] = ["trigger_jet"]
+most_impact_rate_args["b_rate_param"] = True
+most_impact_rate_args["fit_floatQCD"] = True
+samples = inferno_opendata.run_cmsopen(most_impact_rate_args, epochs = epochs, do_fit = True)
+
+# Run with all
+path = basepath + "all/"
+all_args = args.copy()
+all_args["outpath"] = path
+all_args["shape_syst"] = ["jes", "jer", "taue"]
+all_args["weight_syst"] = ["btag", "trigger_jet", "trigger_tau"]
+all_args["s_norm_syst"] = ["lumi"]#["tau_trigger"]#["lumi"]#["lumi", "tau_trigger"] #["lumi", 'tau_trigger']
+all_args["b_norm_syst"] = ["mistag"] #[]
+#all_args["b_rate_param"] = True
+#all_args["fit_floatQCD"] = True
+samples = inferno_opendata.run_cmsopen(all_args, epochs = epochs, do_fit = True)
+"""
+
+# Try one of the previous for the full fit...
+# Full fit with all variables
+# Eval data
+# JES, TauE, Trigger fit
+"""
+path = basepath + "most_impact/"
+most_impact_args = args.copy()
+most_impact_args["sample_path"] = path
+most_impact_args["outpath"] = path + "fit_complete_floatqcd/"
+most_impact_args["shape_syst"] = ["jes", "taue"]
+most_impact_args["weight_syst"] = ["trigger_jet"]
+most_impact_args["fit_shape_systs"] = ["btag", "jer", "trigger_tau"]
+most_impact_args["fit_norm_syst"] = ["lumi", "tau_id", "xsec", "tau_trigger", "ttmass", "ttq2", "ttparton"] 
+most_impact_args["fit_model"] = "sig_bkg"
+most_impact_args["fit_floatQCD"] = True
+most_impact_args["add_pdf_weights"] = False
+args["fit_data"] = True
+args["add_stat_only"] = False
+samples = inferno_opendata.run_cmsopen(most_impact_args, epochs = epochs, retrain=False, do_fit = True)
+"""
+
+#path = basepath + "shape_syst/jes/"
+path = basepath + "all/"#"most_impact_rate/"
+most_impact_args = args.copy()
+most_impact_args["sample_path"] = path
+most_impact_args["outpath"] = path + "fit_complete/"
+#most_impact_args["shape_syst"] = ["jes", "taue"]
+#most_impact_args["weight_syst"] = ["trigger_jet"]
+most_impact_args["fit_shape_systs"] = ["jes", "taue", "btag", "jer", "trigger_jet", "trigger_tau"]
+most_impact_args["fit_norm_syst"] = ["lumi", "tau_id", "xsec", "tau_trigger", "ttmass", "ttq2", "ttparton"] 
+most_impact_args["fit_model"] = "sig_bkg"
+most_impact_args["fit_floatQCD"] = True
+most_impact_args["add_pdf_weights"] = True
+most_impact_args["fit_data"] = True
+most_impact_args["add_stat_only"] = True
+samples = inferno_opendata.run_cmsopen(most_impact_args, epochs = epochs, retrain=False, do_fit = True)
+
 

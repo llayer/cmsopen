@@ -20,10 +20,15 @@ args["store_significance"] = False
 args["interp_algo"] = "default"#"fast_vertical"
 args["fit_data"] = True
 args["run_skopt"] = True
+args["bce_bins"] = 15
+args["fit_floatQCD"] = True
+args["fit_data"] = True
 
-epochs = 50
+basepath = "/home/centos/mount_point/data/artificial_experiments/"
+epochs = 150
+
 nosyst_args = args.copy()
-path = "/home/centos/mount_point/data/optimizatio_nosyst/"
+path = basepath + "optimizatio_nosyst/"
 nosyst_args["outpath"] = path
 nosyst_args["shape_syst"] = []
 samples = inferno_opendata.run_cmsopen(nosyst_args, epochs = epochs, do_fit = True)

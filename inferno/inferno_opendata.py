@@ -184,7 +184,9 @@ def run_cmsopen( input_args, epochs=1, retrain = True, do_fit = False):
         # Load samples with predictions
         print("*********************")
         print( "Loading samples from path", args["outpath"])
-        samples = preproc.load_samples( args["outpath"] + "/samples/", 
+        path = args["outpath"] if args["sample_path"] is None else args["sample_path"]
+            
+        samples = preproc.load_samples( path + "/samples/", 
                                         shape_systs = preproc.adjust_naming(args["all_shape_syst"]))      
         print(list(samples))
     

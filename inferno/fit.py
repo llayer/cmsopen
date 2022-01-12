@@ -175,10 +175,11 @@ def fit_ws(ws, config, args, path, asimov = True):
                                   close_figure = False, figure_folder=path)
         cabinetry.visualize.correlation_matrix(fit_results, save_figure=args["store"], 
                                                close_figure = True, figure_folder=path)
+        """
         ranking_results = cabinetry.fit.ranking(model, data, fit_results=fit_results)
         #print(ranking_results)
         cabinetry.visualize.ranking(ranking_results, save_figure=args["store"], close_figure = False, figure_folder=path)
-    
+        """
     scan_results = cabinetry.fit.scan(model, data, "mu", n_steps=args["n_steps"])
     
     #print(scan_results)
