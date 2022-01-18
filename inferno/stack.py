@@ -3,12 +3,14 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib as mpl
 import awkward
-
+import matplotlib
+matplotlib.rc('xtick', labelsize=14) 
+matplotlib.rc('ytick', labelsize=14) 
 
 variables = {
     "MET_met" : {"bins" : 30, "xlow" : 0., "xup" : 400, "xtitle" : "MET [GeV]", "max_sf": 1.5, "log":True},
     "Tau_eta" : {"bins" : 30, "xlow" : -3., "xup" : 3., "xtitle" : "#eta(#tau)", "max_sf": 50, "log":False},
-    "aplanarity" : {"bins" : 20, "xlow" : 0., "xup" : 0.5, "xtitle" : "aplanarity", "max_sf": 15, "log":False},
+    "aplanarity" : {"bins" : 15, "xlow" : 0., "xup" : 0.4, "xtitle" : "aplanarity", "max_sf": 15, "log":True},
     "ht" : {"bins" : 20, "xlow" : 0., "xup" : 1600., "xtitle" : "H_{T} [GeV]", "max_sf": 15, "log":False},
     "chargeEta" : {"bins" : 20, "xlow" : -3., "xup" : 3., "xtitle" : "q #times #eta(#tau)", "max_sf": 50, "log":False},
     "deltaPhiTauMet" : {"bins" : 20, "xlow" : 0., "xup" : 3.2, "xtitle" : "#Delta#phi(#tau, MET)", "max_sf": 50, "log":False},
@@ -47,12 +49,16 @@ def plot_art_syst(samples, art_syst, path="", store=False):
 
 def plot_shape(bkg, sig, up, down, edges, centers, var, is_signal=True, path="", store=False):
     
-    fig, (ax1, ax2) = plt.subplots(nrows=2, gridspec_kw={'height_ratios': [3,1]}, figsize=(8,6))
-    ax1.stairs(bkg, edges, label="bkg", color="blue")
-    ax1.stairs(sig, edges, label="sig", color="orange")
-    ax1.stairs(up, edges, label="up", color="green")
-    ax1.stairs(down, edges, label="down", color="red")
-    ax1.legend(loc="upper right")
+    fig, (ax1, ax2) = plt.subplots(nrows=2, gridspec_kw={'height_ratios': [3,1]}, figsize=(8,6), dpi=100)
+    ax1.stairs(bkg, edges, label="Bkg", color="orange", linewidth=2)
+    ax1.stairs(sig, edges, label="Signal", color="blue", linewidth=2)
+    ax1.stairs(up, edges, label="Signal Up", color="green", linewidth=2)
+    ax1.stairs(down, edges, label="Signal Down", color="red", linewidth=2)
+    ax1.legend(loc="upper right", prop={'size': 14})
+    ax1.set_yscale("log")
+    #ax1.set_ylim([0.05, 30])
+    ax1.set_ylabel("Events", size=16)
+    ax1.get_xaxis().set_ticks([])
     
     if is_signal == True:
         nom = sig
@@ -65,10 +71,13 @@ def plot_shape(bkg, sig, up, down, edges, centers, var, is_signal=True, path="",
     ax2.scatter(centers, np.array(down) / np.array(nom), color="red")
     ax2.hlines(1., 0, edges[-1], linestyle="dotted", color="black")
     ax2.set_ylim((0,2))
-    ax2.set_xlabel(var)
-        
+    ax2.set_xlabel(var, size=16)
+    ax2.set_ylabel("Syst / Nom", size=16)
+    
+    fig.subplots_adjust(hspace=0.025)
+   
     if store == True:
-        fig.savefig(path + "/artificial/" + name + ".png") 
+        fig.savefig(path + "/artificial/" + name + ".pdf") 
           
     plt.show()    
     

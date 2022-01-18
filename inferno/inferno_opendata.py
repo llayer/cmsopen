@@ -158,7 +158,7 @@ def run_cmsopen( input_args, epochs=1, retrain = True, do_fit = False):
         # Plot the articial syst
         if args["artificial_syst"] is not None:
             stack.plot_art_syst(samples, args["artificial_syst"], path=args["outpath"], store=args["store"])
-        
+        stop
         # Optimize
         if args["run_skopt"] == True:
             bayes_opt.run_inferno_opt(opendata, args, epochs)

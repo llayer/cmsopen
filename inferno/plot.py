@@ -2,6 +2,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import os
 import shutil 
+import matplotlib
 
 #
 # Define plots for INFERNO and BCE training
@@ -404,7 +405,9 @@ def plot_cov_infbce(bce_covs, inf_covs, names, stddev=False, outpath=".", store=
 def plot_scan(bce, inferno, bce_stat = None, inferno_stat  = None, path="", asimov = True, store=False):
           
     plt.rcParams.update(plt.rcParamsDefault)
-        
+    #matplotlib.rc('xtick', labelsize=20) 
+    #matplotlib.rc('ytick', labelsize=14) 
+    
     plt.figure()#dpi=150)
     plt.plot(bce["parameter_values"], bce["delta_nlls"], label="BCE")
     plt.plot(inferno["parameter_values"], inferno["delta_nlls"], label="INFERNO")

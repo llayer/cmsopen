@@ -19,18 +19,50 @@ args["temperature"] = 0.1
 args["store_significance"] = False
 args["interp_algo"] = "default"#"fast_vertical"
 args["fit_data"] = True
-args["run_skopt"] = True
+args["run_skopt"] = False
 args["bce_bins"] = 15
 args["fit_floatQCD"] = True
 args["fit_data"] = True
 
 basepath = "/home/centos/mount_point/data/artificial_experiments/"
-epochs = 150
+epochs = 100
 
+"""
 nosyst_args = args.copy()
 path = basepath + "optimizatio_nosyst/"
 nosyst_args["outpath"] = path
 nosyst_args["shape_syst"] = []
+nosyst_args["run_skopt"] = True
 samples = inferno_opendata.run_cmsopen(nosyst_args, epochs = epochs, do_fit = True)
+"""
+
+# optimize bins as well -- missing
+
+# optimize JES with grid search
+lr_param = [0.0001, 0.001, 0.01]
+neurons_param = [20, 40, 60, 80, 100]
+temperature_param = [0.01, 0.1, 0.5, 0.9, 0.99]
+
+i_exp = 0
+for lr in lr_param:
+    for neurons in neurons_param:
+        for temp in temperature_param:
+            print(lr, neurons, temp)
+
+            jes_syst_args = args.copy()
+            path = basepath + "optimizatio_jes/"
+            jes_syst_args["outpath"] = path + "run_" + str(i_exp)
+            jes_syst_args["shape_syst"] = ["jes"]
+            jes_syst_args["inferno_lr"] = lr
+            jes_syst_args["inferno_neurons"] = neurons
+            jes_syst_args["temperature"] = temp
+            try:
+                samples = inferno_opendata.run_cmsopen(jes_syst_args, epochs = epochs, do_fit = True)
+            except:
+                print("Run failed")
+            i_exp += 1
+
+
+
 
 
