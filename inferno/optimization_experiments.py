@@ -43,6 +43,7 @@ lr_param = [0.0001, 0.001, 0.01]
 neurons_param = [20, 40, 60, 80, 100]
 temperature_param = [0.01, 0.1, 0.5, 0.9, 0.99]
 
+"""
 i_exp = 0
 for lr in lr_param:
     for neurons in neurons_param:
@@ -61,8 +62,64 @@ for lr in lr_param:
             except:
                 print("Run failed")
             i_exp += 1
+"""
 
-
-
-
-
+"""
+for i in range(75):
+    #path = basepath + "shape_syst/jes/"
+    path = basepath + "/optimizatio_jes/run_"+str(i)+"/" #"most_impact_rate/"
+    most_impact_args = args.copy()
+    most_impact_args["sample_path"] = path
+    most_impact_args["outpath"] = path + "fit_complete_nnopdf/"
+    #most_impact_args["shape_syst"] = ["jes", "taue"]
+    #most_impact_args["weight_syst"] = ["trigger_jet"]
+    most_impact_args["fit_shape_systs"] = ["jes", "taue", "btag", "jer", "trigger_jet", "trigger_tau"]
+    most_impact_args["fit_norm_syst"] = ["lumi", "tau_id", "xsec", "tau_trigger", "ttmass", "ttq2", "ttparton"] 
+    most_impact_args["fit_model"] = "sig_bkg"
+    most_impact_args["fit_floatQCD"] = True
+    most_impact_args["add_pdf_weights"] = False
+    most_impact_args["fit_data"] = True
+    most_impact_args["add_stat_only"] = True
+    try:
+        samples = inferno_opendata.run_cmsopen(most_impact_args, epochs = epochs, retrain=False, do_fit = True)
+    except:
+        print("Fit failed")
+"""
+"""
+# Promising run 44
+#path = basepath + "shape_syst/jes/"
+path = basepath + "/optimizatio_jes/run_44/" #"most_impact_rate/"
+most_impact_args = args.copy()
+most_impact_args["sample_path"] = path
+most_impact_args["outpath"] = path + "fit_complete_impacts/"
+#most_impact_args["shape_syst"] = ["jes", "taue"]
+#most_impact_args["weight_syst"] = ["trigger_jet"]
+most_impact_args["fit_shape_systs"] = ["jes", "taue", "btag", "jer", "trigger_jet", "trigger_tau"]
+most_impact_args["fit_norm_syst"] = ["lumi", "tau_id", "xsec", "tau_trigger", "ttmass", "ttq2", "ttparton"] 
+most_impact_args["fit_model"] = "sig_bkg"
+most_impact_args["fit_floatQCD"] = True
+most_impact_args["add_pdf_weights"] = True
+most_impact_args["fit_data"] = True
+most_impact_args["add_stat_only"] = True
+try:
+    samples = inferno_opendata.run_cmsopen(most_impact_args, epochs = epochs, retrain=False, do_fit = True)
+except:
+    print("Fit failed")
+"""
+    
+# Promising run 44 - try with single pdf param
+#path = basepath + "shape_syst/jes/"
+path = basepath + "/optimizatio_jes/run_44/" #"most_impact_rate/"
+most_impact_args = args.copy()
+most_impact_args["sample_path"] = path
+most_impact_args["outpath"] = path + "fit_single_pdf/"
+#most_impact_args["shape_syst"] = ["jes", "taue"]
+#most_impact_args["weight_syst"] = ["trigger_jet"]
+most_impact_args["fit_shape_systs"] = ["jes", "taue", "btag", "jer", "trigger_jet", "trigger_tau"]
+most_impact_args["fit_norm_syst"] = ["lumi", "tau_id", "xsec", "tau_trigger", "ttmass", "ttq2", "ttparton"] 
+most_impact_args["fit_model"] = "sig_bkg"
+most_impact_args["fit_floatQCD"] = True
+most_impact_args["add_pdf_weights"] = True
+most_impact_args["fit_data"] = True
+most_impact_args["add_stat_only"] = True
+samples = inferno_opendata.run_cmsopen(most_impact_args, epochs = epochs, retrain=False, do_fit = True)

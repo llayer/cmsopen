@@ -28,7 +28,7 @@ def fit_cmsopen(args, fitvar, asimov = False):
         bins = args["inferno_fit_bins"]        
                     
     # Get fit model
-    corr_shape_systs, uncorr_shape_systs, norm_syst = fit.get_fit_model(args)
+    corr_shape_systs, uncorr_shape_systs, norm_syst = fit.get_fit_model(args, args["fit_model"])
             
     # Create config    
     config = fit.create_config(args["outpath"], fitvar, bins, args["sample_names"], corr_shape_systs, 
@@ -44,7 +44,11 @@ def fit_cmsopen(args, fitvar, asimov = False):
     fit_results, scan_results = fit.fit_ws(ws, config, args, path, asimov=asimov) 
     if (len(args["fit_shape_systs"]) + len(args["fit_norm_syst"])) > 0:
         if args["add_stat_only"] == True:
-            fit.stat_only(config, fit_results, path = path, asimov=asimov, store=args["store"], 
+            corr_shape_systs, uncorr_shape_systs, norm_syst = fit.get_fit_model(args, "signal_only")
+            config = fit.create_config(args["outpath"], fitvar, bins, args["sample_names"], corr_shape_systs, 
+                                       uncorr_shape_systs, norm_syst, float_qcd=args["fit_floatQCD"])
+            fit.stat_only(config, fit_results, path = path, shape_syst = args["fit_shape_systs"], 
+                          asimov=asimov, store=args["store"], 
                           prune_stat=args["prune_stat"], n_steps = args["n_steps"])
     
     return ws
@@ -158,7 +162,7 @@ def run_cmsopen( input_args, epochs=1, retrain = True, do_fit = False):
         # Plot the articial syst
         if args["artificial_syst"] is not None:
             stack.plot_art_syst(samples, args["artificial_syst"], path=args["outpath"], store=args["store"])
-        stop
+        
         # Optimize
         if args["run_skopt"] == True:
             bayes_opt.run_inferno_opt(opendata, args, epochs)

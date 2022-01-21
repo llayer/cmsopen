@@ -124,12 +124,27 @@ def print_normalization(samples):
 def pdf_weights(samples):
     
     pdf = pd.read_hdf("/home/centos/data/systs/TTJets_pdf_renamed.root")
-    samples["TTJets_signal"] = pd.merge(samples["TTJets_signal"], pdf, how="left", on=["event", "luminosityBlock", "run"])
-    samples["TTJets_bkg"] = pd.merge(samples["TTJets_bkg"], pdf, how="left", on=["event", "luminosityBlock", "run"])
+    ups, downs = 0, 0
     for i in range(22):
-        for ud in ["up", "down"]:
+        ups += (pdf["weight_pdf_" + str(i) + "_up"]-1)**2
+        downs += (pdf["weight_pdf_" + str(i) + "_down"]-1)**2
+    pdf["wpdf_up"] = 1. + np.sqrt(ups)
+    pdf["wpdf_down"] = 1. - np.sqrt(downs)
+    
+    #print(pdf["wpdf_up"].head())
+    #print(pdf["wpdf_down"].head())
+    
+    samples["TTJets_signal"] = pd.merge(samples["TTJets_signal"], pdf, how="left", on=["event", "luminosityBlock", "run"])
+    #print(list(samples["TTJets_signal"]))
+    samples["TTJets_bkg"] = pd.merge(samples["TTJets_bkg"], pdf, how="left", on=["event", "luminosityBlock", "run"])
+    for ud in ["up", "down"]:
+        for i in range(22):
             samples["TTJets_signal"]["weight_pdf_" + str(i) + "_" + ud] *= samples["TTJets_signal"]["weight"]
             samples["TTJets_bkg"]["weight_pdf_" + str(i) + "_" + ud] *= samples["TTJets_bkg"]["weight"]
+        samples["TTJets_signal"]["weight_pdf_" + ud] = samples["TTJets_signal"]["weight"] * samples["TTJets_signal"]["wpdf_" + ud]
+        samples["TTJets_bkg"]["weight_pdf_" + ud] = samples["TTJets_bkg"]["weight"] * samples["TTJets_bkg"]["wpdf_" + ud]
+    #print(np.mean(samples["TTJets_signal"]["weight_pdf_down"]), np.mean(samples["TTJets_signal"]["weight_pdf_up"]))   
+        
 
 def trigger_weights(samples):
     

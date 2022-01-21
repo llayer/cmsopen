@@ -125,15 +125,14 @@ def to_root(samples, systs = [], include_pdf=False, path = "/home/centos/data/in
         for syst in systs:
             
             for ud in ["up", "down"]:
-                if "pdf" in syst: continue
-                create_tree(path,  s + "_" + syst + "_" + ud, sample, weight = "weight_"+ syst + "_" + ud )
-                """
+                #if "pdf" in syst: continue
+                #create_tree(path,  s + "_" + syst + "_" + ud, sample, weight = "weight_"+ syst + "_" + ud )
                 if ("pdf" in syst):
-                    if(s == "TTJets_signal"): 
+                    if (s == "TTJets_signal") | (s == "TTJets_bkg"):
                         create_tree(path,  s + "_" + syst + "_" + ud, sample, weight = "weight_"+ syst + "_" + ud )
                 else:
                     create_tree(path,  s + "_" + syst + "_" + ud, sample, weight = "weight_"+ syst + "_" + ud )
-                """
+                
         if include_pdf == True:
             if (s == "TTJets_signal") | (s == "TTJets_bkg"): 
                 for i in range(22):
@@ -175,11 +174,11 @@ def fit_ws(ws, config, args, path, asimov = True):
                                   close_figure = False, figure_folder=path)
         cabinetry.visualize.correlation_matrix(fit_results, save_figure=args["store"], 
                                                close_figure = True, figure_folder=path)
-        """
+        
         ranking_results = cabinetry.fit.ranking(model, data, fit_results=fit_results)
         #print(ranking_results)
         cabinetry.visualize.ranking(ranking_results, save_figure=args["store"], close_figure = False, figure_folder=path)
-        """
+        
     scan_results = cabinetry.fit.scan(model, data, "mu", n_steps=args["n_steps"])
     
     #print(scan_results)
@@ -201,13 +200,17 @@ def fit_ws(ws, config, args, path, asimov = True):
     
     return fit_results, scan_results
 
-def stat_only(config, fit_results, path="", asimov = True, store=True, prune_stat=True, n_steps=200):
+def stat_only(config, fit_results, path="", shape_syst = [], asimov = True, store=True, prune_stat=True, n_steps=200):
     
     fix = []
     for label, best in zip(fit_results.labels, fit_results.bestfit.tolist()):
         if (label == "mu") | (label == "QCD_norm"): continue
-        fix.append({"Name": label, "Value": best})   
-    #print({"Fixed":fix})   
+        if label in shape_syst:
+            fix.append({"Name": "TTJets_signal_" + label, "Value": best})
+        else:
+            fix.append({"Name": label, "Value": best})   
+    print(config)
+    print({"Fixed":fix})   
     
     config["General"].update({"Fixed":fix})
     #print(config)
@@ -215,7 +218,7 @@ def stat_only(config, fit_results, path="", asimov = True, store=True, prune_sta
     if prune_stat:
         ws = dict(pyhf.Workspace(ws).prune(modifier_types=["staterror"]))
     
-    print(ws)
+    #print(ws)
     
     model, data = cabinetry.model_utils.model_and_data(ws, asimov=asimov)
     model_pred = cabinetry.model_utils.prediction(model)
@@ -374,7 +377,7 @@ def get_xsec_uncertainty(sample):
     
     return inferno_config.xsec_std[sample]
 
-def get_fit_model(args):
+def get_fit_model(args, fitmodel):
     
     corr_shape_systs = {}
     uncorr_shape_systs = {}
@@ -387,7 +390,7 @@ def get_fit_model(args):
         else:
             sig_shape_systs.append(syst)
             
-    if args["fit_model"] == "signal_only":
+    if fitmodel == "signal_only":
         # Set nuisances:
         #uncorr_shape_systs = {"TTJets_signal" : args["fit_shape_systs"].copy()}
         uncorr_shape_systs = {"TTJets_signal" : sig_shape_systs.copy(),
@@ -401,14 +404,16 @@ def get_fit_model(args):
                 norm_syst[norm] = { "samples" : "QCD", "value" : args["fit_norm_sigma"][norm] }
             else:
                 norm_syst[norm] = { "samples" : "TTJets_signal", "value" : args["fit_norm_sigma"][norm] }
-    elif args["fit_model"] == "sig_bkg":
+    elif fitmodel == "sig_bkg":
         for s in args["mc"]: 
             corr_shape_systs[s] = sig_shape_systs.copy()
         if len(bkg_shape_syst) > 0: uncorr_shape_systs = {"QCD" : bkg_shape_syst.copy()}
         if args["add_pdf_weights"] == True:
-            corr_shape_systs["TTJets_signal"] += ["pdf_" + str(i) for i in range(22)]
-            corr_shape_systs["TTJets_bkg"] += ["pdf_" + str(i) for i in range(22)]
-            
+            #corr_shape_systs["TTJets_signal"] += ["pdf_" + str(i) for i in range(22)]
+            #corr_shape_systs["TTJets_bkg"] += ["pdf_" + str(i) for i in range(22)]
+            corr_shape_systs["TTJets_signal"] += ["pdf"]
+            corr_shape_systs["TTJets_bkg"] += ["pdf"]
+ 
         for norm in args["fit_norm_sigma"]:
             if "tt" in norm:
                 norm_syst[norm] = { "samples" : ["TTJets_signal", "TTJets_bkg"], "value" : args["fit_norm_sigma"][norm] }
