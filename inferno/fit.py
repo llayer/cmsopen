@@ -396,8 +396,8 @@ def get_fit_model(args, fitmodel):
         uncorr_shape_systs = {"TTJets_signal" : sig_shape_systs.copy(),
                               "QCD" : bkg_shape_syst.copy()}
         # Add pdf
-        if args["add_pdf_weights"] == True:
-            uncorr_shape_systs["TTJets_signal"] += ["pdf_" + str(i) for i in range(22)]
+        #if args["add_pdf_weights"] == True:
+        #    uncorr_shape_systs["TTJets_signal"] += ["pdf_" + str(i) for i in range(22)]
             
         for norm in args["fit_norm_sigma"]:
             if norm == "mistag":

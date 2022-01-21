@@ -101,12 +101,8 @@ most_impact_args["fit_floatQCD"] = True
 most_impact_args["add_pdf_weights"] = True
 most_impact_args["fit_data"] = True
 most_impact_args["add_stat_only"] = True
-try:
-    samples = inferno_opendata.run_cmsopen(most_impact_args, epochs = epochs, retrain=False, do_fit = True)
-except:
-    print("Fit failed")
+samples = inferno_opendata.run_cmsopen(most_impact_args, epochs = epochs, retrain=False, do_fit = True)
 """
-    
 # Promising run 44 - try with single pdf param
 #path = basepath + "shape_syst/jes/"
 path = basepath + "/optimizatio_jes/run_44/" #"most_impact_rate/"
