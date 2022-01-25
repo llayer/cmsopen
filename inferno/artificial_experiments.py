@@ -199,11 +199,12 @@ args["add_stat_only"] = False
 samples = inferno_opendata.run_cmsopen(most_impact_args, epochs = epochs, retrain=False, do_fit = True)
 """
 
+
 #path = basepath + "shape_syst/jes/"
 path = basepath + "all/"#"most_impact_rate/"
 most_impact_args = args.copy()
 most_impact_args["sample_path"] = path
-most_impact_args["outpath"] = path + "fit_complete/"
+most_impact_args["outpath"] = path + "fit_single_pdf/"
 #most_impact_args["shape_syst"] = ["jes", "taue"]
 #most_impact_args["weight_syst"] = ["trigger_jet"]
 most_impact_args["fit_shape_systs"] = ["jes", "taue", "btag", "jer", "trigger_jet", "trigger_tau"]
