@@ -189,12 +189,15 @@ def run_cmsopen( input_args, epochs=1, retrain = True, do_fit = False):
         print("*********************")
         print( "Loading samples from path", args["outpath"])
         path = args["outpath"] if args["sample_path"] is None else args["sample_path"]
-            
+        unique_shape = list(set(args["all_shape_syst"]+args["shape_syst"]))
         samples = preproc.load_samples( path + "/samples/", 
-                                        shape_systs = preproc.adjust_naming(args["all_shape_syst"]))      
+                                        shape_systs = preproc.adjust_naming(unique_shape))     
         print(list(samples))
     
     if do_fit:   
+        
+        # HACK
+        preproc.reset_trigger(samples)
         
         # Exclude the events used in the training from further processing   
         if args["exclude_train"] is True:

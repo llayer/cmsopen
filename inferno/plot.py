@@ -123,6 +123,10 @@ def plot_predictions(df, bins=10, plot_sorted = False, use_hist = False, outpath
 def plot_shapes(shapes, name, syst_name, syst_idx=0, epoch_idx = -1, use_hist = False, plot_sorted = False, order_d = None,
                 outpath=".", store=False):
         
+        
+    plt.rcParams['xtick.labelsize'] = 14 
+    plt.rcParams['ytick.labelsize'] = 14
+
     bkg = shapes["bkg"][epoch_idx]
     sig = shapes["sig"][epoch_idx]
     sig_up = shapes["up"][epoch_idx][syst_idx]
@@ -143,17 +147,15 @@ def plot_shapes(shapes, name, syst_name, syst_idx=0, epoch_idx = -1, use_hist = 
     centers = edges[:-1] + (xmax/float(bins))/float(2)
     
     fig, (ax1, ax2) = plt.subplots(nrows=2, gridspec_kw={'height_ratios': [3,1]}, figsize=(8,6))
-    ax1.stairs(bkg, edges, label="bkg", color="blue")
-    ax1.stairs(sig, edges, label="sig", color="orange")
-    ax1.stairs(sig_up, edges, label="up", color="green")
-    ax1.stairs(sig_down, edges, label="down", color="red")
-    ax1.legend(loc="upper right")
-    
-    plt.text(0.05, 0.9,syst_name,
-     horizontalalignment='center',
-     verticalalignment='center',
-     transform = ax1.transAxes, size=15,
-     bbox=dict(facecolor='red', edgecolor=None, alpha=0.2))
+    ax1.stairs(bkg, edges, label="Bkg", color="orange", linewidth=2)
+    ax1.stairs(sig, edges, label="Signal", color="blue", linewidth=2)
+    ax1.stairs(sig_up, edges, label="Signal Up", color="green", linewidth=2)
+    ax1.stairs(sig_down, edges, label="Signal Down", color="red", linewidth=2)
+    if name == "inferno":
+        ax1.legend(loc="upper left", prop={'size': 14})
+    else:
+        ax1.legend(loc="upper center", prop={'size': 14})
+    ax1.set_ylabel("Events", size=16)
 
     if "bkg" in syst_name:
         nom = bkg
@@ -164,10 +166,11 @@ def plot_shapes(shapes, name, syst_name, syst_idx=0, epoch_idx = -1, use_hist = 
     ax2.scatter(centers, np.array(sig_down) / np.array(nom), color="red")
     ax2.hlines(1., 0, xmax, linestyle="dotted", color="black")
     ax2.set_ylim((0,2))
-    ax2.set_xlabel(name)
-    
+    ax2.set_xlabel(name, size=16)
+    ax2.set_ylabel("Syst / Nom", size=16)
+
     if store:
-        plt.savefig(outpath + "/train/" + name + "/shapes_" + syst_name + ".png")    
+        plt.savefig(outpath + "/train/" + name + "/shapes_" + syst_name + ".pdf")    
       
     plt.show()
     

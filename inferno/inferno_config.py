@@ -40,7 +40,7 @@ args["all_shape_syst"] = ["09_jes", "taue", "jer"]
 args["shape_syst"] = ["jes"] #, "taue",
 args["scale_shape_norms"] = None#[("jes", 0.06)]#["06_jes", "07_taue"] #jer
 # Weight syst can be btag, trigger, pdf
-args["all_weight_syst"] = ["btag", "trigger_jet", "trigger_tau", "pdf"]
+args["all_weight_syst"] = ["btag", "trigger", "trigger_jet", "trigger_tau", "pdf"]
 args["weight_syst"] = []#["btag_weight1"]
 # Norm syst can be lumi, mistag, tau_trigger, tau_id, ttmass, ttq2, ttparton
 args["s_norm_syst"] = []#["lumi"]

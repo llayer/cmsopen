@@ -32,8 +32,18 @@ nosyst_args = args.copy()
 path = basepath  + "nosyst/"
 nosyst_args["outpath"] = path
 samples = inferno_opendata.run_cmsopen(nosyst_args, epochs = epochs, do_fit = True)
-
-
+"""
+"""
+# Scan bins for BCE and INF
+for b in [6, 8, 10, 12, 14, 16, 18, 20]:
+    nosystbin_args = args.copy()
+    path = basepath  + "bins_nosyst/bin_" + str(b) + "/"
+    nosystbin_args["outpath"] = path
+    nosystbin_args["bce_bins"] = b
+    nosystbin_args["inferno_bins"] = b
+    samples = inferno_opendata.run_cmsopen(nosystbin_args, epochs = epochs, do_fit = True)
+"""
+"""
 # Rate parameter
 rate_param_args = args.copy()
 path = basepath + "rate_param/"
@@ -199,7 +209,7 @@ args["add_stat_only"] = False
 samples = inferno_opendata.run_cmsopen(most_impact_args, epochs = epochs, retrain=False, do_fit = True)
 """
 
-
+"""
 #path = basepath + "shape_syst/jes/"
 path = basepath + "all/"#"most_impact_rate/"
 most_impact_args = args.copy()
@@ -209,6 +219,25 @@ most_impact_args["outpath"] = path + "fit_single_pdf/"
 #most_impact_args["weight_syst"] = ["trigger_jet"]
 most_impact_args["fit_shape_systs"] = ["jes", "taue", "btag", "jer", "trigger_jet", "trigger_tau"]
 most_impact_args["fit_norm_syst"] = ["lumi", "tau_id", "xsec", "tau_trigger", "ttmass", "ttq2", "ttparton"] 
+most_impact_args["fit_model"] = "sig_bkg"
+most_impact_args["fit_floatQCD"] = True
+most_impact_args["add_pdf_weights"] = True
+most_impact_args["fit_data"] = True
+most_impact_args["add_stat_only"] = True
+samples = inferno_opendata.run_cmsopen(most_impact_args, epochs = epochs, retrain=False, do_fit = True)
+"""
+
+
+
+#path = basepath + "shape_syst/jes/"
+path = basepath + "all/"#"most_impact_rate/"
+most_impact_args = args.copy()
+most_impact_args["sample_path"] = path
+most_impact_args["outpath"] = path + "fit_trigger/"
+#most_impact_args["shape_syst"] = ["jes", "taue"]
+#most_impact_args["weight_syst"] = ["trigger_jet"]
+most_impact_args["fit_shape_systs"] = ["jes", "taue", "btag", "jer", "trigger"]
+most_impact_args["fit_norm_syst"] = ["lumi", "tau_id", "xsec", "tau_trigger", "ttmass", "ttq2", "ttparton", "mistag"] 
 most_impact_args["fit_model"] = "sig_bkg"
 most_impact_args["fit_floatQCD"] = True
 most_impact_args["add_pdf_weights"] = True

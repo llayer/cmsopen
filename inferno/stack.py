@@ -147,9 +147,9 @@ def plot_from_pd(samples, variable = "MET_met", bins=30, range=(0,350.), title =
     data_histogram_yields, data_histogram_stdev = 0,0 
     data_label = ""
     bin_edges = 0
-    colors = ['k', 'C0', "C3", "C2", "C1", "C4"]
+    colors = ['k', 'C4', "C2", "C1", "C0", "C3"]
 
-    for i, s in enumerate(["Data", "QCD", "TTJets_bkg", "WZJets", "STJets", "TTJets_signal"]):
+    for i, s in enumerate(["Data", "TTJets_bkg", "WZJets", "STJets", "QCD", "TTJets_signal"]):
 
         n, n_err, bin_edges = get_yield(samples[s], variable, bins=bins, range=range)
 
@@ -282,7 +282,7 @@ def plot_stack(mc_histograms_yields, mc_colors, mc_labels, total_model_unc,
     mc_containers = []
     for mc_sample_yield, color in zip(mc_histograms_yields, mc_colors):
         mc_container = ax1.bar(
-            bin_centers, mc_sample_yield, width=bin_width, bottom=total_yield, color=color,
+            bin_centers, mc_sample_yield, width=bin_width, bottom=total_yield, color=color, alpha=0.8
         )
         mc_containers.append(mc_container)
 

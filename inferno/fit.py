@@ -127,6 +127,7 @@ def to_root(samples, systs = [], include_pdf=False, path = "/home/centos/data/in
             for ud in ["up", "down"]:
                 #if "pdf" in syst: continue
                 #create_tree(path,  s + "_" + syst + "_" + ud, sample, weight = "weight_"+ syst + "_" + ud )
+                
                 if ("pdf" in syst):
                     if (s == "TTJets_signal") | (s == "TTJets_bkg"):
                         create_tree(path,  s + "_" + syst + "_" + ud, sample, weight = "weight_"+ syst + "_" + ud )

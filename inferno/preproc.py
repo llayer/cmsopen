@@ -151,7 +151,18 @@ def trigger_weights(samples):
     for s in ["TTJets_bkg", "WZJets", "STJets", "TTJets_signal"]:
         trigger = pd.read_hdf("/home/centos/data/systs/" + s + "_trigger.h5")
         samples[s] = pd.merge(samples[s], trigger, how="inner", on=["event", "luminosityBlock", "run"])
-        assert( len(trigger) == len(samples[s]) )                  
+        assert( len(trigger) == len(samples[s]) )
+        
+def reset_trigger(samples):
+    for s in ["TTJets_bkg", "WZJets", "STJets", "TTJets_signal"]:
+        trigger = pd.read_hdf("/home/centos/data/systs/" + s + "_trigger3.h5")
+        samples[s] = pd.merge(samples[s], trigger, how="inner", on=["event", "luminosityBlock", "run"]) 
+        for ud in ["up", "down"]:
+            samples[s]["weight_trigger_" + ud] = samples[s]['norm'] * samples[s]['trigger_weight'] * \
+                                                 samples[s]['trigger_' + ud] * samples[s]['btag_weight1']   
+
+    
+    
 #
 # Scale or downsample the normalizations of the nuisances
 #
@@ -426,7 +437,7 @@ def gen_artificial_systs(samples, artificial_syst):
 #
 def assert_weight_syst(weight_syst):
     
-    allowed_systs = ["btag", "trigger_jet", "trigger_tau", "pdf"]
+    allowed_systs = ["btag", "trigger", "trigger_jet", "trigger_tau", "pdf"]
     for syst in weight_syst:
         if syst not in allowed_systs:
             raise ValueError("Specified shape sytematic not allowed:", syst)
