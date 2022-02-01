@@ -75,9 +75,12 @@ def plot_bce(df_bce, info, args):
 def store_loss_cov(info, outpath=".", name="inferno"):
     
     val_loss = info["loss"].losses["val"]
+    train_loss = info["loss"].losses["trn"]
     val_cov = info["covs"]["val"]
     np.save(outpath + "/train/" + name +"/val_loss.npy", val_loss)
-    np.save(outpath + "/train/" + name +"/val_cov.npy", val_cov)    
+    np.save(outpath + "/train/" + name +"/train_loss.npy", train_loss)
+    np.save(outpath + "/train/" + name +"/val_cov.npy", val_cov)  
+
     
 #
 # Plotting functions for loss and shapes

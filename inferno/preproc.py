@@ -94,7 +94,8 @@ def set_weights(samples, weight_systs = []):
                         sample["btag_"+ud] = sample['btag_weight1_'+ud] / sample['btag_weight1']
                     if "trigger" in syst:
                         sample["weight_" + syst + "_" + ud] = sample['norm'] * sample['trigger_weight'] * \
-                                                              sample[syst + '_'+ ud] * sample['btag_weight1']   
+                                                              sample[syst + '_'+ ud] * sample['btag_weight1']  
+                """
                 if (s == "TTJets_signal") & (syst == "pdf"):
                     # PDF Up
                     sample["pdf_up"] = 1+sample["pdf_up"].fillna(0.)
@@ -102,6 +103,7 @@ def set_weights(samples, weight_systs = []):
                     # PDF Down
                     sample["pdf_down"] = 1-sample["pdf_down"].fillna(0.)
                     sample["weight_pdf_down"] = sample["weight"] * sample["pdf_down"]
+                """
         #print("Normalization", s, samples[s]["weight"].sum())
                     
 def set_normalization(sample, factor, col_name="weight"):
@@ -128,21 +130,22 @@ def pdf_weights(samples):
     for i in range(22):
         ups += (pdf["weight_pdf_" + str(i) + "_up"]-1)**2
         downs += (pdf["weight_pdf_" + str(i) + "_down"]-1)**2
-    pdf["wpdf_up"] = 1. + np.sqrt(ups)
-    pdf["wpdf_down"] = 1. - np.sqrt(downs)
+    pdf["pdf_up"] = 1. + np.sqrt(ups)
+    pdf["pdf_down"] = 1. - np.sqrt(downs)
     
     #print(pdf["wpdf_up"].head())
     #print(pdf["wpdf_down"].head())
-    
+    samples["TTJets_signal"] = samples["TTJets_signal"].drop(["pdf", "pdf_up", "pdf_down"], axis=1)
+    samples["TTJets_bkg"] = samples["TTJets_bkg"].drop(["pdf", "pdf_up", "pdf_down"], axis=1)
     samples["TTJets_signal"] = pd.merge(samples["TTJets_signal"], pdf, how="left", on=["event", "luminosityBlock", "run"])
-    #print(list(samples["TTJets_signal"]))
+    print(list(samples["TTJets_signal"]))
     samples["TTJets_bkg"] = pd.merge(samples["TTJets_bkg"], pdf, how="left", on=["event", "luminosityBlock", "run"])
     for ud in ["up", "down"]:
         for i in range(22):
             samples["TTJets_signal"]["weight_pdf_" + str(i) + "_" + ud] *= samples["TTJets_signal"]["weight"]
             samples["TTJets_bkg"]["weight_pdf_" + str(i) + "_" + ud] *= samples["TTJets_bkg"]["weight"]
-        samples["TTJets_signal"]["weight_pdf_" + ud] = samples["TTJets_signal"]["weight"] * samples["TTJets_signal"]["wpdf_" + ud]
-        samples["TTJets_bkg"]["weight_pdf_" + ud] = samples["TTJets_bkg"]["weight"] * samples["TTJets_bkg"]["wpdf_" + ud]
+        samples["TTJets_signal"]["weight_pdf_" + ud] = samples["TTJets_signal"]["weight"] * samples["TTJets_signal"]["pdf_" + ud]
+        samples["TTJets_bkg"]["weight_pdf_" + ud] = samples["TTJets_bkg"]["weight"] * samples["TTJets_bkg"]["pdf_" + ud]
     #print(np.mean(samples["TTJets_signal"]["weight_pdf_down"]), np.mean(samples["TTJets_signal"]["weight_pdf_up"]))   
         
 
@@ -539,9 +542,15 @@ def load_data(features, shape_syst, weight_syst, all_shape_syst=None, all_weight
     
     # Load trigger weight
     trigger_weights(samples)
+    # Reset the trigger weights
+    reset_trigger(samples)
     
     # Set the weights
     set_weights(samples, weight_systs = all_weight_syst)
+    
+    # Set PDFs
+    pdf_weights(samples)
+    
     
     # Create artificial systs
     if art_syst is not None:

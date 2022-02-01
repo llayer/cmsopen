@@ -35,7 +35,7 @@ samples = inferno_opendata.run_cmsopen(nosyst_args, epochs = epochs, do_fit = Tr
 """
 """
 # Scan bins for BCE and INF
-for b in [6, 8, 10, 12, 14, 16, 18, 20]:
+for b in [32, 34, 36, 38, 40]: #[6, 8, 10, 12, 14, 16, 18, 20, 22, 24, 26, 28, 30]
     nosystbin_args = args.copy()
     path = basepath  + "bins_nosyst/bin_" + str(b) + "/"
     nosystbin_args["outpath"] = path
@@ -52,6 +52,17 @@ rate_param_args["b_rate_param"] = True
 rate_param_args["fit_floatQCD"] = True
 samples = inferno_opendata.run_cmsopen(rate_param_args, epochs = epochs, do_fit = True)
 """
+
+# Shift with 10 models
+for i in range(10):
+    shifts = np.linspace(0.005, 0.02, 5)
+    path = basepath + "ten_shifts/"
+    args_tenshift  = args.copy()
+    args_tenshift["outpath"] = path + "shift_" + str(i)
+    args_tenshift["artificial_syst"] = {"TTJets_signal": [{'name':"aplanarity", 'shift':shifts[2], 'norm':0.05}]}
+    args_tenshift["shape_syst"] = ["artsig_aplanarity"]
+    samples = inferno_opendata.run_cmsopen(args_tenshift, epochs = epochs, do_fit = True)
+
 
 """
 for i, val in enumerate(np.linspace(0.005, 0.02, 5)):
@@ -228,7 +239,7 @@ samples = inferno_opendata.run_cmsopen(most_impact_args, epochs = epochs, retrai
 """
 
 
-
+"""
 #path = basepath + "shape_syst/jes/"
 path = basepath + "all/"#"most_impact_rate/"
 most_impact_args = args.copy()
@@ -244,5 +255,5 @@ most_impact_args["add_pdf_weights"] = True
 most_impact_args["fit_data"] = True
 most_impact_args["add_stat_only"] = True
 samples = inferno_opendata.run_cmsopen(most_impact_args, epochs = epochs, retrain=False, do_fit = True)
-
+"""
 
