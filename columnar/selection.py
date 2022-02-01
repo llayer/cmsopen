@@ -176,7 +176,10 @@ def event_selection(file_path, isData = False, isTT = False, invert_btag = False
     
     # Load file
     f = uproot.open(file_path)
-    events = f['Events']
+    try:
+        events = f['Events']
+    except:
+         events = f['MyModule/Events']
     
     # Counts
     event_counts = {}
@@ -190,12 +193,15 @@ def event_selection(file_path, isData = False, isTT = False, invert_btag = False
         event_vars.append("genEvent_tmeme")
     event["evt"] = pd.DataFrame(object_selection.eventCollection(events, event_vars))
  
+    print("Load event variables")
+
     # Load objects
     event["vtx"] = pd.DataFrame(object_selection.nanoCollection(events, "PV_", ["z"]))
     jet_vars = ['pt', 'px', 'py', 'pz', 'eta', 'phi', 'mass', 'e', 'csvDisc']
     if not isData:
         jet_vars += [ 'flavour', 'genpx', 'genpy' ]
     event["jet"] = object_selection.nanoObject(events, "Jet_", jet_vars)
+    print("Load jet variables")
     electron_vars = ['TrkIso03', 'ECaloIso03', 'cutbasedid', 'HCaloIso03', 'pt', 'eta', 'z']
     event["electron"] = object_selection.nanoObject(events, "Electron_", electron_vars)
     muon_vars = ['TrkIso03', 'ECaloIso03', 'isGlobalMuon', 'HCaloIso03', 'pt', 'eta', 'z']
@@ -203,12 +209,14 @@ def event_selection(file_path, isData = False, isTT = False, invert_btag = False
     tau_vars = ['pt', 'px', 'py', 'pz', 'eta', 'phi', 'mass', 'e', 'charge', 'byMediumCombinedIsolationDeltaBetaCorr',
                 'byLooseCombinedIsolationDeltaBetaCorr','z', 'leadTrackPt', 'dxy', 'againstMuonTight', 'againstElectronTight']
     event["tau"] = object_selection.nanoObject(events, "Tau_", tau_vars) 
+    print("Load lepton variables")
     met_vars = ['pt', 'px', 'py', 'pz', 'e']
     event["met"] = pd.DataFrame(object_selection.nanoCollection(events, "MET_", met_vars))
     #event["met"]["met"] = event["met"]["p4"].Et
     #if isData:
     event["tau_hlt"] = object_selection.nanoObject(events, "TauHLT_", branches = [], from_cartesian=True)
     event["jet_hlt"] = object_selection.nanoObject(events, "JetHLT_", branches = [], from_cartesian=True)
+    print("Load met & hlt variables")
         
     #
     # JETMET
@@ -246,6 +254,8 @@ def event_selection(file_path, isData = False, isTT = False, invert_btag = False
     event["electron"] = object_selection.select_electron(event["electron"], event["vtx"])
     event["tau"] = object_selection.select_tau(event["tau"], event["vtx"])
     event["jet"] = object_selection.select_jet(event["jet"])    
+    
+    print("Finish object selection")
     
     #print( list(zip(good_muon.counts, good_electron.counts, good_tau.counts, good_jet.counts)))
     
@@ -292,6 +302,7 @@ def event_selection(file_path, isData = False, isTT = False, invert_btag = False
         hlt_40, hlt_45 = test_weights.lumi()
         total_lumi = hlt_40 + hlt_45
         trigger_frac = hlt_40 / float(hlt_45)
+        #counts_path = "/eos/user/l/llayer/cmsopen/legacy/" + sample + "_counts.root"
         counts_path = "/eos/user/l/llayer/opendata_files/preselection_merged/" + sample + "_counts.root"
         total_counts = root_pandas.read_root(counts_path)
         xsec = test_weights.get_xsec(sample)
