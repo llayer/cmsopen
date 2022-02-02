@@ -205,21 +205,27 @@ def stat_only(config, fit_results, path="", shape_syst = [], asimov = True, stor
     
     fix = []
     for label, best in zip(fit_results.labels, fit_results.bestfit.tolist()):
-        if (label == "mu") | (label == "QCD_norm"): continue
+        #if (label == "mu") | (label == "QCD_norm"): continue
+        if (label == "mu"):continue # | (label == "QCD_norm"): continue
         if label in shape_syst:
             fix.append({"Name": "TTJets_signal_" + label, "Value": best})
+        elif label == "QCD_norm":
+            for nf in config["NormFactors"]:
+                if nf["Name"] == "QCD_norm":
+                    nf["Nominal"] = best
+            fix.append({"Name": label, "Value": best})  
         else:
             fix.append({"Name": label, "Value": best})   
-    print(config)
     print({"Fixed":fix})   
     
+
     config["General"].update({"Fixed":fix})
-    #print(config)
+    print(config)
     ws = cabinetry.workspace.build(config)
     if prune_stat:
         ws = dict(pyhf.Workspace(ws).prune(modifier_types=["staterror"]))
     
-    #print(ws)
+    print(ws)
     
     model, data = cabinetry.model_utils.model_and_data(ws, asimov=asimov)
     model_pred = cabinetry.model_utils.prediction(model)

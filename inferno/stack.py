@@ -140,7 +140,8 @@ def get_yield(sample, var, bins=30, range=(0,350.), log_scale = True, store=Fals
     
     return n, n_err, bins
 
-def plot_from_pd(samples, variable = "MET_met", bins=30, range=(0,350.), title = "var", log_scale = True, store=False, path=""):
+def plot_from_pd(samples, variable = "MET_met", bins=30, range=(0,350.), title = "var", max_scale=10,
+                 log_scale = True, store=False, path=""):
     
     mc_histograms_yields, mc_colors, mc_labels = [], [], []
     total_model_unc = 0
@@ -148,6 +149,7 @@ def plot_from_pd(samples, variable = "MET_met", bins=30, range=(0,350.), title =
     data_label = ""
     bin_edges = 0
     colors = ['k', 'C4', "C2", "C1", "C0", "C3"]
+    names = ["Data", r"$\mathrm{t}\bar{\mathrm{t}} \rightarrow \mathrm{X}$", "W/Z + jets", "Single Top", "QCD", r"$\mathrm{t}\bar{\mathrm{t}} \rightarrow \tau_h+\mathrm{jets}$"]
 
     for i, s in enumerate(["Data", "TTJets_bkg", "WZJets", "STJets", "QCD", "TTJets_signal"]):
 
@@ -155,7 +157,7 @@ def plot_from_pd(samples, variable = "MET_met", bins=30, range=(0,350.), title =
 
         if "Data" not in s:
             mc_histograms_yields.append(n)
-            mc_labels.append(s)
+            mc_labels.append(names[i])
             mc_colors.append(colors[i])
             total_model_unc += n_err
         else:
@@ -163,9 +165,9 @@ def plot_from_pd(samples, variable = "MET_met", bins=30, range=(0,350.), title =
             data_histogram_stdev = n_err
             data_label = s    
             
-    plot_stack(mc_histograms_yields, mc_colors, mc_labels, total_model_unc, 
+    plot_stack(variable, mc_histograms_yields, mc_colors, mc_labels, total_model_unc, 
                 data_histogram_yields, data_histogram_stdev, data_label,
-                title, bin_edges, log_scale = log_scale, store=store, path=path)
+                title, bin_edges, log_scale = log_scale, max_scale = max_scale, store=store, path=path)
 
 
 def plot_from_model(model_pred, data, config=None, log_scale = True, store=False, path=""):
@@ -193,14 +195,19 @@ def plot_from_model(model_pred, data, config=None, log_scale = True, store=False
         
     histogram_dict_list = []
     #colors = ['C0', "green", "orange", "red", "purple"]
-    colors = ['C0', "C3", "C2", "C1", "C4"]
+    colors = ['C0', "C1", "C4", "C3", "C2"]
+    names = ["QCD", "Single Top", r"$\mathrm{t}\bar{\mathrm{t}} \rightarrow \mathrm{X}$", 
+             r"$\mathrm{t}\bar{\mathrm{t}} \rightarrow \tau_h+\mathrm{jets}$", "W/Z + jets"
+             ]
     for i_sam, sample_name in enumerate(model_pred.model.config.samples):
         if sample_name == "TTJets_signal": 
             i_sig = i_sam
+        elif sample_name == "QCD":
+            i_qcd = i_sam
         else:
             histogram_dict_list.append(
                 {
-                    "label": sample_name,
+                    "label": names[i_sam],
                     "isData": False,
                     "yields": model_pred.model_yields[0][i_sam],
                     "color":colors[i_sam],
@@ -210,7 +217,17 @@ def plot_from_model(model_pred, data, config=None, log_scale = True, store=False
             
     histogram_dict_list.append(
         {
-            "label": "TTJets_signal",
+            "label": "QCD",
+            "isData": False,
+            "yields": model_pred.model_yields[0][i_qcd],
+            "color":colors[i_qcd],
+            "variable": variable,
+        }
+    )
+     
+    histogram_dict_list.append(
+        {
+            "label": names[i_sig],
             "isData": False,
             "yields": model_pred.model_yields[0][i_sig],
             "color":colors[i_sig],
@@ -224,8 +241,8 @@ def plot_from_model(model_pred, data, config=None, log_scale = True, store=False
             "yields": data_yields,
             "variable": variable,
         }
-    )            
-    
+    )       
+    histogram_dict_list[0], histogram_dict_list[1] = histogram_dict_list[1], histogram_dict_list[0]    
     total_model_unc = np.asarray(model_pred.total_stdev_model_bins[0])
     
     mc_histograms_yields = []
@@ -240,18 +257,25 @@ def plot_from_model(model_pred, data, config=None, log_scale = True, store=False
             mc_histograms_yields.append(h["yields"])
             mc_labels.append(h["label"])
             mc_colors.append(h["color"])
-            
-    plot_stack(mc_histograms_yields, mc_colors, mc_labels, total_model_unc, 
+    
+    if variable == "inferno":
+        title = "INFERNO"
+    elif variable == "bce":
+        title = "BCE"
+    else:
+        title = variable
+    
+    plot_stack(variable, mc_histograms_yields, mc_colors, mc_labels, total_model_unc, 
                data_histogram_yields, data_histogram_stdev, data_label,
-               variable, bin_edges,
+               title, bin_edges,
                log_scale = log_scale, store=store, path=path)
 
             
-def plot_stack(mc_histograms_yields, mc_colors, mc_labels, total_model_unc, 
-               data_histogram_yields, data_histogram_stdev, data_label, variable, bin_edges,
-               log_scale = True, store=False, path=""):
+def plot_stack(variable, mc_histograms_yields, mc_colors, mc_labels, total_model_unc, 
+               data_histogram_yields, data_histogram_stdev, data_label, title, bin_edges,
+               log_scale = True, max_scale=10., store=False, path=""):
             
-    fig = plt.figure(figsize=(6, 5))
+    fig = plt.figure(figsize=(6, 5), dpi=100)
     gs = fig.add_gridspec(nrows=2, ncols=1, hspace=0, height_ratios=[3, 1])
     ax1 = fig.add_subplot(gs[0])
     ax2 = fig.add_subplot(gs[1])
@@ -281,8 +305,12 @@ def plot_stack(mc_histograms_yields, mc_colors, mc_labels, total_model_unc,
     )
     mc_containers = []
     for mc_sample_yield, color in zip(mc_histograms_yields, mc_colors):
+        if color == "C3":
+            alpha = 1.
+        else:
+            alpha=0.8
         mc_container = ax1.bar(
-            bin_centers, mc_sample_yield, width=bin_width, bottom=total_yield, color=color, alpha=0.8
+            bin_centers, mc_sample_yield, width=bin_width, bottom=total_yield, color=color, alpha=alpha
         )
         mc_containers.append(mc_container)
 
@@ -312,6 +340,7 @@ def plot_stack(mc_histograms_yields, mc_colors, mc_labels, total_model_unc,
         yerr=data_histogram_stdev,
         fmt="o",
         color="k",
+        markersize=5
     )
 
     # ratio plot
@@ -353,6 +382,7 @@ def plot_stack(mc_histograms_yields, mc_colors, mc_labels, total_model_unc,
         yerr=data_model_ratio_unc[nonzero_model_yield],
         fmt="o",
         color="k",
+        markersize=5
     )
 
     # get the highest single bin yield, from the sum of MC or data
@@ -365,13 +395,18 @@ def plot_stack(mc_histograms_yields, mc_colors, mc_labels, total_model_unc,
     if log_scale or (log_scale is None and (y_max / y_min) > 100):
         # log vertical axis scale and limits
         ax1.set_yscale("log")
+        y_min = max(y_min, 1.01)
         if variable == "inferno":
             ax1.set_ylim([y_min / 10, y_max * 100])
+        elif variable == "bce":
+            y_min = 10.01
+            y_max = 100
+            ax1.set_ylim([y_min / 10, y_max * 100])
         else:
-            ax1.set_ylim([y_min / 10, y_max * 10])            
+            ax1.set_ylim([y_min / 10, y_max * max_scale])            
     else:
         # do not use log scale
-        ax1.set_ylim([0, y_max * 1.5])  # 50% headroom
+        ax1.set_ylim([0, y_max * 1.5 *(max_scale/10)])  # 50% headroom
 
     # MC contributions in inverse order, such that first legend entry corresponds to
     # the last (highest) contribution to the stack
@@ -384,7 +419,7 @@ def plot_stack(mc_histograms_yields, mc_colors, mc_labels, total_model_unc,
     #plt.legend(fontsize='xx-large', ncol=2,handleheight=2.4, labelspacing=0.05)
 
     ax1.set_xlim(bin_edges[0], bin_edges[-1])
-    ax1.set_ylabel("events")
+    ax1.set_ylabel("Events", size=16)
     ax1.set_xticklabels([])
     ax1.set_xticklabels([], minor=True)
     ax1.tick_params(axis="both", which="major", pad=8)  # tick label - axis padding
@@ -393,25 +428,25 @@ def plot_stack(mc_histograms_yields, mc_colors, mc_labels, total_model_unc,
                 xy=(0., 1.02), xycoords=('axes fraction', 'figure fraction'),
                 verticalalignment='top',
                 fontsize=20, )
-    plt.annotate(r'4.1 $\mathrm{fb}^{-1}$ (7TeV)',
+    plt.annotate(r'4.2 $\mathrm{fb}^{-1}$ (7TeV)',
                 xy=(1., 1.02), xycoords=('axes fraction', 'figure fraction'),
                 verticalalignment='top', horizontalalignment="right",
                 fontsize=16)
 
     ax2.set_xlim(bin_edges[0], bin_edges[-1])
-    ax2.set_ylim([0., 2.])
-    ax2.set_xlabel(variable)#histogram_dict_list[0]["variable"])
-    ax2.set_ylabel("data / model")
+    ax2.set_ylim([0.4, 1.6])
+    ax2.set_xlabel(title, size=16)#histogram_dict_list[0]["variable"])
+    ax2.set_ylabel("Data / MC", size=16)
     #ax2.set_yticks([0.5, 0.75, 1.0, 1.25, 1.5])
     #ax2.set_yticklabels([0.5, 0.75, 1.0, 1.25, ""])
-    ax2.set_yticks([0.5, 1.0, 1.5, 2.])
-    ax2.set_yticklabels([0.5, 1.0, 1.5, ""])
+    ax2.set_yticks([0.5, 1.0, 1.5])#, 2.])
+    ax2.set_yticklabels([0.5, 1.0, 1.5])#, ""])
     ax2.tick_params(axis="both", which="major", pad=8)
     ax2.tick_params(direction="in", top=True, right=True, which="both")
 
     fig.set_tight_layout(True)
     if store == True:
-        fig.savefig(path+"/data_mc.png", bbox_inches="tight") 
+        fig.savefig(path+"/" + variable + "_data_mc.pdf", bbox_inches="tight") 
     plt.show()
             
       

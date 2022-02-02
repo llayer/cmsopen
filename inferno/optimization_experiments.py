@@ -43,7 +43,7 @@ lr_param = [0.0001, 0.001, 0.01]
 neurons_param = [20, 40, 60, 80, 100]
 temperature_param = [0.01, 0.1, 0.5, 0.9, 0.99]
 
-
+"""
 i_exp = 0
 for lr in lr_param:
     for neurons in neurons_param:
@@ -69,7 +69,7 @@ for lr in lr_param:
                 print("Run failed")
             i_exp += 1
 
-
+"""
 
 """
 i_exp = 0
@@ -180,7 +180,6 @@ samples = inferno_opendata.run_cmsopen(most_impact_args, epochs = epochs, retrai
 
 
 """
-
 for i in range(75):
     #path = basepath + "shape_syst/jes/"
     path = basepath + "/optimization_all/run_"+str(i)+"/" #"most_impact_rate/"
@@ -223,5 +222,78 @@ try:
     samples = inferno_opendata.run_cmsopen(most_impact_args, epochs = epochs, retrain=False, do_fit = True)
 except:
     print("Fit failed")
+    
 """
-        
+
+"""
+for i in range(75):
+    #path = basepath + "shape_syst/jes/"
+    path = basepath + "/optimization_pdftauejes//run_"+str(i)+"/" #"most_impact_rate/"
+    most_impact_args = args.copy()
+    most_impact_args["sample_path"] = path
+    most_impact_args["outpath"] = path + "fit_complete_bins20/"
+    #most_impact_args["shape_syst"] = ["jes", "taue"]
+    #most_impact_args["weight_syst"] = ["trigger_jet"]
+    most_impact_args["fit_shape_systs"] = ["jes", "taue", "btag", "jer", "trigger"]
+    most_impact_args["fit_norm_syst"] = ["lumi", "tau_id", "xsec", "tau_trigger", "ttmass", "ttq2", "ttparton"] 
+    most_impact_args["fit_model"] = "sig_bkg"
+    most_impact_args["fit_floatQCD"] = True
+    most_impact_args["add_pdf_weights"] = True
+    most_impact_args["fit_data"] = True
+    most_impact_args["add_stat_only"] = True
+    most_impact_args["bce_bins"] = 20
+    #samples = inferno_opendata.run_cmsopen(most_impact_args, epochs = epochs, retrain=False, do_fit = True)
+    try:
+        samples = inferno_opendata.run_cmsopen(most_impact_args, epochs = epochs, retrain=False, do_fit = True)
+    except:
+        print("Fit failed")
+"""   
+
+
+ 
+#Run69 Basic fit for train vars
+"""
+all_args = args.copy()
+path = basepath + "optimization_all/run_69/"
+all_args["sample_path"] = path
+all_args["outpath"] = path + "fit_final/"
+all_args["bce_bins"] = 20
+all_args["fit_floatQCD"] = True
+all_args["fit_data"] = True
+all_args["add_pdf_weights"] = True
+all_args["artificial_syst"] = None #{"TTJets_signal": [{'name':"aplanarity", 'shift':shifts[2], 'norm':0.05}]}
+all_args["weight_syst"] = ["pdf", "btag", "trigger"]
+all_args["shape_syst"] = ["jes", "jer", "taue"]
+samples = inferno_opendata.run_cmsopen(all_args, epochs = epochs, retrain=False, do_fit = True)
+"""
+#Run69 Basic fit for all vars
+all_args = args.copy()
+path = basepath + "optimization_all/run_69/"
+all_args["sample_path"] = path
+all_args["outpath"] = path + "fit_final_all/"
+all_args["fit_shape_systs"] = ["jes", "taue", "btag", "jer", "trigger"]
+all_args["fit_norm_syst"] = ["lumi", "tau_id", "xsec", "tau_trigger", "ttmass", "ttq2", "ttparton"] 
+all_args["fit_model"] = "sig_bkg"
+all_args["fit_floatQCD"] = True
+all_args["add_pdf_weights"] = True
+all_args["fit_data"] = True
+all_args["add_stat_only"] = True
+all_args["bce_bins"] = 20
+samples = inferno_opendata.run_cmsopen(all_args, epochs = epochs, retrain=False, do_fit = True)
+
+
+""" NoSYST
+all_args = args.copy()
+path = basepath + "nosyst/"
+all_args["sample_path"] = path
+all_args["outpath"] = path + "fit_final/"
+all_args["bce_bins"] = 20
+all_args["fit_floatQCD"] = True
+all_args["fit_data"] = True
+all_args["add_pdf_weights"] = True
+all_args["artificial_syst"] = None #{"TTJets_signal": [{'name':"aplanarity", 'shift':shifts[2], 'norm':0.05}]}
+all_args["weight_syst"] = []#"pdf", "btag", "trigger"]
+all_args["shape_syst"] = []#"jes", "jer", "taue"]
+samples = inferno_opendata.run_cmsopen(all_args, epochs = epochs, retrain=False, do_fit = True)
+"""
+
