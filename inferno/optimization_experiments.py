@@ -252,21 +252,23 @@ for i in range(75):
 
  
 #Run69 Basic fit for train vars
-"""
+
 all_args = args.copy()
 path = basepath + "optimization_all/run_69/"
 all_args["sample_path"] = path
 all_args["outpath"] = path + "fit_final/"
 all_args["bce_bins"] = 20
-all_args["fit_floatQCD"] = True
+all_args["fit_floatQCD"] = False
 all_args["fit_data"] = True
 all_args["add_pdf_weights"] = True
 all_args["artificial_syst"] = None #{"TTJets_signal": [{'name':"aplanarity", 'shift':shifts[2], 'norm':0.05}]}
 all_args["weight_syst"] = ["pdf", "btag", "trigger"]
 all_args["shape_syst"] = ["jes", "jer", "taue"]
 samples = inferno_opendata.run_cmsopen(all_args, epochs = epochs, retrain=False, do_fit = True)
-"""
+
+
 #Run69 Basic fit for all vars
+"""
 all_args = args.copy()
 path = basepath + "optimization_all/run_69/"
 all_args["sample_path"] = path
@@ -280,7 +282,7 @@ all_args["fit_data"] = True
 all_args["add_stat_only"] = True
 all_args["bce_bins"] = 20
 samples = inferno_opendata.run_cmsopen(all_args, epochs = epochs, retrain=False, do_fit = True)
-
+"""
 
 """ NoSYST
 all_args = args.copy()

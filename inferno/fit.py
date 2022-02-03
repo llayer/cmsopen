@@ -196,9 +196,7 @@ def fit_ws(ws, config, args, path, asimov = True):
         #print(significance_result)
         if args["store"] == True:
             store_sig_lim_results(significance_result, lim_results=None, path = path)
-    
-    print("HAAALLLOOOO")
-    
+        
     return fit_results, scan_results
 
 def stat_only(config, fit_results, path="", shape_syst = [], asimov = True, store=True, prune_stat=True, n_steps=200):
@@ -220,13 +218,10 @@ def stat_only(config, fit_results, path="", shape_syst = [], asimov = True, stor
     
 
     config["General"].update({"Fixed":fix})
-    print(config)
     ws = cabinetry.workspace.build(config)
     if prune_stat:
         ws = dict(pyhf.Workspace(ws).prune(modifier_types=["staterror"]))
-    
-    print(ws)
-    
+        
     model, data = cabinetry.model_utils.model_and_data(ws, asimov=asimov)
     model_pred = cabinetry.model_utils.prediction(model)
     logging.getLogger("cabinetry").setLevel(logging.INFO)
