@@ -1,5 +1,5 @@
 import sys
-sys.path.append('../columnar/plotting')
+sys.path.append('../analysis/plotting')
 
 from plotting import plot_artificial_syst
 import pandas as pd
