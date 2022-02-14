@@ -53,6 +53,7 @@ rate_param_args["fit_floatQCD"] = True
 samples = inferno_opendata.run_cmsopen(rate_param_args, epochs = epochs, do_fit = True)
 """
 
+"""
 # Shift with 10 models
 for i in range(10):
     shifts = np.linspace(0.005, 0.02, 5)
@@ -62,7 +63,25 @@ for i in range(10):
     args_tenshift["artificial_syst"] = {"TTJets_signal": [{'name':"aplanarity", 'shift':shifts[2], 'norm':0.05}]}
     args_tenshift["shape_syst"] = ["artsig_aplanarity"]
     samples = inferno_opendata.run_cmsopen(args_tenshift, epochs = epochs, do_fit = True)
+"""
+    
+# Shift with 10 models
+for i in range(10):
+    path = basepath + "ten_all/"
+    args_tenshift  = args.copy()
+    args_tenshift["outpath"] = path + "run_" + str(i)
+    args_tenshift["bce_bins"] = 15
+    args_tenshift["fit_floatQCD"] = False
+    args_tenshift["fit_data"] = True
+    args_tenshift["artificial_syst"] = None #{"TTJets_signal": [{'name':"aplanarity", 'shift':shifts[2], 'norm':0.05}]}
+    args_tenshift["weight_syst"] = ["pdf", "btag", "trigger"]
+    args_tenshift["shape_syst"] = ["jes", "jer", "taue"]
+    try:
+        samples = inferno_opendata.run_cmsopen(args_tenshift, epochs = epochs, do_fit = True)
+    except:
+        print("Run failed")
 
+    
 
 """
 for i, val in enumerate(np.linspace(0.005, 0.02, 5)):

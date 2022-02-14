@@ -36,8 +36,42 @@ nosyst_args["run_skopt"] = True
 samples = inferno_opendata.run_cmsopen(nosyst_args, epochs = epochs, do_fit = True)
 """
 
-# optimize bins as well -- missing
 
+# optimize with multiple iter models
+lr_param = 0.001
+neurons_param = [20, 40, 60, 80, 100]
+temperature_param = [0.01, 0.1, 0.9]
+n_iter = 3
+
+i_exp = 0
+for neurons in neurons_param:
+    for temp in temperature_param:
+        #print(lr, neurons, temp)
+        for i in range(n_iter):
+            all_args = args.copy()
+            path = basepath + "final_opt_all/"
+            all_args["outpath"] = path + "opt_" + str(i_exp) + "_run" + str(i)
+            all_args["shape_syst"] = ["jes"]
+            all_args["inferno_lr"] = lr
+            all_args["inferno_neurons"] = neurons
+            all_args["temperature"] = temp
+            all_args["bce_bins"] = 20
+            all_args["fit_floatQCD"] = False
+            all_args["fit_data"] = True
+            all_args["artificial_syst"] = None #{"TTJets_signal": [{'name':"aplanarity", 'shift':shifts[2], 'norm':0.05}]}
+            all_args["weight_syst"] = ["pdf", "btag", "trigger"]
+            all_args["shape_syst"] = ["jes", "jer", "taue"]
+            try:
+                samples = inferno_opendata.run_cmsopen(all_args, epochs = epochs, do_fit = True)
+            except:
+                print("Run failed")
+        i_exp += 1
+
+
+
+
+
+# optimize bins as well -- missing
 # optimize JES with grid search
 lr_param = [0.0001, 0.001, 0.01]
 neurons_param = [20, 40, 60, 80, 100]
@@ -252,7 +286,7 @@ for i in range(75):
 
  
 #Run69 Basic fit for train vars
-
+"""
 all_args = args.copy()
 path = basepath + "optimization_all/run_69/"
 all_args["sample_path"] = path
@@ -265,7 +299,7 @@ all_args["artificial_syst"] = None #{"TTJets_signal": [{'name':"aplanarity", 'sh
 all_args["weight_syst"] = ["pdf", "btag", "trigger"]
 all_args["shape_syst"] = ["jes", "jer", "taue"]
 samples = inferno_opendata.run_cmsopen(all_args, epochs = epochs, retrain=False, do_fit = True)
-
+"""
 
 #Run69 Basic fit for all vars
 """
