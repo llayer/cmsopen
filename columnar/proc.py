@@ -1,7 +1,7 @@
 import pandas as pd
 import numpy as np
 import glob
-import utils
+from selection import utils
 from pathlib import Path
 
 BASE_DIR = "/eos/user/l/llayer/cmsopen/columnar/note_v0/"
@@ -62,7 +62,7 @@ variables = [
 
 def run_taujet_sel():
     
-    import taujet_selection
+    from selection import taujet_selection
 
     outpath = SAMPLES_DIR
     taujet_selection.nominal(outpath)
@@ -72,7 +72,7 @@ def run_taujet_sel():
     
 def plot_vars( variables, inpath ):
     
-    import plot
+    from plotting import plot
     
     files = glob.glob(inpath + "*.h5")
     samples = {}
@@ -98,7 +98,7 @@ def plot_vars( variables, inpath ):
     
 def plot_stack(variables, file_name):
     
-    import stack
+    from plotting import stack
     
     sample_names = ["TTJets_bkg", "WZJets", "STJets", "QCD", "TTJets_signal"]
     for var in variables:
@@ -108,7 +108,7 @@ def plot_stack(variables, file_name):
     
 def plot_syst(variables, file_name):
     
-    import plot
+    from plotting import plot
     
     file_path = HIST_DIR + "/" + file_name + ".root"
     outpath = SYST_DIR
@@ -118,7 +118,7 @@ def plot_syst(variables, file_name):
     
 def bdt( outpath = BDT_DIR ):
     
-    import ml
+    from ml import bdt
     
     files = glob.glob( SAMPLES_DIR + "/*.h5")
     samples = {}
@@ -130,7 +130,7 @@ def bdt( outpath = BDT_DIR ):
         
     #ml.train(samples, outpath, n_sig=4000, n_bkg=4000, ntrees=1000, lr=0.01)
     #ml.train(samples, outpath, n_sig=5000, n_bkg=5000, ntrees=500, lr=0.01, random_state=5)
-    ml.train(samples, outpath, n_sig=5000, n_bkg=5000, ntrees=500, lr=0.01, random_state=5)
+    bdt.train(samples, outpath, n_sig=5000, n_bkg=5000, ntrees=500, lr=0.01, random_state=5)
     
     dropvars = ['Jet_pt', 'Jet_px', 'Jet_py', 'Jet_pz', 'Jet_e', 'Jet_eta', 'Jet_phi',
        'Jet_mass', 'Jet_csvDisc', 'Jet_flavour', 'Tau_pt', 'Tau_px', 'Tau_py',
@@ -143,7 +143,7 @@ def bdt( outpath = BDT_DIR ):
         
 def fit_xsec(var = "MET_met", file_name = "bdt_corr"):
     
-    import fit 
+    from ml import fit 
     
     sample_names = ["Data", "TTJets_bkg", "WZJets", "STJets", "QCD", "TTJets_signal"]
     result = fit.fit(HIST_DIR + "/" + file_name + ".root", sample_names, var, corr="down")
@@ -154,7 +154,7 @@ def fit_xsec(var = "MET_met", file_name = "bdt_corr"):
         
 def plot_postfit(variables, file_name):
 
-    import stack
+    from plotting import stack
     
     sample_names = ["TTJets_bkg", "WZJets", "STJets", "QCD", "TTJets_signal"]
     sfs = pd.read_hdf(COMBINE_DIR + "/roofit/result.h5")
