@@ -1,3 +1,6 @@
+import sys
+sys.path.insert(0,'..')
+
 import inferno_opendata
 import inferno_config
 

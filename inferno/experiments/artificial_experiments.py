@@ -1,3 +1,6 @@
+import sys
+sys.path.insert(0,'..')
+
 import inferno_opendata
 import inferno_config
 import numpy as np
@@ -64,7 +67,8 @@ for i in range(10):
     args_tenshift["shape_syst"] = ["artsig_aplanarity"]
     samples = inferno_opendata.run_cmsopen(args_tenshift, epochs = epochs, do_fit = True)
 """
-    
+
+"""
 # Shift with 10 models
 for i in range(10):
     path = basepath + "ten_all/"
@@ -80,7 +84,7 @@ for i in range(10):
         samples = inferno_opendata.run_cmsopen(args_tenshift, epochs = epochs, do_fit = True)
     except:
         print("Run failed")
-
+"""
     
 
 """
