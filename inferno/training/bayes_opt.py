@@ -1,4 +1,4 @@
-import train
+import training.train
 import pandas as pd
 import numpy as np
 from skopt.space import Real, Categorical, Integer

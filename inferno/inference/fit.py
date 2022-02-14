@@ -5,8 +5,8 @@ import uproot3
 import numpy as np
 import json
 import logging
-import plot
-import stack
+from plotting import plot
+from plotting import stack
 import inferno_config
 
     

@@ -4,14 +4,14 @@ warnings.simplefilter(action='ignore', category=FutureWarning)
 import os
 import numpy as np
 import pandas as pd
-import preproc
-import hep_model
-import train
-import fit
+from data import preproc 
+from training import hep_model
+from training import train
+from inference import fit
 import json
-import plot
-import stack
-import bayes_opt
+from plotting import plot
+from plotting import stack
+from training import bayes_opt
 
 
 def fit_cmsopen(args, fitvar, asimov = False):

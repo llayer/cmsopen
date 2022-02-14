@@ -7,7 +7,7 @@ from torch import optim, autograd, nn, Tensor
 import pandas as pd
 import numpy as np
 
-import hep_model
+import training.hep_model as hep_model
 
 def train_inferno(data, args, epochs=100 ):
     
