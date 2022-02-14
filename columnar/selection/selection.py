@@ -7,7 +7,7 @@ import numpy as np
 import object_selection
 import glob
 import jetmet
-import test_weights
+import weights
 
 
 def trigger_40(evt):
