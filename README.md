@@ -1,3 +1,6 @@
+
+[![DOI](https://zenodo.org/badge/274393227.svg)](https://zenodo.org/badge/latestdoi/274393227)
+
 # INFERNO for CMS Open Data
 Repository for the analysis of CMS open data
 
