@@ -1,4 +1,4 @@
-# cmsopen
+# INFERNO for CMS Open Data
 Repository for the analysis of CMS open data
 
 ## 1. NanoAOD production
