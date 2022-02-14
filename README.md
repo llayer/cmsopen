@@ -1,4 +1,7 @@
-# cmsopen
+[![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
+[![DOI](https://zenodo.org/badge/274393227.svg)](https://zenodo.org/badge/latestdoi/274393227)
+
+# INFERNO for CMS Open Data
 Repository for the analysis of CMS open data
 
 ## 1. NanoAOD production
