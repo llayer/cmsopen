@@ -1,7 +1,7 @@
 import sys
-sys.path.append('../columnar')
+sys.path.append('../columnar/plotting')
 
-import plot_artificial_syst
+from plotting import plot_artificial_syst
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt

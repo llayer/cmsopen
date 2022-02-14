@@ -1,10 +1,7 @@
-import sys
-sys.path.append('../inference')
-
-import create_dc
-import to_harvester
-import fit
-import plotScan
+from inference import create_dc
+from inference import to_harvester
+from inference import fit
+from plotting import plot
 import os
 import numpy as np
 import pandas as pd
@@ -84,4 +81,4 @@ if run_combine:
     if multi:
         print("Plotting likelihood scans")
         indir = FIT_DIR + "Fit/"
-        plotScan.plot_comp_nll(indir)
+        plot.plot_comp_nll(indir)
