@@ -30,7 +30,7 @@ args["fit_data"] = True
 basepath = "/home/centos/mount_point/data/artificial_experiments/"
 epochs = 100
 
-exp="skopt_nosyst"
+exp="opt_multiple_iter"
 
 # Skopt without systematics
 if exp == "skopt_nosyst":
@@ -59,7 +59,7 @@ if exp == "opt_multiple_iter":
                 path = basepath + "final_opt_all/"
                 all_args["outpath"] = path + "opt_" + str(i_exp) + "_run" + str(i)
                 all_args["shape_syst"] = ["jes"]
-                all_args["inferno_lr"] = lr
+                all_args["inferno_lr"] = lr_param
                 all_args["inferno_neurons"] = neurons
                 all_args["temperature"] = temp
                 all_args["bce_bins"] = 20
