@@ -2,7 +2,8 @@
 [![DOI](https://zenodo.org/badge/274393227.svg)](https://zenodo.org/badge/latestdoi/274393227)
 
 # INFERNO for CMS Open Data
-Repository for the analysis of CMS open data
+Repository for the study of the INFERNO algorithm (P. de Castro and T. Dorigo, Comp.\ Phys.\ Comm.\ 244 (2019) 170) with CMS Open Data. In order to test and benchmark the algorithm in a real-world application, a full, systematics-dominated analysis of the CMS experiment, “Measurement of the $\mathrm{t}\bar{\mathrm{t}}$ production cross section in the $\tau$+jets channel in pp collisions at $\sqrt{s}=7\ \mbox{TeV}$” (CMS Collaboration, The European Physical Journal C, 2013) is reproduced with CMS Open Data. The application of the INFERNO-powered neural network architecture to this analysis demonstrates the potential to reduce the impact of systematic uncertainties in real LHC analysis.
+
 
 ## 1. NanoAOD production
 The first step is to write out only the relevant information from the Open Data CMS AOD format. 
