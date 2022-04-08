@@ -30,7 +30,7 @@ args["fit_data"] = True
 basepath = "/home/centos/mount_point/data/artificial_experiments/"
 epochs = 100
 
-exp="opt_multiple_iter"
+exp="fit_69"
 
 # Skopt without systematics
 if exp == "skopt_nosyst":
@@ -299,7 +299,7 @@ if exp == "fit_69":
     all_args = args.copy()
     path = basepath + "optimization_all/run_69/"
     all_args["sample_path"] = path
-    all_args["outpath"] = path + "fit_final/"
+    all_args["outpath"] = path + "fit_final2/"
     all_args["bce_bins"] = 20
     all_args["fit_floatQCD"] = False
     all_args["fit_data"] = True
@@ -331,7 +331,7 @@ if exp == "fit_nosyst":
     all_args = args.copy()
     path = basepath + "nosyst/"
     all_args["sample_path"] = path
-    all_args["outpath"] = path + "fit_final/"
+    all_args["outpath"] = path + "fit_final2/"
     all_args["bce_bins"] = 20
     all_args["fit_floatQCD"] = True
     all_args["fit_data"] = True

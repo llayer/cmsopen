@@ -261,7 +261,7 @@ def plot_from_model(model_pred, data, config=None, log_scale = True, store=False
     if variable == "inferno":
         title = "INFERNO"
     elif variable == "bce":
-        title = "BCE"
+        title = "BCE score"
     else:
         title = variable
     
